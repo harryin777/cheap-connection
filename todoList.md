@@ -1,0 +1,232 @@
+# Todo List - V1 版本开发计划
+
+基于 CLAUDE.md 规划的 V1 功能范围，分解为以下开发阶段。
+
+---
+
+## 阶段 0: 项目基础设施 ✅
+
+### 0.1 项目初始化
+- [x] 创建 Xcode 项目 (SwiftUI + macOS)
+- [x] 配置最低系统版本 (macOS 15 Sequoia)
+- [x] 创建目录结构
+  ```
+  DatabaseClient/
+  ├── App/
+  ├── Features/
+  │   ├── Connections/
+  │   ├── MySQL/
+  │   └── Redis/
+  ├── Shared/
+  │   ├── Models/
+  │   ├── UI/
+  │   └── Services/
+  └── Infrastructure/
+      ├── Drivers/
+      ├── Security/
+      ├── Storage/
+      └── Logging/
+  ```
+
+### 0.2 基础模型定义
+- [x] 定义 `DatabaseKind` 枚举 (mysql / redis)
+- [x] 定义 `ConnectionConfig` 基础模型
+- [x] 定义 `AppError` 错误类型体系
+- [x] 定义通用分页模型 `PaginationState`
+
+---
+
+## 阶段 1: 连接管理基础 ✅
+
+### 1.1 安全存储层
+- [x] 实现 `KeychainService` 协议
+- [x] 密码存储 / 读取 / 删除
+- [x] 敏感信息脱敏处理
+
+### 1.2 本地持久化层
+- [x] 实现 `ConnectionRepository`
+- [x] 连接配置的 CRUD 操作
+- [x] 实现 `RecentHistoryRepository`
+- [x] 最近连接记录管理
+
+### 1.3 连接配置 UI
+- [x] 连接列表侧边栏
+- [x] 新建连接表单
+- [x] 编辑连接表单
+- [x] 删除连接确认对话框
+- [x] 连接图标 / 状态显示
+
+---
+
+## 阶段 2: MySQL 核心功能
+
+### 2.1 MySQL 驱动层
+- [ ] 定义 `MySQLClientProtocol` 协议
+- [ ] 集成 MySQL 驱动库 (选择: MySQLKit / CMySQL / 其他)
+- [ ] 实现 `MySQLClient` 适配器
+- [ ] 连接 / 断开 / 心跳检测
+- [ ] 错误映射到内部错误类型
+
+### 2.2 MySQL 领域模型
+- [ ] `MySQLConnectionConfig`
+- [ ] `MySQLSession` 运行时状态
+- [ ] `MySQLDatabaseSummary`
+- [ ] `MySQLTableSummary`
+- [ ] `MySQLColumnDefinition`
+- [ ] `MySQLQueryResult`
+- [ ] `MySQLRowValue`
+
+### 2.3 MySQL 服务层
+- [ ] `MySQLService` - 封装数据库操作
+- [ ] 获取数据库列表
+- [ ] 获取表列表
+- [ ] 获取表结构
+- [ ] 分页查询表数据
+- [ ] 执行任意 SQL
+
+### 2.4 MySQL UI - 数据浏览
+- [ ] 数据库列表视图
+- [ ] 表列表视图
+- [ ] 表结构视图 (列名 / 类型 / 约束)
+- [ ] 表数据浏览视图 (分页表格)
+- [ ] Loading / Empty / Error 状态处理
+
+### 2.5 MySQL UI - SQL 编辑器
+- [ ] SQL 文本编辑器
+- [ ] 执行按钮 / 快捷键
+- [ ] 查询结果展示
+- [ ] 执行信息 (耗时 / 影响行数)
+- [ ] 基础执行历史
+
+### 2.6 MySQL 安全防护
+- [ ] 高风险 SQL 检测 (DROP / TRUNCATE / 无条件 DELETE)
+- [ ] 危险操作确认对话框
+
+### 2.7 MySQL 文件导入
+- [ ] 导入 .sql 文件功能
+- [ ] 文件选择对话框
+- [ ] 导入进度 / 结果反馈
+
+---
+
+## 阶段 3: Redis 核心功能
+
+### 3.1 Redis 驱动层
+- [ ] 定义 `RedisClientProtocol` 协议
+- [ ] 集成 Redis 驱动库 (选择: RediStack / 其他)
+- [ ] 实现 `RedisClient` 适配器
+- [ ] 连接 / 断开 / PING 检测
+- [ ] 错误映射到内部错误类型
+
+### 3.2 Redis 领域模型
+- [ ] `RedisConnectionConfig`
+- [ ] `RedisSession` 运行时状态
+- [ ] `RedisKeySummary`
+- [ ] `RedisKeyDetail`
+- [ ] `RedisValueType` 枚举
+- [ ] `RedisCommandResult`
+
+### 3.3 Redis 服务层
+- [ ] `RedisService` - 封装 Redis 操作
+- [ ] SCAN 增量扫描 key
+- [ ] 获取 key 类型 (TYPE)
+- [ ] 获取 TTL (TTL / PTTL)
+- [ ] 获取各类型 value (GET / HGETALL / LRANGE / SMEMBERS / ZRANGE)
+
+### 3.4 Redis UI - Key 浏览
+- [ ] Key 列表视图 (增量加载)
+- [ ] Key 搜索功能
+- [ ] Key 详情面板
+- [ ] 类型 / TTL 显示
+
+### 3.5 Redis UI - Value 展示
+- [ ] String 类型展示
+- [ ] Hash 类型展示 (键值表格)
+- [ ] List 类型展示 (有序列表)
+- [ ] Set 类型展示 (列表)
+- [ ] ZSet 类型展示 (member + score 表格)
+- [ ] 大 value 预览 / 按需加载
+
+### 3.6 Redis UI - 命令执行
+- [ ] 命令输入界面
+- [ ] 命令执行 / 结果展示
+- [ ] 基础命令历史
+
+### 3.7 Redis 安全防护
+- [ ] 高风险命令检测 (FLUSHDB / FLUSHALL / 大规模删除)
+- [ ] 危险操作确认对话框
+
+---
+
+## 阶段 4: 通用功能完善
+
+### 4.1 用户体验
+- [ ] 深色模式支持
+- [ ] 全局快捷键
+- [ ] 常用操作快捷键 (新建连接 / 执行 / 刷新)
+- [ ] 窗口状态记忆
+
+### 4.2 设置页
+- [ ] 基础设置 UI
+- [ ] 默认行数限制设置
+- [ ] 连接超时设置
+- [ ] 外观设置
+
+### 4.3 日志系统
+- [ ] 结构化日志实现
+- [ ] Debug 模式日志开关
+- [ ] 敏感信息脱敏
+
+### 4.4 最近连接
+- [x] 最近连接列表
+- [x] 快速连接入口
+
+---
+
+## 阶段 5: 测试与优化
+
+### 5.1 单元测试
+- [ ] 连接配置校验测试
+- [ ] 错误映射测试
+- [ ] 结果转换逻辑测试
+- [ ] 分页逻辑测试
+- [ ] Redis value 格式化测试
+- [ ] ViewModel 状态流转测试
+
+### 5.2 集成测试
+- [ ] MySQL 连接测试
+- [ ] MySQL 基础查询测试
+- [ ] Redis 连接测试
+- [ ] Redis 基础命令测试
+
+### 5.3 UI 测试
+- [ ] 新建 / 编辑 / 删除连接
+- [ ] MySQL 连接和数据浏览
+- [ ] Redis 连接和 key 浏览
+- [ ] 错误提示展示
+
+### 5.4 性能优化
+- [ ] 启动速度优化
+- [ ] 大数据集加载测试
+- [ ] 内存占用监控
+
+---
+
+## 里程碑节点
+
+| 里程碑 | 目标 | 状态 |
+|--------|------|------|
+| M1 | 阶段 0-1 完成，可管理连接配置 | ✅ |
+| M2 | 阶段 2 完成，MySQL 核心功能可用 | 🔲 |
+| M3 | 阶段 3 完成，Redis 核心功能可用 | 🔲 |
+| M4 | 阶段 4 完成，通用功能完善 | 🔲 |
+| M5 | 阶段 5 完成，V1 发布就绪 | 🔲 |
+
+---
+
+## 状态说明
+
+- 🔲 未开始
+- 🔄 进行中
+- ✅ 已完成
+- ⏸️ 暂停
