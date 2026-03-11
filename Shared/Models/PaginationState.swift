@@ -52,6 +52,11 @@ struct PaginationState: Equatable {
         page > 1
     }
 
+    /// 是否有下一页
+    var hasNext: Bool {
+        hasMore
+    }
+
     /// 下一页
     mutating func nextPage() {
         page += 1

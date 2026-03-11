@@ -4,6 +4,20 @@
 
 ---
 
+## UI 设计原则
+
+**与 DataGrip 保持一致的 UI 风格：**
+
+- **左侧边栏**：树形结构显示数据库连接，可展开查看数据库/表层级
+- **主工作区**：标签页式布局（Console、数据编辑器等）
+- **数据表格**：紧凑、专业、列头固定、行号显示、斑马纹
+- **SQL 编辑器**：顶部工具栏，执行按钮、历史记录下拉
+- **整体风格**：紧凑、信息密度高、深浅色模式支持
+- **工具栏**：简洁的图标按钮，hover 提示
+- **状态栏**：显示连接状态、查询信息
+
+---
+
 ## 阶段 0: 项目基础设施 ✅
 
 ### 0.1 项目初始化
@@ -58,54 +72,79 @@
 
 ---
 
-## 阶段 2: MySQL 核心功能
+## 阶段 2: MySQL 核心功能 🔄
 
 ### 2.1 MySQL 驱动层
-- [ ] 定义 `MySQLClientProtocol` 协议
-- [ ] 集成 MySQL 驱动库 (选择: MySQLKit / CMySQL / 其他)
-- [ ] 实现 `MySQLClient` 适配器
-- [ ] 连接 / 断开 / 心跳检测
-- [ ] 错误映射到内部错误类型
+- [x] 定义 `MySQLClientProtocol` 协议
+- [x] 实现 `MySQLErrorMapper` 错误映射器
+- [x] 实现 `MySQLClient` 适配器 (待添加 MySQLKit 依赖)
+- [ ] 集成 MySQLKit SPM 依赖
+- [ ] 连接 / 断开 / 心跳检测测试
 
 ### 2.2 MySQL 领域模型
-- [ ] `MySQLConnectionConfig`
-- [ ] `MySQLSession` 运行时状态
-- [ ] `MySQLDatabaseSummary`
-- [ ] `MySQLTableSummary`
-- [ ] `MySQLColumnDefinition`
-- [ ] `MySQLQueryResult`
-- [ ] `MySQLRowValue`
+- [x] `MySQLConnectionConfig`
+- [x] `MySQLSession` 运行时状态
+- [x] `MySQLDatabaseSummary`
+- [x] `MySQLTableSummary`
+- [x] `MySQLColumnDefinition`
+- [x] `MySQLQueryResult`
+- [x] `MySQLRowValue`
+- [x] `SQLRiskLevel` SQL风险分析
 
 ### 2.3 MySQL 服务层
-- [ ] `MySQLService` - 封装数据库操作
-- [ ] 获取数据库列表
-- [ ] 获取表列表
-- [ ] 获取表结构
-- [ ] 分页查询表数据
-- [ ] 执行任意 SQL
+- [x] `MySQLService` - 封装数据库操作
+- [x] 获取数据库列表
+- [x] 获取表列表
+- [x] 获取表结构
+- [x] 分页查询表数据
+- [x] 执行任意 SQL
 
-### 2.4 MySQL UI - 数据浏览
-- [ ] 数据库列表视图
-- [ ] 表列表视图
-- [ ] 表结构视图 (列名 / 类型 / 约束)
-- [ ] 表数据浏览视图 (分页表格)
-- [ ] Loading / Empty / Error 状态处理
+### 2.4 MySQL UI - DataGrip 风格 ✅
+- [x] `MySQLWorkspaceView` 主工作区布局
+- [x] `MySQLSidebarView` 树形侧边栏 (替代原 DatabaseListView + TableListView)
+- [x] `MySQLStructureView` 表结构视图
+- [x] `MySQLDataView` 数据浏览视图
+- [x] **UI 风格调整** - 对齐 DataGrip
+  - [x] 更新 todoList/doneList 添加设计目标
+  - [x] `MySQLDatabaseSummary` 添加 tables 属性
+  - [x] 创建 `MySQLSidebarView` 树形侧边栏
+  - [x] 重写 `MySQLWorkspaceView` 主布局
+  - [x] 重写 `MySQLResultView` 紧凑表格样式
+  - [x] 重写 `MySQLDataView` 工具栏和表格优化
+  - [x] 重写 `MySQLStructureView` 表格样式优化
+  - [x] 重写 `MySQLEditorView` 工具栏优化
+  - [x] 修改 `MainView` 集成 MySQLWorkspaceView
+  - [x] 删除冗余文件 (MySQLDatabaseListView, MySQLTableListView)
 
 ### 2.5 MySQL UI - SQL 编辑器
-- [ ] SQL 文本编辑器
-- [ ] 执行按钮 / 快捷键
-- [ ] 查询结果展示
-- [ ] 执行信息 (耗时 / 影响行数)
-- [ ] 基础执行历史
+- [x] `MySQLEditorView` SQL编辑器
+- [x] 执行按钮 / Cmd+Enter 快捷键
+- [x] `MySQLResultView` 查询结果展示
+- [x] 执行信息 (耗时 / 影响行数)
+- [x] 基础执行历史
+- [ ] SQL 编辑器工具栏优化
 
 ### 2.6 MySQL 安全防护
-- [ ] 高风险 SQL 检测 (DROP / TRUNCATE / 无条件 DELETE)
-- [ ] 危险操作确认对话框
+- [x] 高风险 SQL 检测 (DROP / TRUNCATE / 无条件 DELETE)
+- [x] 危险操作确认对话框
 
 ### 2.7 MySQL 文件导入
 - [ ] 导入 .sql 文件功能
 - [ ] 文件选择对话框
 - [ ] 导入进度 / 结果反馈
+
+### 2.8 集成
+- [ ] **手动操作：将以下文件添加到 Xcode 项目**
+  - `Infrastructure/Drivers/MySQLClientProtocol.swift`
+  - `Infrastructure/Drivers/MySQLErrorMapper.swift`
+  - `Infrastructure/Drivers/MySQLClient.swift`
+  - `Features/MySQL/Models/` (8个文件)
+  - `Features/MySQL/Services/MySQLService.swift`
+  - `Features/MySQL/Views/` (5个文件, MySQLSidebarView.swift 已添加)
+  - `Shared/Models/OrderDirection.swift`
+  - `Features/Redis/Views/RedisWorkspaceView.swift`
+- [ ] **删除根目录重复文件**: `/MySQLSidebarView.swift`
+- [x] 更新 MainView.swift 集成 MySQLWorkspaceView
 
 ---
 

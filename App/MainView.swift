@@ -63,34 +63,17 @@ struct MainView: View {
     }
 }
 
-/// 连接详情视图（占位）
+/// 连接详情视图
 struct ConnectionDetailView: View {
     let config: ConnectionConfig
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: config.databaseKind.iconName)
-                .font(.system(size: 48))
-                .foregroundStyle(Color.accentColor)
-
-            Text(config.name)
-                .font(.title)
-
-            VStack(spacing: 8) {
-                Text(config.connectionDescription)
-                    .foregroundStyle(.secondary)
-
-                if let db = config.defaultDatabase {
-                    Text("数据库: \(db)")
-                        .foregroundStyle(.tertiary)
-                }
-            }
-
-            Text("连接功能开发中...")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+        switch config.databaseKind {
+        case .mysql:
+            MySQLWorkspaceView(connectionConfig: config)
+        case .redis:
+            RedisWorkspaceView(connectionConfig: config)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

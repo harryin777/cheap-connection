@@ -40,7 +40,10 @@ final class RecentHistoryRepository: RecentHistoryRepositoryProtocol, @unchecked
 
     /// 存储目录
     private var storageDirectory: URL {
-        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            // 在 macOS 上这个目录应该总是存在，但为了安全使用临时目录作为回退
+            return URL(fileURLWithPath: NSTemporaryDirectory())
+        }
         let bundleId = Bundle.main.bundleIdentifier ?? "com.yzz.cheap-connection"
         return appSupport.appendingPathComponent(bundleId)
     }
