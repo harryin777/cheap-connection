@@ -276,6 +276,22 @@
 - [x] 2026-03-12: 明确 SQL 预处理只作用于最终执行范围
 - [x] 2026-03-12: 新增 EditorQueryTab 模型用于管理外部 .sql 文件
 
+### 2.18 Query Context 与资源树解耦
+- [x] 2026-03-12: 把左侧资源树选择状态与右侧 query 文件执行上下文彻底拆开
+  - selectedConnectionId / selectedDatabaseName / selectedTableName 只用于资源树浏览
+  - EditorQueryTab 新增独立上下文字段：queryConnectionId / queryConnectionName / queryDatabaseName
+- [x] 2026-03-12: 右上角 connection pill 改成真实可切换的连接列表
+  - 支持切换到其他已保存连接
+  - 不再与左侧资源树当前高亮连接强绑定
+- [x] 2026-03-12: 右上角 schema/database pill 列表跟随当前 queryConnectionId 动态刷新
+  - 新增 connectionDatabaseCache 按连接 ID 缓存数据库列表
+  - 异步加载其他连接的数据库列表
+- [x] 2026-03-12: 左侧点击连接/数据库/表时只影响资源树浏览态和结构/数据面板
+  - 不再污染当前 query 文件的执行上下文
+- [x] 2026-03-12: query connection 切换后自动校验旧 queryDatabase 是否有效
+  - 无效时回退到默认数据库
+- [x] 2026-03-12: 清理所有相关 GPT 注释
+
 ---
 
 ## Redis 功能
