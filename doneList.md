@@ -248,6 +248,13 @@
   - 显示执行进度和结果统计
   - 注：此功能用于导入并执行 .sql 文件（如数据迁移）
 
+### 2.16 MySQL UI 优化
+- [x] 2026-03-12: 修复 Query Tab 关闭按钮功能
+  - 扩大按钮点击区域（使用 contentShape(Rectangle())）
+  - 更换图标为 xmark.circle.fill，提升可见性
+  - 添加 onCloseTab 回调，关闭时清空查询结果
+  - 增加按钮 frame 尺寸，提升可点击性
+
 ---
 
 ## Redis 功能

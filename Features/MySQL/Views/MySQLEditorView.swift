@@ -64,6 +64,7 @@ struct MySQLEditorView: View {
     let onSelectHistory: (String) -> Void
     var onImport: (() async -> Void)? = nil  // 导入回调
     var onOpenFile: (() async -> Void)? = nil  // 打开文件回调
+    var onCloseTab: (() -> Void)? = nil  // 关闭 Tab 回调
     var queryDatabases: [String] = []  // SQL 可执行数据库列表
     var selectedQueryDatabase: String? = nil  // 当前 SQL 执行数据库
     var onSelectQueryDatabase: (String?) -> Void = { _ in }  // 选择数据库回调
@@ -281,11 +282,13 @@ struct MySQLEditorView: View {
                 Button {
                     closeCurrentQueryTab()
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .bold))
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .frame(width: 20, height: 20)
                 .help("关闭当前 Query")
             }
             .padding(.horizontal, 10)
@@ -502,10 +505,13 @@ struct MySQLEditorView: View {
     }
 
     private func closeCurrentQueryTab() {
+        // 先清空内容
         sqlText = ""
         showAutocomplete = false
         autocompleteSuggestions = []
         selectedSuggestionIndex = 0
+        // 调用关闭回调
+        onCloseTab?()
     }
 
     // MARK: - Autocomplete

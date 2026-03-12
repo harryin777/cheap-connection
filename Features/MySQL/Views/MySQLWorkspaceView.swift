@@ -159,6 +159,10 @@ struct MySQLWorkspaceView: View {
                     onOpenFile: {
                         await openSQLFile()
                     },
+                    onCloseTab: {
+                        // 关闭 Query Tab 时清空结果
+                        sqlResult = nil
+                    },
                     queryDatabases: sqlDatabaseOptions,
                     selectedQueryDatabase: sqlExecutionDatabase,
                     onSelectQueryDatabase: { database in
