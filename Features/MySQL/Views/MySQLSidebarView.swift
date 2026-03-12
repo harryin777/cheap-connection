@@ -10,6 +10,7 @@ import SwiftUI
 /// MySQL侧边栏视图 - 树形数据库/表结构
 struct MySQLSidebarView: View {
     @Binding var databases: [MySQLDatabaseSummary]
+    let connectionName: String  // 连接名称
     let selectedDatabase: String?
     let selectedTable: String?
     let onSelectDatabase: (String?) -> Void
@@ -21,14 +22,10 @@ struct MySQLSidebarView: View {
 
     // 展开状态
     @State private var expandedDatabases: Set<String> = []
+    @State private var isConnectionExpanded = true  // 连接节点默认展开
 
     var body: some View {
         VStack(spacing: 0) {
-            // 工具栏
-            toolbarView
-
-            Divider()
-
             // 树形列表
             if databases.isEmpty && !isLoading {
                 emptyStateView
@@ -41,93 +38,144 @@ struct MySQLSidebarView: View {
 
     // MARK: - Subviews
 
-    private var toolbarView: some View {
-        HStack(spacing: 4) {
-            // 刷新按钮
-            Button {
-                Task {
-                    await onRefresh()
+    private var treeListView: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                // 连接节点（顶层）
+                connectionNode
+
+                // 数据库列表
+                if isConnectionExpanded {
+                    ForEach(databases) { database in
+                        databaseRow(database)
+                    }
                 }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 12))
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-            .disabled(isLoading)
-            .help("刷新")
-
-            // 收起全部
-            Button {
-                expandedDatabases.removeAll()
-            } label: {
-                Image(systemName: "rectangle.compress.vertical")
-                    .font(.system(size: 12))
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-            .help("收起全部")
-
-            Spacer()
-
-            // 加载指示器
-            if isLoading {
-                ProgressView()
-                    .frame(width: 12, height: 12)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color(.windowBackgroundColor))
+    }
+
+    // MARK: - Connection Node
+
+    private var connectionNode: some View {
+        VStack(spacing: 0) {
+            // 连接行
+            HStack(spacing: 6) {
+                // 展开/折叠箭头
+                Image(systemName: isConnectionExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16, height: 16)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            isConnectionExpanded.toggle()
+                        }
+                    }
+
+                // 连接图标
+                Image(systemName: "cylinder.split.1x2")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.blue)
+
+                // 连接名称
+                Text(connectionName)
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+
+                Spacer()
+
+                // 数据库数量
+                if !databases.isEmpty {
+                    Text("\(databases.count)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .monospacedDigit()
+                }
+
+                // 刷新按钮
+                Button {
+                    Task {
+                        await onRefresh()
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11))
+                        .foregroundStyle(isLoading ? .tertiary : .secondary)
+                        .rotationEffect(.degrees(isLoading ? 360 : 0))
+                        .animation(isLoading ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isLoading)
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoading)
+                .help("刷新数据库列表")
+
+                // 收起按钮
+                Button {
+                    expandedDatabases.removeAll()
+                } label: {
+                    Image(systemName: "rectangle.compress.vertical")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("收起全部数据库")
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color(.windowBackgroundColor))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isConnectionExpanded.toggle()
+                }
+            }
+
+            // 分隔线
+            if isConnectionExpanded {
+                Divider()
+                    .padding(.leading, 24)
+            }
+        }
     }
 
     private var emptyStateView: some View {
         VStack(spacing: 12) {
-            Image(systemName: "cylinder.split.1x2")
-                .font(.system(size: 32))
-                .foregroundStyle(.tertiary)
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                Text("加载中...")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            } else {
+                Image(systemName: "cylinder.split.1x2")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.tertiary)
 
-            Text("暂无数据库")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text("无数据库")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
 
-            Button("刷新") {
-                Task {
-                    await onRefresh()
-                }
+                Text("连接后自动加载")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var treeListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(databases) { database in
-                    databaseRow(database)
-                }
-            }
-        }
     }
 
     // MARK: - Database Row
 
     private func databaseRow(_ database: MySQLDatabaseSummary) -> some View {
         VStack(spacing: 0) {
-            // 数据库行
-            HStack(spacing: 4) {
-                // 展开按钮
-                Button {
-                    toggleDatabase(database.name)
-                } label: {
-                    Image(systemName: expandedDatabases.contains(database.name) ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .medium))
-                        .frame(width: 16, height: 16)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
+            HStack(spacing: 6) {
+                // 展开/折叠箭头
+                Image(systemName: expandedDatabases.contains(database.name) ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16, height: 16)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        toggleDatabase(database.name)
+                    }
 
                 // 数据库图标
                 Image(systemName: database.isSystemDatabase ? "cylinder.fill" : "cylinder")
@@ -136,7 +184,7 @@ struct MySQLSidebarView: View {
 
                 // 数据库名称
                 Text(database.name)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 12))
                     .lineLimit(1)
 
                 Spacer()
@@ -151,6 +199,7 @@ struct MySQLSidebarView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
+            .padding(.leading, 20)  // 缩进
             .background(
                 selectedDatabase == database.name && selectedTable == nil
                     ? Color.accentColor.opacity(0.15)
@@ -192,17 +241,13 @@ struct MySQLSidebarView: View {
                 }
                 .padding(.vertical, 8)
             } else {
-                // 需要加载
-                Button("加载表...") {
-                    Task {
-                        await onLoadTables(database.name)
+                // 需要加载 - 自动触发
+                Color.clear
+                    .onAppear {
+                        Task {
+                            await onLoadTables(database.name)
+                        }
                     }
-                }
-                .buttonStyle(.plain)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .padding(.vertical, 4)
-                .frame(maxWidth: .infinity)
             }
         }
         .padding(.leading, 20)
@@ -214,7 +259,7 @@ struct MySQLSidebarView: View {
             .foregroundStyle(.tertiary)
             .padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 24)
+            .padding(.leading, 44)
     }
 
     // MARK: - Table Row
@@ -246,7 +291,7 @@ struct MySQLSidebarView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
-        .padding(.leading, 24)
+        .padding(.leading, 44)  // 额外缩进
         .background(
             selectedDatabase == database && selectedTable == table.name
                 ? Color.accentColor.opacity(0.15)
@@ -290,6 +335,7 @@ struct MySQLSidebarView: View {
 
     MySQLSidebarView(
         databases: .constant(databases),
+        connectionName: "aliyun",
         selectedDatabase: nil,
         selectedTable: nil,
         onSelectDatabase: { _ in },

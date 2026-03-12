@@ -186,6 +186,7 @@ struct MySQLWorkspaceView: View {
                 // 左侧：树形侧边栏
                 MySQLSidebarView(
                     databases: $databases,
+                    connectionName: connectionConfig.name,
                     selectedDatabase: selectedDatabase,
                     selectedTable: selectedTable,
                     onSelectDatabase: { db in
