@@ -292,6 +292,19 @@
   - 无效时回退到默认数据库
 - [x] 2026-03-12: 清理所有相关 GPT 注释
 
+### 2.19 MySQL Bug 修复
+- [x] 2026-03-12: 修复 SQL 结果网格列头固定问题
+  - 使用 LazyVStack + pinnedViews: [.sectionHeaders] 实现固定表头
+  - 纵向滚动时列名保持固定在顶部（DataGrip 风格）
+- [x] 2026-03-12: 修复 Query Connection 切换时状态同步问题
+  - 使用整体替换方式更新 editorTabs 元素，确保 SwiftUI 检测到变化
+  - 切换连接时先同步更新 UI 状态（queryConnectionId/Name/Database=nil）
+  - 然后异步获取新连接的数据库列表并设置默认库
+- [x] 2026-03-12: 修复 Query Database Options 残留旧连接库名问题
+  - 切换连接时不再短暂复用旧连接的 databases 列表
+  - 只从缓存或新连接的实时拉取结果获取数据库列表
+- [x] 2026-03-12: 清理所有 GPT TODO 注释
+
 ---
 
 ## Redis 功能

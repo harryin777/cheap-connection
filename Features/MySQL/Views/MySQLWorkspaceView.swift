@@ -143,7 +143,8 @@ struct MySQLWorkspaceView: View {
             // 当前 workspace 连接，直接返回已加载的数据库
             return databases.map(\.name).sorted()
         } else {
-            // 其他连接，从缓存获取
+            // 其他连接，只从缓存获取（不回退到旧连接的 databases）
+            // 如果缓存中没有，返回空数组，触发异步加载
             return connectionDatabaseCache[connId]?.sorted() ?? []
         }
     }
@@ -1004,30 +1005,34 @@ struct MySQLWorkspaceView: View {
         guard let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) else { return }
         guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else { return }
 
-        let oldDatabase = editorTabs[tabIndex].queryDatabaseName
-
-        // 更新 tab 的连接上下文
-        editorTabs[tabIndex].queryConnectionId = connectionId
-        editorTabs[tabIndex].queryConnectionName = connection.name
-
-        // 检查旧数据库是否仍有效，无效则清空
-        if let oldDb = oldDatabase {
-            Task {
-                let databases = await fetchDatabasesForConnection(connectionId)
-                if !databases.contains(oldDb) {
-                    // 旧数据库不在新连接中，回退到默认数据库
-                    editorTabs[tabIndex].queryDatabaseName = connection.defaultDatabase ?? databases.first
-                }
-            }
-        } else {
-            // 没有旧数据库，设置默认
-            Task {
-                let databases = await fetchDatabasesForConnection(connectionId)
-                editorTabs[tabIndex].queryDatabaseName = connection.defaultDatabase ?? databases.first
-            }
-        }
+        // 步骤 1: 同步更新 UI 状态（立即生效）
+        // 使用整体替换方式确保 SwiftUI 检测到变化
+        var updatedTab = editorTabs[tabIndex]
+        updatedTab.queryConnectionId = connectionId
+        updatedTab.queryConnectionName = connection.name
+        updatedTab.queryDatabaseName = nil
+        editorTabs[tabIndex] = updatedTab
 
         print("🔄 Switched query connection to: \(connection.name)")
+
+        // 步骤 2: 异步获取新连接的数据库列表，然后设置默认库
+        Task {
+            let databases = await fetchDatabasesForConnection(connectionId)
+            // 在主线程更新数据库选择
+            await MainActor.run {
+                guard let currentTabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }),
+                      currentTabIndex == tabIndex else { return }
+
+                // 优先使用连接配置的默认数据库，否则使用列表第一个
+                let defaultDb = connection.defaultDatabase ?? databases.first
+
+                // 再次使用整体替换方式更新
+                var tabToUpdate = editorTabs[currentTabIndex]
+                tabToUpdate.queryDatabaseName = defaultDb
+                editorTabs[currentTabIndex] = tabToUpdate
+                print("📊 Loaded \(databases.count) databases for \(connection.name), selected: \(defaultDb ?? "nil")")
+            }
+        }
     }
 
     /// 更新当前活动 tab 的 query 数据库
