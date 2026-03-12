@@ -136,6 +136,8 @@ struct ConnectionListView: View {
             .background(connectionSelectionBackground(for: config))
             .contentShape(Rectangle())
             .onTapGesture {
+                // GPT TODO: 左侧连接树点击这里只应该更新 explorer/resource selection。
+                // GPT TODO: glm5 在完成 query context 解耦后，不能让这里的点击再直接改动右侧 query 文件的 connection/schema pill。
                 selectConnection(config)
             }
             .contextMenu {
@@ -213,6 +215,7 @@ struct ConnectionListView: View {
             .background(databaseSelectionBackground(database.name, in: config))
             .contentShape(Rectangle())
             .onTapGesture {
+                // GPT TODO: 左侧数据库节点点击只影响资源浏览态，不应重置当前 query 文件的 queryDatabase。
                 connectionManager.selectConnection(config.id, database: database.name, table: nil)
             }
 
@@ -298,6 +301,8 @@ struct ConnectionListView: View {
         .background(tableSelectionBackground(database: database, table: table.name, in: config))
         .contentShape(Rectangle())
         .onTapGesture {
+            // GPT TODO: 这里打开表详情时，右侧 query 文件上下文必须保持独立；
+            // GPT TODO: glm5 需要确保选表只驱动 structure/data 面板，不污染 query connection/schema pill。
             connectionManager.selectConnection(config.id, database: database, table: table.name)
         }
     }

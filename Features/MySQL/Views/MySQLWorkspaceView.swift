@@ -22,6 +22,29 @@ enum MySQLDetailTab: String, CaseIterable {
     }
 }
 
+/// 工作区显示模式 - 互斥状态
+enum WorkspaceDisplayMode: Equatable {
+    /// 默认编辑态：只展示 query 编辑内容
+    case editorOnly
+    /// SQL 结果态：执行 SQL 后显示结果面板
+    case sqlResult
+    /// 表详情态：点击左侧具体表后显示结构/数据
+    case tableDetail(MySQLDetailTab)
+
+    static func == (lhs: WorkspaceDisplayMode, rhs: WorkspaceDisplayMode) -> Bool {
+        switch (lhs, rhs) {
+        case (.editorOnly, .editorOnly):
+            return true
+        case (.sqlResult, .sqlResult):
+            return true
+        case (.tableDetail(let lTab), .tableDetail(let rTab)):
+            return lTab == rTab
+        default:
+            return false
+        }
+    }
+}
+
 /// MySQL工作区视图
 struct MySQLWorkspaceView: View {
     let connectionConfig: ConnectionConfig
@@ -39,8 +62,20 @@ struct MySQLWorkspaceView: View {
     @State private var selectedTable: String?
     @State private var selectedTab: MySQLDetailTab = .data
     @State private var sqlExecutionDatabase: String?
-    @State private var sqlText = ""
     @State private var sqlHistory: [String] = []
+    // GPT TODO: 这里的 selectedDatabase / selectedTable 是左侧资源树驱动的浏览状态，
+    // GPT TODO: sqlExecutionDatabase 目前则被错误地当成“整个工作区唯一的 query 执行数据库”。
+    // GPT TODO: glm5 需要把 query context 下沉到 EditorQueryTab 或独立 query session 模型中，
+    // GPT TODO: 让每个 query 文件都有自己的 queryConnectionId / queryDatabaseName，
+    // GPT TODO: 不能继续用这份 workspace 级别的单例状态承载所有 query 文件上下文。
+
+    // Query Tab 状态
+    @State private var editorTabs: [EditorQueryTab] = []
+    @State private var activeEditorTabId: UUID?
+    @State private var sqlText = ""  // 当前 SQL 文本
+
+    // 工作区显示模式
+    @State private var displayMode: WorkspaceDisplayMode = .editorOnly
 
     // Loading states
     @State private var isLoadingDatabases = false
@@ -79,6 +114,10 @@ struct MySQLWorkspaceView: View {
 
     /// SQL 可执行数据库名称列表
     private var sqlDatabaseOptions: [String] {
+        // GPT TODO: 这里直接返回当前 workspace connectionConfig 对应连接的 databases，
+        // GPT TODO: 所以当右上角 query connection pill 切到另一个连接时，这里的库列表不会跟着切。
+        // GPT TODO: glm5 需要改成“按活动 query tab 的 queryConnectionId 查对应连接的数据库列表”，
+        // GPT TODO: 绝不能再直接依赖当前 workspace 自己 fetch 到的 databases。
         databases.map(\.name).sorted()
     }
 
@@ -122,6 +161,10 @@ struct MySQLWorkspaceView: View {
                 connectionManager.selectedTableName = newTable
             }
         }
+        .onChange(of: sqlText) { _, newValue in
+            // 同步 sqlText 到当前活动的 tab
+            syncSQLTextToActiveTab()
+        }
         .alert("错误", isPresented: $showError) {
             Button("确定", role: .cancel) { }
         } message: {
@@ -145,8 +188,9 @@ struct MySQLWorkspaceView: View {
         }
         .onChange(of: selectedTable) { _, newTable in
             if let table = newTable, let db = selectedDatabase {
-                // 选中表时默认切换到数据标签
+                // 选中表时切换到表详情模式，默认显示数据标签
                 selectedTab = .data
+                displayMode = .tableDetail(.data)
                 Task {
                     await loadTableStructure(database: db, table: table)
                     await loadTableData(database: db, table: table)
@@ -159,62 +203,82 @@ struct MySQLWorkspaceView: View {
 
     private var connectedView: some View {
         VStack(spacing: 0) {
-            // 顶部：SQL 编辑器 + 查询结果（可拖拽调整大小）
-            VSplitView {
-                // SQL 编辑器
-                MySQLEditorView(
-                    sqlText: $sqlText,
-                    history: sqlHistory,
-                    isExecuting: isLoadingSQL,
-                    onExecute: { sql in
-                        await executeSQL(sql)
-                    },
-                    onSelectHistory: { sql in
-                        sqlText = sql
-                    },
-                    onImport: {
-                        await importSQLFile()
-                    },
-                    onOpenFile: {
-                        await openSQLFile()
-                    },
-                    onCloseTab: {
-                        // 关闭 Query Tab 时清空结果
-                        sqlResult = nil
-                    },
-                    queryDatabases: sqlDatabaseOptions,
-                    selectedQueryDatabase: sqlExecutionDatabase,
-                    onSelectQueryDatabase: { database in
-                        sqlExecutionDatabase = database
-                    },
-                    tables: currentDatabaseTables,
-                    columns: columns
-                )
-                .frame(minHeight: 100, idealHeight: 200)
+            // 顶部：SQL 编辑器（始终显示）
+            MySQLEditorView(
+                sqlText: $sqlText,
+                history: sqlHistory,
+                // GPT TODO: 这里现在把 connectionConfig.name 直接当成右上角 query connection pill 的标题来源，
+                // GPT TODO: 因而右上角永远跟着当前 workspace 连接走，无法独立代表当前 query 文件的连接上下文。
+                // GPT TODO: glm5 需要改为传入“活动 query tab 的 connectionName / 可选连接列表 / 切换回调”，
+                // GPT TODO: 而不是传 workspace 自己的 connectionConfig.name。
+                connectionName: connectionConfig.name,
+                isExecuting: isLoadingSQL,
+                activeWorkspaceTab: displayMode == .editorOnly ? nil : selectedTab,
+                onExecute: { sql in
+                    await executeSQL(sql)
+                },
+                onSelectHistory: { sql in
+                    sqlText = sql
+                },
+                onSelectWorkspaceTab: { tab in
+                    selectedTab = tab
+                    // 切换结构/数据 tab 时更新 displayMode
+                    displayMode = .tableDetail(tab)
+                },
+                onImport: {
+                    await importSQLFile()
+                },
+                onOpenFile: {
+                    await openSQLFile()
+                },
+                onCloseTab: {
+                    closeActiveEditorTab()
+                },
+                queryDatabases: sqlDatabaseOptions,
+                selectedQueryDatabase: sqlExecutionDatabase,
+                onSelectQueryDatabase: { database in
+                    sqlExecutionDatabase = database
+                },
+                tables: currentDatabaseTables,
+                columns: columns,
+                // Query Tab 相关
+                editorTabs: editorTabs,
+                activeEditorTabId: activeEditorTabId,
+                onSelectEditorTab: { tabId in
+                    selectEditorTab(tabId)
+                },
+                onCloseEditorTab: { tabId in
+                    closeEditorTab(tabId)
+                }
+            )
+            .frame(minHeight: 120)
 
-                // 查询结果区域
+            // 下方内容区域：根据显示模式互斥显示
+            switch displayMode {
+            case .editorOnly:
+                // 默认态：不显示任何下方面板
+                EmptyView()
+
+            case .sqlResult:
+                // SQL 结果态：只显示 SQL 结果面板
+                Divider()
                 sqlResultArea
-                    .frame(minHeight: 100, idealHeight: 150)
+                    .frame(minHeight: 100, maxHeight: .infinity)
+
+            case .tableDetail:
+                // 表详情态：只显示结构/数据面板
+                Divider()
+                detailView
+                    .frame(minWidth: 400, maxHeight: .infinity)
             }
-            .frame(maxHeight: 350)
-
-            Divider()
-
-            // 底部详情区域（结构和数据）
-            detailView
-                .frame(minWidth: 400)
         }
     }
 
     @ViewBuilder
     private var detailView: some View {
+        // 只有选中了表才显示内容，不显示空状态
         if let table = selectedTable, let db = selectedDatabase {
             VStack(spacing: 0) {
-                // 标签栏
-                tabBarView
-
-                Divider()
-
                 // 内容区域
                 switch selectedTab {
                 case .structure:
@@ -247,84 +311,20 @@ struct MySQLWorkspaceView: View {
                     )
                 }
             }
-        } else if let db = selectedDatabase {
-            // 选中了数据库但没选表
-            databaseSelectedView(db)
-        } else {
-            emptySelectionView
         }
-    }
-
-    private var tabBarView: some View {
-        HStack(spacing: 0) {
-            ForEach(MySQLDetailTab.allCases, id: \.self) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 12))
-                        Text(tab.rawValue)
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .frame(minWidth: 60)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(selectedTab == tab ? Color.accentColor.opacity(0.1) : Color.clear)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-
-            Spacer()
-        }
-        .background(Color(.windowBackgroundColor))
-    }
-
-    private func databaseSelectedView(_ database: String) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "cylinder")
-                .font(.system(size: 48))
-                .foregroundStyle(.tint)
-
-            Text(database)
-                .font(.headline)
-                .foregroundStyle(.primary)
-
-            Text("选择一个表以查看详情")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var emptySelectionView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "rectangle.split.3x1")
-                .font(.system(size: 48))
-                .foregroundStyle(.tertiary)
-
-            Text("选择数据库和表")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            Text("从左侧列表中选择数据库，展开后选择表")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // 注意：没有选中表时不显示任何空状态，由 displayMode 控制整个区域是否显示
     }
 
     /// SQL标签页的结果区域
     @ViewBuilder
     private var sqlResultArea: some View {
+        // 只在加载中或有结果时显示，不显示空状态
         if isLoadingSQL {
             loadingSQLView
         } else if let result = sqlResult {
             MySQLResultView(result: result)
-        } else {
-            emptySQLResultView
         }
+        // 注意：没有结果时不显示空状态，由 displayMode 控制整个区域是否显示
     }
 
     private var connectingView: some View {
@@ -372,19 +372,6 @@ struct MySQLWorkspaceView: View {
             ProgressView()
                 .controlSize(.regular)
             Text("执行中...")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var emptySQLResultView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "terminal")
-                .font(.system(size: 32))
-                .foregroundStyle(.tertiary)
-
-            Text("输入 SQL 并执行")
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
         }
@@ -450,6 +437,12 @@ struct MySQLWorkspaceView: View {
             databases = try await service.fetchDatabases()
             syncSelectionFromManager()
             if sqlExecutionDatabase == nil {
+                // GPT TODO: 这段默认赋值逻辑把 query 执行数据库自动回填为左侧资源树当前 database / 外部 selectedDatabaseName，
+                // GPT TODO: 导致 query context 和 explorer selection 被强耦合。
+                // GPT TODO: glm5 需要改成：
+                // GPT TODO: 1) 仅在新建 query tab 或 query tab 首次没有上下文时设置默认 queryDatabase；
+                // GPT TODO: 2) 默认值来源于该 query tab 自己的 queryConnectionId 对应连接，而不是左树当前 selectedDatabase；
+                // GPT TODO: 3) 当 query connection 改变时，要立即刷新该连接的数据库列表，并校验旧 queryDatabase 是否仍然有效。
                 if let selectedDatabase {
                     sqlExecutionDatabase = selectedDatabase
                 } else if let externalSelection = connectionManager.selectedDatabaseName,
@@ -497,6 +490,10 @@ struct MySQLWorkspaceView: View {
     private func syncSelectionFromManager() {
         guard connectionManager.selectedConnectionId == connectionConfig.id else { return }
 
+        // GPT TODO: 这个同步函数只应该负责“左侧资源树 -> 结构/数据浏览态”的同步，
+        // GPT TODO: 不能再顺带影响右上角 query context pill。
+        // GPT TODO: 当前下面这段逻辑会在 sqlExecutionDatabase 为空时直接拿 selectedDatabaseName 回填，
+        // GPT TODO: 这正是用户反馈的第二个问题来源：切左树后，query db pill 会混入不属于当前 query 连接的库。
         if selectedDatabase != connectionManager.selectedDatabaseName {
             selectedDatabase = connectionManager.selectedDatabaseName
         }
@@ -658,9 +655,14 @@ struct MySQLWorkspaceView: View {
             }
         }
 
+        // 切换到 SQL 结果模式
+        displayMode = .sqlResult
+
         do {
             // 按 SQL 执行数据库处理 SQL 中未显式指定库名的表名
             var processedSQL = sql
+            // 注意：传入这里的 sql 已经是 SQLStatementParser 解析后的"最终执行范围"
+            // 只对这个范围进行预处理（添加数据库前缀等）
             if let db = sqlExecutionDatabase ?? selectedDatabase {
                 processedSQL = preprocessSQL(sql, database: db)
                 print("🔄 Executing SQL (with db context): \(processedSQL.prefix(100))...")
@@ -750,12 +752,87 @@ struct MySQLWorkspaceView: View {
 
         do {
             let content = try String(contentsOf: url, encoding: .utf8)
-            sqlText = content
-            print("📁 Opened SQL file: \(url.lastPathComponent), size: \(content.count) chars")
+
+            // 按 fileURL 在 editorTabs 中查重
+            if let existingTab = editorTabs.first(where: { $0.fileURL == url }) {
+                // 已存在：切换到该 tab
+                activeEditorTabId = existingTab.id
+                sqlText = existingTab.content
+                print("📁 Switched to existing SQL file: \(url.lastPathComponent)")
+            } else {
+                // 不存在：创建新 tab
+                let newTab = EditorQueryTab(fileURL: url, content: content)
+                editorTabs.append(newTab)
+                activeEditorTabId = newTab.id
+                sqlText = content
+                print("📁 Opened SQL file: \(url.lastPathComponent), size: \(content.count) chars")
+            }
+
+            // 打开文件后切换到编辑模式，不显示任何结果面板
+            displayMode = .editorOnly
         } catch {
             errorMessage = "读取文件失败: \(error.localizedDescription)"
             showError = true
         }
+    }
+
+    // MARK: - Editor Tab Management
+
+    /// 选择编辑器 Tab
+    private func selectEditorTab(_ tabId: UUID) {
+        guard let tab = editorTabs.first(where: { $0.id == tabId }) else { return }
+        activeEditorTabId = tabId
+        sqlText = tab.content
+
+        // 切换文件 tab 时，如果当前在表详情模式，则保持该模式
+        // 如果当前在 SQL 结果模式，也保持（因为用户可能想查看该文件的执行结果）
+        // 如果当前在编辑模式，保持编辑模式
+        // 这里不做额外切换，让用户保持当前工作上下文
+    }
+
+    /// 关闭指定编辑器 Tab
+    private func closeEditorTab(_ tabId: UUID) {
+        guard let index = editorTabs.firstIndex(where: { $0.id == tabId }) else { return }
+
+        // 先同步当前 sqlText 到当前 tab
+        syncSQLTextToActiveTab()
+
+        // 移除 tab
+        editorTabs.remove(at: index)
+
+        // 如果关闭的是当前活动 tab
+        if activeEditorTabId == tabId {
+            if editorTabs.isEmpty {
+                // 无剩余 tab：清空状态，回到纯编辑模式
+                activeEditorTabId = nil
+                sqlText = ""
+                sqlResult = nil
+                displayMode = .editorOnly
+            } else {
+                // 切换到相邻 tab
+                let newIndex = min(index, editorTabs.count - 1)
+                let newTab = editorTabs[newIndex]
+                activeEditorTabId = newTab.id
+                sqlText = newTab.content
+            }
+        }
+    }
+
+    /// 关闭当前活动的编辑器 Tab
+    private func closeActiveEditorTab() {
+        guard let tabId = activeEditorTabId else {
+            // 没有活动的文件 tab，清空结果
+            sqlResult = nil
+            return
+        }
+        closeEditorTab(tabId)
+    }
+
+    /// 同步 sqlText 到当前活动的 tab
+    private func syncSQLTextToActiveTab() {
+        guard let activeId = activeEditorTabId,
+              let index = editorTabs.firstIndex(where: { $0.id == activeId }) else { return }
+        editorTabs[index].content = sqlText
     }
 
     // MARK: - SQL File Import

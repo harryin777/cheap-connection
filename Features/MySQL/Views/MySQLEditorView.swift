@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// SQL 自动补全建议
 struct SQLCompletionSuggestion: Identifiable, Hashable {
@@ -59,9 +60,12 @@ struct SQLImportResult {
 struct MySQLEditorView: View {
     @Binding var sqlText: String
     let history: [String]
+    let connectionName: String
     var isExecuting: Bool = false
+    var activeWorkspaceTab: MySQLDetailTab? = nil
     let onExecute: (String) async -> Void
     let onSelectHistory: (String) -> Void
+    var onSelectWorkspaceTab: ((MySQLDetailTab) -> Void)? = nil
     var onImport: (() async -> Void)? = nil  // 导入回调
     var onOpenFile: (() async -> Void)? = nil  // 打开文件回调
     var onCloseTab: (() -> Void)? = nil  // 关闭 Tab 回调
@@ -73,6 +77,12 @@ struct MySQLEditorView: View {
     var tables: [MySQLTableSummary] = []
     var columns: [MySQLColumnDefinition] = []
 
+    // Query Tab 相关
+    var editorTabs: [EditorQueryTab] = []
+    var activeEditorTabId: UUID? = nil
+    var onSelectEditorTab: ((UUID) -> Void)? = nil
+    var onCloseEditorTab: ((UUID) -> Void)? = nil
+
     @State private var showHistory = false
     @State private var showConfirmDialog = false
     @State private var pendingSQL = ""
@@ -80,7 +90,11 @@ struct MySQLEditorView: View {
     @State private var autocompleteSuggestions: [SQLCompletionSuggestion] = []
     @State private var selectedSuggestionIndex = 0
     @State private var autocompleteWordStart: Int = 0
-    @State private var queryTabTitle = "Query"
+
+    // 执行范围相关状态
+    @State private var selectedTextRange: NSRange? = nil
+    @State private var selectedTextContent: String = ""
+    @State private var cursorPosition: Int = 0
 
     @FocusState private var isEditorFocused: Bool
 
@@ -99,9 +113,10 @@ struct MySQLEditorView: View {
             // 工具栏 - DataGrip风格
             toolbarView
 
-            Divider()
-
-            queryTabBar
+            // Query Tab 条（仅当有外部文件时显示）
+            if !editorTabs.isEmpty {
+                queryTabBar
+            }
 
             Divider()
 
@@ -184,6 +199,13 @@ struct MySQLEditorView: View {
             .buttonStyle(.plain)
             .help(showHistory ? "隐藏历史" : "显示历史")
 
+            if !history.isEmpty {
+                Text("\(history.count)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+                    .monospacedDigit()
+            }
+
             Divider()
                 .frame(height: 16)
 
@@ -230,37 +252,18 @@ struct MySQLEditorView: View {
                 .help("导入并执行 .sql 文件")
             }
 
-            Spacer()
+            if let activeWorkspaceTab, let onSelectWorkspaceTab {
+                Divider()
+                    .frame(height: 16)
 
-            // 当前 SQL 执行数据库（单选）
-            if !queryDatabases.isEmpty {
-                Picker(
-                    "执行数据库",
-                    selection: Binding<String?>(
-                        get: { selectedQueryDatabase },
-                        set: { onSelectQueryDatabase($0) }
-                    )
-                ) {
-                    Text("未指定")
-                        .tag(Optional<String>.none)
-
-                    ForEach(queryDatabases, id: \.self) { database in
-                        Text(database)
-                            .tag(Optional(database))
-                    }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .frame(width: 180)
-                .help("当前 Query 执行数据库")
+                workspaceTabsView(activeTab: activeWorkspaceTab, onSelect: onSelectWorkspaceTab)
             }
 
-            // 历史记录计数
-            if !history.isEmpty {
-                Text("\(history.count)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-                    .monospacedDigit()
+            Spacer()
+
+            // 当前 SQL 上下文选择器 - DataGrip 风格双 selector
+            if !queryDatabases.isEmpty {
+                contextSelectorsView
             }
         }
         .padding(.horizontal, 12)
@@ -268,55 +271,230 @@ struct MySQLEditorView: View {
         .background(Color(.windowBackgroundColor))
     }
 
-    private var queryTabBar: some View {
-        HStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "doc.text")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+    /// DataGrip 风格上下文选择器 - 左侧 schema/database，右侧 connection
+    private var contextSelectorsView: some View {
+        HStack(spacing: 8) {
+            schemaSelectorMenu
+            connectionSelectorMenu
+        }
+    }
 
-                Text(queryTabTitle)
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
+    private var schemaSelectorMenu: some View {
+        // GPT TODO: 这里的 queryDatabases 目前来自外层 workspace 的单一数据库列表，
+        // GPT TODO: 所以当右上角 connection pill 未来切到别的连接时，这里的 schema/database 菜单仍然会显示旧连接的库。
+        // GPT TODO: glm5 必须改成“按当前活动 query tab 的 queryConnectionId 动态提供数据库列表”，
+        // GPT TODO: 而不是继续复用当前 MySQLWorkspaceView(connectionConfig) 已加载的 databases。
+        Menu {
+            Button {
+                onSelectQueryDatabase(nil)
+            } label: {
+                HStack {
+                    Text("未指定")
+                    if selectedQueryDatabase == nil {
+                        Spacer()
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
 
+            Divider()
+
+            ForEach(queryDatabases, id: \.self) { database in
                 Button {
-                    closeCurrentQueryTab()
+                    onSelectQueryDatabase(database)
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12))
+                    HStack {
+                        Image(systemName: "square.grid.2x2")
+                            .font(.system(size: 10))
+                        Text(database)
+                        if selectedQueryDatabase == database {
+                            Spacer()
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            contextSelectorLabel(
+                icon: "square.grid.2x2",
+                iconColor: .secondary,
+                title: selectedQueryDatabase ?? "未指定"
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("当前 Query 执行数据库")
+    }
+
+    private var connectionSelectorMenu: some View {
+        // GPT TODO: 这里现在是静态单项 Menu，只展示 connectionName，没有真正可选列表。
+        // GPT TODO: 用户要求右上角 connection pill 是“当前 query 文件的连接选择器”，必须支持切换到其他已保存连接，
+        // GPT TODO: 且不能与左侧资源树当前高亮连接强绑定。
+        // GPT TODO: glm5 需要把这里改成真实连接列表菜单，并在切换时只更新 active editor tab 的 queryConnectionId，
+        // GPT TODO: 不允许调用左侧资源树的全局 selectedConnectionId，否则会再次把 explorer selection 一起带走。
+        Menu {
+            Button {
+            } label: {
+                HStack {
+                    Image(systemName: "externaldrive.connected.to.line.below")
+                        .font(.system(size: 10))
+                    Text(connectionName)
+                    Spacer()
+                    Text("当前连接")
                         .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
-                .contentShape(Rectangle())
-                .frame(width: 20, height: 20)
-                .help("关闭当前 Query")
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color.accentColor.opacity(0.12))
-            .overlay(
-                Rectangle()
-                    .fill(Color.accentColor.opacity(0.35))
-                    .frame(height: 1),
-                alignment: .bottom
+            .disabled(true)
+        } label: {
+            contextSelectorLabel(
+                icon: "externaldrive.connected.to.line.below",
+                iconColor: Color(red: 0.17, green: 0.67, blue: 0.95),
+                title: connectionName
             )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("当前 Query 连接")
+    }
 
+    private func contextSelectorLabel(icon: String, iconColor: Color, title: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(iconColor)
+
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Image(systemName: "chevron.down")
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color(.controlBackgroundColor).opacity(0.72))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 0.8)
+        )
+    }
+
+    private func workspaceTabsView(
+        activeTab: MySQLDetailTab,
+        onSelect: @escaping (MySQLDetailTab) -> Void
+    ) -> some View {
+        HStack(spacing: 0) {
+            ForEach(MySQLDetailTab.allCases, id: \.self) { tab in
+                Button {
+                    onSelect(tab)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 11))
+                        Text(tab.rawValue)
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(activeTab == tab ? Color.accentColor.opacity(0.14) : Color.clear)
+                    .overlay(
+                        Rectangle()
+                            .fill(activeTab == tab ? Color.accentColor.opacity(0.35) : Color.clear)
+                            .frame(height: 1),
+                        alignment: .bottom
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// Query Tab 条视图 - DataGrip 风格，关闭按钮始终清晰可见
+    private var queryTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(editorTabs) { tab in
+                queryTabItem(tab)
+            }
+
+            // 右侧空白区域，确保 tab 条占满整行
             Spacer()
         }
-        .frame(height: 28)
-        .background(Color(.windowBackgroundColor))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .background(Color(.controlBackgroundColor).opacity(0.5))
+    }
+
+    /// 单个 Query Tab 项
+    private func queryTabItem(_ tab: EditorQueryTab) -> some View {
+        HStack(spacing: 0) {
+            // 左侧：图标和标题（点击选中）
+            Button {
+                onSelectEditorTab?(tab.id)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+
+                    Text(tab.title)
+                        .font(.system(size: 11))
+                        .lineLimit(1)
+                        .foregroundStyle(.primary)
+                }
+                .padding(.leading, 10)
+                .padding(.trailing, 4)
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // 右侧：关闭按钮（独立，始终可见）
+            Button {
+                onCloseEditorTab?(tab.id)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 12))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(activeEditorTabId == tab.id ? .secondary : .tertiary)
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 6)
+        }
+        .frame(minWidth: 80)
+        .background(activeEditorTabId == tab.id ? Color.accentColor.opacity(0.12) : Color.clear)
+        .overlay(
+            Rectangle()
+                .fill(activeEditorTabId == tab.id ? Color.accentColor : Color.clear)
+                .frame(height: 1.5),
+            alignment: .bottom
+        )
     }
 
     private var editorView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 代码编辑器
-            TextEditor(text: $sqlText)
-                .font(.system(.body, design: .monospaced))
-                .padding(8)
-                .focused($isEditorFocused)
-                .onChange(of: sqlText) { _, newValue in
-                    handleTextChange(newValue)
+            // 代码编辑器 - 使用自定义 TextView 支持选中范围追踪
+            SQLEditorTextView(
+                text: $sqlText,
+                onSelectionChange: { range, selectedText in
+                    selectedTextRange = range
+                    selectedTextContent = selectedText
+                },
+                onCursorPositionChange: { position in
+                    cursorPosition = position
                 }
+            )
+            .onChange(of: sqlText) { _, newValue in
+                handleTextChange(newValue)
+            }
 
             // 底部提示栏
             HStack {
@@ -489,8 +667,28 @@ struct MySQLEditorView: View {
     // MARK: - Actions
 
     private func executeSQL() {
-        let sql = sqlText.trimmingCharacters(in: .whitespacesAndNewlines)
+        // 使用 SQLStatementParser 解析执行范围
+        // 1. 优先执行选中 SQL
+        // 2. 无选中时执行光标所在语句
+        // 3. 回退到整个 buffer
+        let scope = SQLStatementParser.parseExecutionScope(
+            fullText: sqlText,
+            selectedRange: selectedTextRange,
+            cursorPosition: cursorPosition
+        )
+
+        let sql = scope.sql
         guard !sql.isEmpty else { return }
+
+        // 根据执行范围类型显示提示
+        switch scope.scopeType {
+        case .selected:
+            print("🎯 Executing selected SQL: \(sql.prefix(50))...")
+        case .current:
+            print("📍 Executing current statement at cursor: \(sql.prefix(50))...")
+        case .entire:
+            print("📄 Executing entire buffer: \(sql.prefix(50))...")
+        }
 
         // 检查 SQL 风险等级
         let riskLevel = SQLRiskLevel.analyze(sql)
@@ -505,8 +703,7 @@ struct MySQLEditorView: View {
     }
 
     private func closeCurrentQueryTab() {
-        // 先清空内容
-        sqlText = ""
+        // 清空自动补全状态
         showAutocomplete = false
         autocompleteSuggestions = []
         selectedSuggestionIndex = 0
@@ -619,6 +816,112 @@ struct MySQLEditorView: View {
     }
 }
 
+// MARK: - SQL Editor TextView (支持选中范围追踪)
+
+/// SQL 编辑器 TextView - 支持选中范围和光标位置追踪
+struct SQLEditorTextView: NSViewRepresentable {
+    @Binding var text: String
+    var onSelectionChange: ((NSRange, String) -> Void)?
+    var onCursorPositionChange: ((Int) -> Void)?
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSTextView.scrollableTextView()
+        let textView = scrollView.documentView as! NSTextView
+
+        textView.delegate = context.coordinator
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isContinuousSpellCheckingEnabled = false
+        textView.isGrammarCheckingEnabled = false
+        textView.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        textView.textColor = NSColor.labelColor
+        textView.backgroundColor = NSColor.textBackgroundColor
+        textView.insertionPointColor = NSColor.labelColor
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.textContainer?.lineFragmentPadding = 0
+
+        // 设置初始文本
+        textView.string = text
+
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+
+        // 只在文本真正改变时更新
+        if textView.string != text {
+            // 保存当前选中范围
+            let selectedRange = textView.selectedRange()
+
+            textView.string = text
+
+            // 尝试恢复选中范围（如果有效）
+            if selectedRange.location + selectedRange.length <= text.count {
+                textView.setSelectedRange(selectedRange)
+            }
+        }
+
+        // 通知选中范围变化
+        let selectedRange = textView.selectedRange()
+        if selectedRange.length > 0 {
+            let startIndex = text.index(text.startIndex, offsetBy: selectedRange.location)
+            let endIndex = text.index(startIndex, offsetBy: min(selectedRange.length, text.count - selectedRange.location))
+            let selectedText = String(text[startIndex..<endIndex])
+            context.coordinator.parent?.onSelectionChange?(selectedRange, selectedText)
+        }
+
+        // 通知光标位置变化
+        let cursorPosition = selectedRange.location
+        context.coordinator.parent?.onCursorPositionChange?(cursorPosition)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: SQLEditorTextView?
+
+        init(_ parent: SQLEditorTextView) {
+            self.parent = parent
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            parent?.text = textView.string
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            let selectedRange = textView.selectedRange()
+
+            if let parent = parent {
+                // 通知选中范围变化
+                if selectedRange.length > 0 {
+                    let text = textView.string
+                    let startIndex = text.index(text.startIndex, offsetBy: selectedRange.location)
+                    let endIndex = text.index(startIndex, offsetBy: min(selectedRange.length, text.count - selectedRange.location))
+                    let selectedText = String(text[startIndex..<endIndex])
+                    parent.onSelectionChange?(selectedRange, selectedText)
+                }
+
+                // 通知光标位置变化
+                parent.onCursorPositionChange?(selectedRange.location)
+            }
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
@@ -633,6 +936,7 @@ struct MySQLEditorView: View {
                     "SHOW DATABASES;",
                     "DESCRIBE orders;"
                 ],
+                connectionName: "local-mysql",
                 onExecute: { _ in },
                 onSelectHistory: { _ in }
             )

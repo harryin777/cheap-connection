@@ -55,3 +55,33 @@ struct MySQLConnectionConfig: Sendable {
         return "MySQL: \(username)@\(host):\(port)\(db)"
     }
 }
+
+// MARK: - Editor Query Tab
+
+/// MySQL 编辑器 Query Tab 模型
+/// 用于管理打开的 .sql 文件
+struct EditorQueryTab: Identifiable, Equatable {
+    let id: UUID
+    let fileURL: URL
+    var title: String          // url.lastPathComponent
+    var content: String        // SQL 文本
+    var isDirty: Bool = false  // 内容是否被修改（暂不实现保存，仅预留）
+    // GPT TODO: 当前 tab 模型只存文件名和文本，没有存“这个 query 文件当前绑定哪个连接/数据库”的上下文。
+    // GPT TODO: 这正是右上角 context pill 与左侧资源树串状态的根因之一。
+    // GPT TODO: glm5 需要给 EditorQueryTab 增加独立上下文字段，至少包括：
+    // GPT TODO: - queryConnectionId: UUID
+    // GPT TODO: - queryConnectionName: String（如 UI 直接展示需要）
+    // GPT TODO: - queryDatabaseName: String?
+    // GPT TODO: 并且这些字段必须随 tab 切换一起切换，不能再挂在 MySQLWorkspaceView 的单一 @State 上。
+
+    init(fileURL: URL, content: String) {
+        self.id = UUID()
+        self.fileURL = fileURL
+        self.title = fileURL.lastPathComponent
+        self.content = content
+    }
+
+    static func == (lhs: EditorQueryTab, rhs: EditorQueryTab) -> Bool {
+        lhs.id == rhs.id
+    }
+}

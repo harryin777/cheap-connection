@@ -146,6 +146,44 @@
 - [x] 增加当前 Query 执行数据库选择器
 - [x] 修复 Query Tab 关闭按钮功能（当前只能清空内容，无法真正关闭）
 
+### 2.11 MySQL Query 工作区收敛 ✅
+- [x] Query 文件 tab 左对齐，不允许在工具栏下方居中漂浮
+- [x] Query 文件 tab 仅用于”打开外部 .sql 文件”，标题显示真实文件名
+- [x] Query 文件 tab 关闭时，选中与关闭事件拆分，避免点关闭时误切换 tab
+- [x] 当没有任何外部文件 tab 时，整条 Query tab bar 完全隐藏，不保留占位
+- [x] 工作区显示模式收敛为互斥状态：默认编辑态 / SQL 结果态 / 表结构数据态
+- [x] 默认编辑态下，不显示 SQL 结果空状态，不显示数据库/表详情空状态
+- [x] 只有执行 SQL 之后才显示 SQL 结果面板或 SQL 结果 tab
+- [x] 只有点击左侧具体表之后才显示”结构 / 数据”tab
+- [x] 打开外部 `.sql` 文件后，主区域优先展示 query 内容本身，不要同时出现无关的底部空白面板
+- [x] 关闭最后一个 Query 文件 tab 后，工作区回退到纯编辑态，而不是残留空结果区
+
+### 2.12 MySQL Query 交互细节对齐 DataGrip ✅
+- [x] Query 文件 tab 的关闭按钮默认清晰可见，不能出现”逻辑存在但视觉上像没了”的情况
+- [x] Query 文件 tab 的关闭按钮命中区域和层级稳定，点击关闭时不误触发选中
+- [x] 工具栏右上角”执行数据库”选择器改成更接近 DataGrip 的 schema/context selector 样式
+- [x] 工具栏右上角数据库选择器宽度与文案自适应，避免当前固定宽度的表单控件感
+
+### 2.13 MySQL Query 执行语义与上下文细化 ✅
+- [x] 执行按钮支持 DataGrip 风格的执行范围：优先执行选中 SQL，其次执行光标所在语句，最后才回退到整个 buffer
+- [x] 修复”界面选中的是单条 SQL，但实际执行范围错误，最终报 SQL 语法错误”的问题
+- [x] 继续收敛右上角数据库上下文选择器的样式与信息结构，使其更接近 DataGrip 的 schema/context selector
+- [x] 明确 SQL 预处理逻辑只作用于”最终实际要执行的 SQL 范围”，避免对整段多语句文本误处理
+
+### 2.14 MySQL 结果网格与上下文选择器收尾
+- [ ] 冻结 SQL 结果和表数据网格的列表头，纵向滚动时列名必须固定在顶部，参考 DataGrip
+- [ ] 结果网格重构后仍需保持表头和数据体的横向滚动同步、列宽拖拽同步
+- [x] 工具栏右上角上下文选择器调整为双 selector 结构，分别表达 schema/database 与 connection
+- [x] 移除右上角上下文选择器区域里的无关历史计数，避免污染 DataGrip 风格信息结构
+
+### 2.15 Query Context 与资源树解耦
+- [ ] 把左侧资源树选择状态与右侧 query 文件执行上下文彻底拆开，禁止共用同一套 selectedConnection / selectedDatabase / selectedTable 状态
+- [ ] 为每个 query 文件补充独立上下文：queryConnectionId、queryConnectionName、queryDatabaseName
+- [ ] 右上角 connection pill 改成真实可切换的连接列表，而不是静态展示当前 workspace connection
+- [ ] 右上角 schema/database pill 的列表必须跟随当前 queryConnectionId 动态刷新，不能继续复用左侧当前 workspace 的 databases
+- [ ] 左侧点击连接/数据库/表时，只允许影响 explorer 高亮和结构/数据面板，不允许污染当前 query 文件上下文
+- [ ] query connection 切换后，若旧 queryDatabase 不属于新连接，必须自动清空或回退到新连接的默认数据库，禁止出现串库展示
+
 ---
 
 ## 阶段 3: Redis 核心功能

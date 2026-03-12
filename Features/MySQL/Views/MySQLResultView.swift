@@ -92,6 +92,13 @@ struct MySQLResultView: View {
 
     private var resultTableView: some View {
         GeometryReader { geometry in
+            // GPT TODO: 当前结果网格把表头和数据行一起包进同一个双向 ScrollView，
+            // GPT TODO: 所以纵向滚动时列名会直接被卷走，不符合用户要求，也不符合 DataGrip 的固定列表头行为。
+            // GPT TODO: glm5 需要把这里重构成“固定表头 + 可滚动数据体”的两层结构：
+            // GPT TODO: 1) 表头独立留在顶部，不参与纵向滚动；
+            // GPT TODO: 2) 水平滚动需要在表头和数据体之间同步，避免列宽和横向偏移错位；
+            // GPT TODO: 3) SQL 查询结果和表数据浏览都复用 MySQLResultView，所以改动必须同时覆盖这两种场景；
+            // GPT TODO: 4) 状态栏、错误态、空态不需要冻结，只有列头需要像 DataGrip 一样锁在结果区顶部。
             ScrollView([.horizontal, .vertical]) {
                 VStack(alignment: .leading, spacing: 0) {
                     // 表头
@@ -112,6 +119,8 @@ struct MySQLResultView: View {
 
     private var headerRow: some View {
         HStack(spacing: 0) {
+            // GPT TODO: 这里最终应成为 sticky header 的内容层，而不是跟随数据体一起滚动的普通首行。
+            // GPT TODO: 如果 glm5 采用 overlay / pinned 容器方案，需要保证列宽拖拽仍然只维护一份 columnWidths 状态。
             // 行号列
             Text("#")
                 .font(.system(size: 10, design: .monospaced))
