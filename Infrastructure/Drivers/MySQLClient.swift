@@ -14,43 +14,30 @@ import Logging
 
 /// MySQL客户端
 /// 使用MySQLKit实现MySQLClientProtocol
-final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
+/// 使用 actor 保证线程安全
+actor MySQLClient: MySQLClientProtocol {
     // MARK: - Properties
 
     private var connection: MySQLConnection?
     private var eventLoopGroup: EventLoopGroup?
-    private let lock = NSLock()
-
-    var isConnected: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return connection != nil
-    }
 
     // MARK: - Lifecycle
 
     deinit {
-        // 使用 Task 异步关闭连接，避免阻塞 deinit
-        Task {
-            if let connection = connection {
-                try? await connection.close().get()
-            }
-            try? await eventLoopGroup?.shutdownGracefully()
-        }
-        // 不等待 Task 完成，因为对象即将销毁
+        // 注意：actor deinit 中不能调用 async 方法
+        // 连接应该通过显式调用 disconnect() 来关闭
     }
 
     // MARK: - MySQLClientProtocol
 
-    func connect(config: MySQLConnectionConfig) async throws {
-        lock.lock()
-        defer { lock.unlock() }
+    func checkConnected() async -> Bool {
+        return connection != nil
+    }
 
+    func connect(config: MySQLConnectionConfig) async throws {
         // 如果已连接，先断开
         if connection != nil {
-            lock.unlock()
             await disconnect()
-            lock.lock()
         }
 
         // 创建EventLoopGroup
@@ -62,39 +49,68 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
 
         let eventLoop = eventLoopGroup.next()
 
-        // 解析地址
-        let address: SocketAddress
+        // 解析地址 - 使用 POSIX getaddrinfo，支持 IPv4/IPv6 多地址
+        let resolvedAddresses: [ResolvedSocketAddress]
         do {
-            address = try SocketAddress.makeAddressResolvingHost(config.host, port: config.port)
+            resolvedAddresses = try resolveSocketAddresses(host: config.host, port: config.port)
+
+            if resolvedAddresses.isEmpty {
+                throw AppError.connectionFailed("未解析到可用地址: \(config.host)")
+            }
+        } catch let error as AppError {
+            await cleanupEventLoopGroupAfterFailedConnect()
+            throw error
         } catch {
-            throw AppError.connectionFailed("无法解析主机地址: \(config.host):\(config.port)")
+            await cleanupEventLoopGroupAfterFailedConnect()
+            throw AppError.connectionFailed("地址解析失败: \(config.host):\(config.port) - \(error.localizedDescription)")
         }
 
         do {
-            let conn = try await MySQLConnection.connect(
-                to: address,
-                username: config.username,
-                database: config.database ?? config.username,
-                password: config.password,
-                tlsConfiguration: config.sslEnabled ? .makeClientConfiguration() : nil,
-                serverHostname: config.host,
-                logger: Logger(label: "com.yzz.cheap-connection.mysql"),
-                on: eventLoop
-            ).get()
+            let initialDatabase = config.database?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-            self.connection = conn
+            var attemptErrors: [Error] = []
+
+            for resolved in resolvedAddresses {
+                do {
+                    let conn = try await MySQLConnection.connect(
+                        to: resolved.socketAddress,
+                        username: config.username,
+                        database: initialDatabase,
+                        password: config.password,
+                        tlsConfiguration: config.sslEnabled ? .makeClientConfiguration() : nil,
+                        serverHostname: config.host,
+                        logger: Logger(label: "com.yzz.cheap-connection.mysql"),
+                        on: eventLoop
+                    ).get()
+
+                    self.connection = conn
+                    return
+                } catch {
+                    attemptErrors.append(error)
+                }
+            }
+
+            throw buildFinalConnectionError(
+                errors: attemptErrors,
+                resolvedAddresses: resolvedAddresses,
+                host: config.host,
+                port: config.port
+            )
+        } catch let error as AppError {
+            await cleanupEventLoopGroupAfterFailedConnect()
+            throw error
         } catch {
+            await cleanupEventLoopGroupAfterFailedConnect()
             throw MySQLErrorMapper.map(error)
         }
     }
 
     func disconnect() async {
-        lock.lock()
         let conn = connection
         connection = nil
         let group = eventLoopGroup
         eventLoopGroup = nil
-        lock.unlock()
 
         if let conn = conn {
             try? await conn.close().get()
@@ -106,12 +122,9 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
     }
 
     func ping() async throws -> Bool {
-        lock.lock()
         guard let conn = connection else {
-            lock.unlock()
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
-        lock.unlock()
 
         do {
             _ = try await conn.query("SELECT 1").get()
@@ -122,12 +135,9 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
     }
 
     func fetchDatabases() async throws -> [MySQLDatabaseSummary] {
-        lock.lock()
         guard let conn = connection else {
-            lock.unlock()
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
-        lock.unlock()
 
         let sql = """
             SELECT
@@ -156,12 +166,9 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
     }
 
     func fetchTables(database: String) async throws -> [MySQLTableSummary] {
-        lock.lock()
         guard let conn = connection else {
-            lock.unlock()
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
-        lock.unlock()
 
         let escapedDB = escapeString(database)
         let sql = """
@@ -198,12 +205,9 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
     }
 
     func fetchTableStructure(database: String, table: String) async throws -> [MySQLColumnDefinition] {
-        lock.lock()
         guard let conn = connection else {
-            lock.unlock()
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
-        lock.unlock()
 
         let escapedDB = escapeString(database)
         let escapedTable = escapeString(table)
@@ -257,12 +261,13 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
         orderBy: String?,
         orderDirection: OrderDirection
     ) async throws -> MySQLQueryResult {
-        lock.lock()
         guard let conn = connection else {
-            lock.unlock()
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
-        lock.unlock()
+
+        // 提取分页参数到局部变量，避免 actor 隔离问题
+        let pageSize = pagination.pageSize
+        let offset = (pagination.page - 1) * pageSize
 
         let escapedDB = escapeIdentifier(database)
         let escapedTable = escapeIdentifier(table)
@@ -274,18 +279,15 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
             sql += " ORDER BY \(escapedOrderBy) \(orderDirection.rawValue)"
         }
 
-        sql += " LIMIT \(pagination.pageSize) OFFSET \(pagination.offset)"
+        sql += " LIMIT \(pageSize) OFFSET \(offset)"
 
         return try await executeQueryInternal(conn: conn, sql: sql)
     }
 
     func executeQuery(sql: String) async throws -> MySQLQueryResult {
-        lock.lock()
         guard let conn = connection else {
-            lock.unlock()
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
-        lock.unlock()
 
         return try await executeQueryInternal(conn: conn, sql: sql)
     }
@@ -341,7 +343,13 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
                 affectedRows: affectedRows.flatMap { Int($0) },
                 isQuery: true
             )
+            // Debug: 打印原始错误
+            print("🔴 MySQL raw error: \(error)")
+            print("🔴 Error type: \(type(of: error))")
+            print("🔴 Error description: \(error.localizedDescription)")
+
             let appError = MySQLErrorMapper.map(error)
+            print("🔴 Mapped appError: \(appError.localizedDescription)")
 
             return MySQLQueryResult(
                 columns: columnNames,
@@ -358,6 +366,11 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
         // 检查是否为 null (buffer 为 nil)
         if data.buffer == nil {
             return .null
+        }
+
+        // 日期时间类按 MySQL 原始字段格式输出，避免本地化日期展示造成格式变化
+        if let mysqlTime = data.time {
+            return .string(formatMySQLTime(mysqlTime, type: data.type))
         }
 
         if let stringValue = data.string {
@@ -385,6 +398,59 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
         return .null
     }
 
+    private func formatMySQLTime(_ value: MySQLTime, type: MySQLProtocol.DataType) -> String {
+        let year = value.year.map(Int.init)
+        let month = value.month.map(Int.init)
+        let day = value.day.map(Int.init)
+        let hour = value.hour.map(Int.init)
+        let minute = value.minute.map(Int.init)
+        let second = value.second.map(Int.init)
+        let microsecond = value.microsecond.map(Int.init) ?? 0
+
+        let hasDate = year != nil && month != nil && day != nil
+        let hasTime = hour != nil && minute != nil && second != nil
+
+        let microsecondPart: String = {
+            guard microsecond > 0 else { return "" }
+            return String(format: ".%06d", microsecond)
+        }()
+
+        switch type {
+        case .date:
+            if hasDate {
+                return String(format: "%04d-%02d-%02d", year!, month!, day!)
+            }
+        case .time:
+            if hasTime {
+                return String(format: "%02d:%02d:%02d%@", hour!, minute!, second!, microsecondPart)
+            }
+        case .datetime, .timestamp:
+            if hasDate && hasTime {
+                return String(
+                    format: "%04d-%02d-%02d %02d:%02d:%02d%@",
+                    year!, month!, day!, hour!, minute!, second!, microsecondPart
+                )
+            }
+        default:
+            break
+        }
+
+        if hasDate && hasTime {
+            return String(
+                format: "%04d-%02d-%02d %02d:%02d:%02d%@",
+                year!, month!, day!, hour!, minute!, second!, microsecondPart
+            )
+        }
+        if hasDate {
+            return String(format: "%04d-%02d-%02d", year!, month!, day!)
+        }
+        if hasTime {
+            return String(format: "%02d:%02d:%02d%@", hour!, minute!, second!, microsecondPart)
+        }
+
+        return ""
+    }
+
     private func escapeIdentifier(_ identifier: String) -> String {
         "`" + identifier.replacingOccurrences(of: "`", with: "``") + "`"
     }
@@ -398,4 +464,181 @@ final class MySQLClient: MySQLClientProtocol, @unchecked Sendable {
             .replacingOccurrences(of: "\r", with: "\\r")
             .replacingOccurrences(of: "\t", with: "\\t")
     }
+
+    private func cleanupEventLoopGroupAfterFailedConnect() async {
+        let group = eventLoopGroup
+        eventLoopGroup = nil
+
+        if let group = group {
+            try? await group.shutdownGracefully()
+        }
+    }
+
+    private func resolveSocketAddresses(host: String, port: Int) throws -> [ResolvedSocketAddress] {
+        var hints = addrinfo()
+        hints.ai_family = AF_UNSPEC
+        hints.ai_socktype = SOCK_STREAM
+        hints.ai_protocol = IPPROTO_TCP
+
+        var result: UnsafeMutablePointer<addrinfo>?
+        let status = getaddrinfo(host, String(port), &hints, &result)
+        guard status == 0, let firstInfo = result else {
+            let errorMsg = String(cString: gai_strerror(status))
+            throw AppError.connectionFailed("DNS解析失败: \(host) - \(errorMsg)")
+        }
+        defer {
+            freeaddrinfo(firstInfo)
+        }
+
+        var addresses: [ResolvedSocketAddress] = []
+        var seen: Set<String> = []
+        var cursor: UnsafeMutablePointer<addrinfo>? = firstInfo
+
+        while let info = cursor {
+            defer {
+                cursor = info.pointee.ai_next
+            }
+
+            guard let rawAddress = info.pointee.ai_addr else {
+                continue
+            }
+
+            let ip = numericHost(
+                from: rawAddress,
+                length: socklen_t(info.pointee.ai_addrlen)
+            ) ?? host
+
+            let key = "\(info.pointee.ai_family)-\(ip)-\(port)"
+            if !seen.insert(key).inserted {
+                continue
+            }
+
+            switch info.pointee.ai_family {
+            case AF_INET:
+                let addrIn = rawAddress.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee }
+                addresses.append(ResolvedSocketAddress(
+                    socketAddress: SocketAddress(addrIn, host: host),
+                    ipAddress: ip
+                ))
+            case AF_INET6:
+                let addrIn6 = rawAddress.withMemoryRebound(to: sockaddr_in6.self, capacity: 1) { $0.pointee }
+                addresses.append(ResolvedSocketAddress(
+                    socketAddress: SocketAddress(addrIn6, host: host),
+                    ipAddress: ip
+                ))
+            default:
+                continue
+            }
+        }
+
+        return addresses
+    }
+
+    private func numericHost(from address: UnsafePointer<sockaddr>, length: socklen_t) -> String? {
+        var hostBuffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+        let result = getnameinfo(
+            address,
+            length,
+            &hostBuffer,
+            socklen_t(hostBuffer.count),
+            nil,
+            0,
+            NI_NUMERICHOST
+        )
+        guard result == 0 else {
+            return nil
+        }
+        return String(cString: hostBuffer)
+    }
+
+    private func buildFinalConnectionError(
+        errors: [Error],
+        resolvedAddresses: [ResolvedSocketAddress],
+        host: String,
+        port: Int
+    ) -> AppError {
+        if errors.isEmpty {
+            return .connectionFailed("连接失败: 未获取到底层错误")
+        }
+
+        if errors.allSatisfy({ isConnectTimeout($0) }) {
+            let ipList = resolvedAddresses.map(\.ipAddress).joined(separator: ", ")
+            let allPrivate = resolvedAddresses.allSatisfy { isPrivateIPAddress($0.ipAddress) }
+
+            if allPrivate {
+                return .timeout("连接超时，\(host):\(port) 解析为私网地址（\(ipList)），请确认已接入对应 VPC/VPN 或使用公网地址")
+            }
+
+            return .timeout("连接超时，目标 \(host):\(port)，解析地址：\(ipList)")
+        }
+
+        if let lastError = errors.last {
+            return MySQLErrorMapper.map(lastError)
+        }
+
+        return .connectionFailed("连接失败: 未获取到底层错误")
+    }
+
+    private func isConnectTimeout(_ error: Error) -> Bool {
+        if let channelError = error as? ChannelError, case .connectTimeout = channelError {
+            return true
+        }
+        return String(describing: error).lowercased().contains("connecttimeout")
+    }
+
+    private func isPrivateIPAddress(_ ipAddress: String) -> Bool {
+        if ipAddress.contains(".") {
+            return isPrivateIPv4(ipAddress)
+        }
+        return isPrivateIPv6(ipAddress)
+    }
+
+    private func isPrivateIPv4(_ ipAddress: String) -> Bool {
+        let parts = ipAddress.split(separator: ".").compactMap { Int($0) }
+        guard parts.count == 4 else {
+            return false
+        }
+
+        let first = parts[0]
+        let second = parts[1]
+
+        if first == 10 || first == 127 {
+            return true
+        }
+        if first == 169 && second == 254 {
+            return true
+        }
+        if first == 192 && second == 168 {
+            return true
+        }
+        if first == 172 && (16...31).contains(second) {
+            return true
+        }
+
+        return false
+    }
+
+    private func isPrivateIPv6(_ ipAddress: String) -> Bool {
+        let normalized = ipAddress.lowercased()
+
+        if normalized == "::1" {
+            return true
+        }
+        if normalized.hasPrefix("fc") || normalized.hasPrefix("fd") {
+            return true
+        }
+        if normalized.hasPrefix("fe8") ||
+            normalized.hasPrefix("fe9") ||
+            normalized.hasPrefix("fea") ||
+            normalized.hasPrefix("feb") {
+            return true
+        }
+
+        return false
+    }
+}
+
+private struct ResolvedSocketAddress {
+    let socketAddress: SocketAddress
+    let ipAddress: String
 }

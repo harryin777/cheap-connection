@@ -10,8 +10,8 @@ import Foundation
 /// MySQL客户端协议
 /// 所有MySQL驱动实现都必须遵循此协议
 protocol MySQLClientProtocol: Sendable {
-    /// 是否已连接
-    var isConnected: Bool { get }
+    /// 检查是否已连接
+    func checkConnected() async -> Bool
 
     /// 连接到MySQL服务器
     /// - Parameter config: MySQL连接配置

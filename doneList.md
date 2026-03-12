@@ -169,31 +169,84 @@
   - MySQLDatabaseListView.swift (已被 MySQLSidebarView 替代)
   - MySQLTableListView.swift (已被 MySQLSidebarView 替代)
 
----
+### 2.9 编译修复与集成
+- [x] 2026-03-11: 修复 MySQLService.swift 编译错误
+  - 修复 row[safe: 0] 下标访问语法
+- [x] 2026-03-11: 修复 MySQLEditorView.swift 编译错误
+  - 移除不兼容的 onKeyPress 修饰符
+- [x] 2026-03-11: 修复 MySQLStructureView.swift 编译错误
+  - 重写 Table API 使用正确的 TableColumn.width() 修饰符
+  - 添加显式类型注解 (column: MySQLColumnDefinition)
+- [x] 2026-03-11: 修复 MySQLWorkspaceView.swift 编译错误
+  - 修复 .accent ShapeStyle 为 .tint
+  - 添加缺失的 try 关键字
+- [x] 2026-03-11: 修复 MySQLSidebarView.swift 编译错误
+  - 修复 .sidebarBackgroundColor 为 Color(nsColor: .controlBackgroundColor)
+  - 修复三元表达式类型推断问题
+- [x] 2026-03-11: 所有 MySQL 相关文件已添加到 Xcode 项目
+- [x] 2026-03-11: MySQLKit SPM 依赖已集成
+- [x] 2026-03-11: 项目编译成功，无告警
 
-### 待完成 (需手动操作)
-- [ ] **将以下文件添加到 Xcode 项目**
-  - `Infrastructure/Drivers/MySQLClientProtocol.swift`
-  - `Infrastructure/Drivers/MySQLErrorMapper.swift`
-  - `Infrastructure/Drivers/MySQLClient.swift`
-  - `Features/MySQL/Models/MySQLConnectionConfig.swift`
-  - `Features/MySQL/Models/MySQLSession.swift`
-  - `Features/MySQL/Models/MySQLTableSummary.swift`
-  - `Features/MySQL/Models/MySQLColumnDefinition.swift`
-  - `Features/MySQL/Models/SQLRiskLevel.swift`
-  - `Features/MySQL/Models/MySQLRowValue.swift`
-  - `Features/MySQL/Models/MySQLQueryResult.swift`
-  - `Features/MySQL/Models/MySQLDatabaseSummary.swift`
-  - `Features/MySQL/Services/MySQLService.swift`
-  - `Features/MySQL/Views/MySQLEditorView.swift`
-  - `Features/MySQL/Views/MySQLResultView.swift`
-  - `Features/MySQL/Views/MySQLStructureView.swift`
-  - `Features/MySQL/Views/MySQLWorkspaceView.swift`
-  - `Features/MySQL/Views/MySQLDataView.swift`
-  - `Shared/Models/OrderDirection.swift`
-  - `Features/Redis/Views/RedisWorkspaceView.swift`
-- [ ] **删除根目录重复文件**: `/MySQLSidebarView.swift`
-- [ ] 添加 MySQLKit SPM 依赖到 Xcode 项目
+### 2.10 网络连接修复
+- [x] 2026-03-11: 添加 App Sandbox 网络权限
+  - 创建 CheapConnection.entitlements 文件
+  - 配置 com.apple.security.network.client 权限
+  - 在 project.pbxproj 中添加 CODE_SIGN_ENTITLEMENTS
+- [x] 2026-03-11: 修复 MySQLClient DNS 解析问题
+  - 使用 POSIX getaddrinfo 替代 SwiftNIO SocketAddress
+  - 支持 IPv4/IPv6 多地址解析
+  - 添加私网 IP 检测和友好错误提示
+  - 实现连接超时检测和错误消息优化
+- [x] 2026-03-11: MySQL 连接功能验证通过（阿里云 RDS MySQL）
+
+### 2.11 UI 细节修复
+- [x] 2026-03-11: 修复 ProgressView 布局约束警告
+  - 替换 scaleEffect 为固定 frame
+- [x] 2026-03-11: 修复加载表功能
+  - 展开数据库时自动触发表加载
+  - 添加调试日志
+- [x] 2026-03-11: 改进 MySQLResultView 数据表格
+  - 支持拖拽调整列宽
+  - 内容靠左对齐
+  - 添加明显的列分割线
+  - 鼠标悬停显示调整光标
+- [x] 2026-03-11: 双击表名默认打开数据标签
+
+### 2.12 SQL 执行修复
+- [x] 2026-03-11: 修复 SQL 标签页执行查询报错问题
+  - 问题: 在 SQL 标签页执行 `SELECT * FROM table` 报 "SQL 语法错误"
+  - 原因: MySQLKit 使用 prepared statement，不支持 USE 语句切换数据库
+  - 解决: 实现 SQL 预处理，自动为表名添加数据库前缀
+  - 支持 FROM/JOIN/UPDATE/INSERT/DELETE 等语句的表名补全
+  - 例如: `SELECT * FROM ad_supply_task` → `SELECT * FROM `db`.`ad_supply_task``
+
+### 2.13 SQL 自动补全
+- [x] 2026-03-11: 实现 SQL 编辑器自动补全功能
+  - 输入时自动显示补全建议
+  - 支持表名、列名、关键字提示
+  - Tab 键接受建议
+  - 上下箭头导航建议
+
+### 2.14 数据表格增强
+- [x] 2026-03-11: 实现数据表格单元格交互功能
+  - 鼠标悬停显示完整内容 (Tooltip)
+  - 单击选中单元格
+  - 双击进入编辑模式
+  - 编辑后自动保存到数据库
+  - 支持主键条件更新
+- [x] 2026-03-11: 修复数据表格交互问题
+  - 修复单击/双击手势冲突（使用 simultaneousGesture）
+  - SQL 标签页查询结果也支持双击编辑
+  - 编辑功能仅在选择表时可用
+
+### 2.15 MySQL 数据导入
+- [x] 2026-03-11: 实现 SQL 数据导入功能
+  - 在 SQL 编辑器工具栏添加导入按钮
+  - 使用 NSOpenPanel 选择 .sql 文件
+  - 解析多语句 SQL（处理字符串内的分号）
+  - 逐条执行 SQL 语句
+  - 显示执行进度和结果统计
+  - 注：此功能用于导入并执行 .sql 文件（如数据迁移）
 
 ---
 

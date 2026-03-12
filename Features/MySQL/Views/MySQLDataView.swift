@@ -14,6 +14,7 @@ struct MySQLDataView: View {
     let isLoading: Bool
     let onLoadPage: (Int) async -> Void
     let onRefresh: () async -> Void
+    var onCellEdit: ((Int, Int, String) async -> Void)? = nil  // rowIndex, columnIndex, newValue
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,7 +29,7 @@ struct MySQLDataView: View {
                     loadingView
                 } else if let result = result {
                     if result.hasResults {
-                        MySQLResultView(result: result)
+                        MySQLResultView(result: result, onCellEdit: onCellEdit)
                     } else if let error = result.error {
                         errorView(error: error)
                     } else {
@@ -71,8 +72,7 @@ struct MySQLDataView: View {
             // 加载指示器
             if isLoading {
                 ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.7)
+                    .frame(width: 12, height: 12)
             }
         }
         .padding(.horizontal, 10)

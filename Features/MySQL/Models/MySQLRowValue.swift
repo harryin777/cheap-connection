@@ -44,8 +44,9 @@ enum MySQLRowValue: Equatable, Sendable {
 
         case .date(let value):
             let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .medium
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
             return formatter.string(from: value)
 
         case .data(let value):

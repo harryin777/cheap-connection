@@ -7,18 +7,91 @@
 
 import SwiftUI
 
+/// SQL 自动补全建议
+struct SQLCompletionSuggestion: Identifiable, Hashable {
+    let id = UUID()
+    let text: String
+    let type: SuggestionType
+    var displayText: String { text }
+
+    enum SuggestionType: String {
+        case table = "表"
+        case column = "列"
+        case keyword = "关键字"
+
+        var icon: String {
+            switch self {
+            case .table: return "tablecells"
+            case .column: return "rectangle.split.3x1"
+            case .keyword: return "textformat.abc"
+            }
+        }
+    }
+
+    static func == (lhs: SQLCompletionSuggestion, rhs: SQLCompletionSuggestion) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+/// 导入结果
+struct SQLImportResult {
+    let success: Bool
+    let totalStatements: Int
+    let successStatements: Int
+    let failedStatements: Int
+    let errors: [String]
+    let duration: TimeInterval
+
+    var summary: String {
+        if success {
+            return "成功执行 \(successStatements) 条语句，耗时 \(String(format: "%.2f", duration))s"
+        } else {
+            return "执行完成：成功 \(successStatements)/\(totalStatements)，失败 \(failedStatements)"
+        }
+    }
+}
+
 /// MySQL SQL编辑器视图 - DataGrip风格
 struct MySQLEditorView: View {
     @Binding var sqlText: String
     let history: [String]
+    var isExecuting: Bool = false
     let onExecute: (String) async -> Void
     let onSelectHistory: (String) -> Void
+    var onImport: (() async -> Void)? = nil  // 导入回调
+    var onOpenFile: (() async -> Void)? = nil  // 打开文件回调
+    var queryDatabases: [String] = []  // SQL 可执行数据库列表
+    var selectedQueryDatabase: String? = nil  // 当前 SQL 执行数据库
+    var onSelectQueryDatabase: (String?) -> Void = { _ in }  // 选择数据库回调
+
+    // 自动补全相关数据
+    var tables: [MySQLTableSummary] = []
+    var columns: [MySQLColumnDefinition] = []
 
     @State private var showHistory = false
     @State private var showConfirmDialog = false
     @State private var pendingSQL = ""
+    @State private var showAutocomplete = false
+    @State private var autocompleteSuggestions: [SQLCompletionSuggestion] = []
+    @State private var selectedSuggestionIndex = 0
+    @State private var autocompleteWordStart: Int = 0
+    @State private var queryTabTitle = "Query"
 
     @FocusState private var isEditorFocused: Bool
+
+    // SQL 关键字
+    private let sqlKeywords = [
+        "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN",
+        "ORDER", "BY", "ASC", "DESC", "GROUP", "HAVING", "LIMIT", "OFFSET",
+        "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "ON", "AS", "DISTINCT",
+        "INSERT", "INTO", "VALUES", "UPDATE", "SET", "DELETE", "CREATE", "DROP",
+        "ALTER", "TABLE", "INDEX", "VIEW", "NULL", "IS", "COUNT", "SUM", "AVG",
+        "MAX", "MIN", "CASE", "WHEN", "THEN", "ELSE", "END", "UNION", "ALL", "SHOW"
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,16 +100,27 @@ struct MySQLEditorView: View {
 
             Divider()
 
-            // 主内容区
-            HSplitView {
-                // SQL 编辑器
-                editorView
-                    .frame(minWidth: 300)
+            queryTabBar
 
-                // 历史面板
-                if showHistory {
-                    historyPanel
-                        .frame(minWidth: 180, maxWidth: 280)
+            Divider()
+
+            // 主内容区
+            ZStack(alignment: .topLeading) {
+                HSplitView {
+                    // SQL 编辑器
+                    editorView
+                        .frame(minWidth: 300)
+
+                    // 历史面板
+                    if showHistory {
+                        historyPanel
+                            .frame(minWidth: 180, maxWidth: 280)
+                    }
+                }
+
+                // 自动补全浮层
+                if showAutocomplete && !autocompleteSuggestions.isEmpty {
+                    autocompleteOverlay
                 }
             }
         }
@@ -63,19 +147,27 @@ struct MySQLEditorView: View {
             Button {
                 executeSQL()
             } label: {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 24)
-                    .background(
-                        sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            ? Color.gray
-                            : Color.green
-                    )
-                    .cornerRadius(4)
+                if isExecuting {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: 28, height: 24)
+                        .background(Color.gray)
+                        .cornerRadius(4)
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 24)
+                        .background(
+                            sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? Color.gray
+                                : Color.green
+                        )
+                        .cornerRadius(4)
+                }
             }
             .buttonStyle(.plain)
-            .disabled(sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isExecuting)
             .help("执行 (⌘↵)")
 
             // 历史按钮
@@ -107,7 +199,60 @@ struct MySQLEditorView: View {
             .disabled(sqlText.isEmpty)
             .help("清空")
 
+            // 打开文件按钮
+            if let onOpenFile = onOpenFile {
+                Button {
+                    Task {
+                        await onOpenFile()
+                    }
+                } label: {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 11))
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .help("打开 .sql 文件")
+            }
+
+            // 导入执行按钮
+            if let onImport = onImport {
+                Button {
+                    Task {
+                        await onImport()
+                    }
+                } label: {
+                    Image(systemName: "play.rectangle")
+                        .font(.system(size: 11))
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .help("导入并执行 .sql 文件")
+            }
+
             Spacer()
+
+            // 当前 SQL 执行数据库（单选）
+            if !queryDatabases.isEmpty {
+                Picker(
+                    "执行数据库",
+                    selection: Binding<String?>(
+                        get: { selectedQueryDatabase },
+                        set: { onSelectQueryDatabase($0) }
+                    )
+                ) {
+                    Text("未指定")
+                        .tag(Optional<String>.none)
+
+                    ForEach(queryDatabases, id: \.self) { database in
+                        Text(database)
+                            .tag(Optional(database))
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(width: 180)
+                .help("当前 Query 执行数据库")
+            }
 
             // 历史记录计数
             if !history.isEmpty {
@@ -122,6 +267,43 @@ struct MySQLEditorView: View {
         .background(Color(.windowBackgroundColor))
     }
 
+    private var queryTabBar: some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+
+                Text(queryTabTitle)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+
+                Button {
+                    closeCurrentQueryTab()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+                .help("关闭当前 Query")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color.accentColor.opacity(0.12))
+            .overlay(
+                Rectangle()
+                    .fill(Color.accentColor.opacity(0.35))
+                    .frame(height: 1),
+                alignment: .bottom
+            )
+
+            Spacer()
+        }
+        .frame(height: 28)
+        .background(Color(.windowBackgroundColor))
+    }
+
     private var editorView: some View {
         VStack(alignment: .leading, spacing: 0) {
             // 代码编辑器
@@ -129,10 +311,13 @@ struct MySQLEditorView: View {
                 .font(.system(.body, design: .monospaced))
                 .padding(8)
                 .focused($isEditorFocused)
+                .onChange(of: sqlText) { _, newValue in
+                    handleTextChange(newValue)
+                }
 
             // 底部提示栏
             HStack {
-                Text("⌘↵ 执行")
+                Text("⌘↵ 执行 | Tab 补全")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
 
@@ -146,6 +331,75 @@ struct MySQLEditorView: View {
             .padding(.vertical, 4)
             .background(Color(.controlBackgroundColor))
         }
+        .onKeyPress(.tab) {
+            if showAutocomplete && !autocompleteSuggestions.isEmpty {
+                acceptSuggestion()
+                return .handled
+            }
+            return .ignored
+        }
+        .onKeyPress(.upArrow) {
+            if showAutocomplete && !autocompleteSuggestions.isEmpty {
+                navigateSuggestion(direction: .up)
+                return .handled
+            }
+            return .ignored
+        }
+        .onKeyPress(.downArrow) {
+            if showAutocomplete && !autocompleteSuggestions.isEmpty {
+                navigateSuggestion(direction: .down)
+                return .handled
+            }
+            return .ignored
+        }
+        .onKeyPress(.escape) {
+            if showAutocomplete {
+                showAutocomplete = false
+                return .handled
+            }
+            return .ignored
+        }
+    }
+
+    private var autocompleteOverlay: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(autocompleteSuggestions.prefix(8).enumerated()), id: \.element.id) { index, suggestion in
+                Button {
+                    acceptSuggestion(at: index)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: suggestion.type.icon)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16)
+
+                        Text(suggestion.displayText)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        Text(suggestion.type.rawValue)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .background(index == selectedSuggestionIndex ? Color.accentColor.opacity(0.2) : Color.clear)
+            }
+        }
+        .frame(minWidth: 200, maxWidth: 300)
+        .background(Color(.windowBackgroundColor))
+        .cornerRadius(6)
+        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color(.separatorColor), lineWidth: 0.5)
+        )
+        .offset(x: 50, y: 80)
     }
 
     private var historyPanel: some View {
@@ -246,20 +500,139 @@ struct MySQLEditorView: View {
             }
         }
     }
+
+    private func closeCurrentQueryTab() {
+        sqlText = ""
+        showAutocomplete = false
+        autocompleteSuggestions = []
+        selectedSuggestionIndex = 0
+    }
+
+    // MARK: - Autocomplete
+
+    private func handleTextChange(_ text: String) {
+        guard !text.isEmpty else {
+            showAutocomplete = false
+            return
+        }
+
+        // 找到当前光标位置前的单词
+        let cursorPosition = text.count
+        let prefix = String(text.prefix(cursorPosition))
+
+        // 找到当前正在输入的单词起始位置
+        var wordStart = prefix.endIndex
+        var index = prefix.endIndex
+        while index > prefix.startIndex {
+            let charIndex = prefix.index(before: index)
+            let char = prefix[charIndex]
+            if char.isWhitespace || char == "," || char == "(" || char == ")" {
+                wordStart = index
+                break
+            }
+            index = charIndex
+        }
+        if index == prefix.startIndex {
+            wordStart = prefix.startIndex
+        }
+
+        let currentWord = String(prefix[wordStart...])
+
+        // 如果单词太短，不显示补全
+        guard currentWord.count >= 2 else {
+            showAutocomplete = false
+            return
+        }
+
+        // 生成补全建议
+        generateSuggestions(for: currentWord)
+    }
+
+    private func generateSuggestions(for word: String) {
+        var suggestions: [SQLCompletionSuggestion] = []
+        let lowercasedWord = word.lowercased()
+
+        // 添加表名建议
+        for table in tables {
+            if table.name.lowercased().hasPrefix(lowercasedWord) {
+                suggestions.append(SQLCompletionSuggestion(text: table.name, type: .table))
+            }
+        }
+
+        // 添加列名建议
+        for column in columns {
+            if column.name.lowercased().hasPrefix(lowercasedWord) {
+                suggestions.append(SQLCompletionSuggestion(text: column.name, type: .column))
+            }
+        }
+
+        // 添加关键字建议
+        for keyword in sqlKeywords {
+            if keyword.lowercased().hasPrefix(lowercasedWord) {
+                suggestions.append(SQLCompletionSuggestion(text: keyword, type: .keyword))
+            }
+        }
+
+        // 限制建议数量
+        autocompleteSuggestions = Array(suggestions.prefix(10))
+        selectedSuggestionIndex = 0
+        showAutocomplete = !autocompleteSuggestions.isEmpty
+    }
+
+    private func acceptSuggestion() {
+        acceptSuggestion(at: selectedSuggestionIndex)
+    }
+
+    private func acceptSuggestion(at index: Int) {
+        guard index < autocompleteSuggestions.count else { return }
+        let suggestion = autocompleteSuggestions[index]
+
+        // 找到当前单词的位置并替换
+        let words = sqlText.split(separator: " ", omittingEmptySubsequences: false)
+        if var lastWord = words.last {
+            let prefix = sqlText.dropLast(lastWord.count)
+            sqlText = prefix + suggestion.text + " "
+        }
+
+        showAutocomplete = false
+    }
+
+    private func navigateSuggestion(direction: NavigationDirection) {
+        let count = min(autocompleteSuggestions.count, 8)
+        guard count > 0 else { return }
+
+        if direction == .down {
+            selectedSuggestionIndex = (selectedSuggestionIndex + 1) % count
+        } else {
+            selectedSuggestionIndex = (selectedSuggestionIndex - 1 + count) % count
+        }
+    }
+
+    private enum NavigationDirection {
+        case up, down
+    }
 }
 
 // MARK: - Preview
 
 #Preview {
-    MySQLEditorView(
-        sqlText: .constant("SELECT * FROM users LIMIT 10;"),
-        history: [
-            "SELECT * FROM users LIMIT 10;",
-            "SHOW DATABASES;",
-            "DESCRIBE orders;"
-        ],
-        onExecute: { _ in },
-        onSelectHistory: { _ in }
-    )
-    .frame(width: 700, height: 400)
+    struct PreviewWrapper: View {
+        @State var sqlText = "SELECT * FROM users LIMIT 10;"
+
+        var body: some View {
+            MySQLEditorView(
+                sqlText: $sqlText,
+                history: [
+                    "SELECT * FROM users LIMIT 10;",
+                    "SHOW DATABASES;",
+                    "DESCRIBE orders;"
+                ],
+                onExecute: { _ in },
+                onSelectHistory: { _ in }
+            )
+            .frame(width: 700, height: 400)
+        }
+    }
+
+    return PreviewWrapper()
 }

@@ -8,7 +8,7 @@
 import Foundation
 
 /// 分页状态
-struct PaginationState: Equatable {
+struct PaginationState: Equatable, Sendable {
     var page: Int
     var pageSize: Int
     var totalCount: Int?

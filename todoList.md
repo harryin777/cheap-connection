@@ -72,16 +72,16 @@
 
 ---
 
-## 阶段 2: MySQL 核心功能 🔄
+## 阶段 2: MySQL 核心功能 ✅
 
-### 2.1 MySQL 驱动层
+### 2.1 MySQL 驱动层 ✅
 - [x] 定义 `MySQLClientProtocol` 协议
 - [x] 实现 `MySQLErrorMapper` 错误映射器
-- [x] 实现 `MySQLClient` 适配器 (待添加 MySQLKit 依赖)
-- [ ] 集成 MySQLKit SPM 依赖
-- [ ] 连接 / 断开 / 心跳检测测试
+- [x] 实现 `MySQLClient` 适配器
+- [x] 集成 MySQLKit SPM 依赖
+- [x] 连接 / 断开 / 心跳检测测试 (实际验证) ✅
 
-### 2.2 MySQL 领域模型
+### 2.2 MySQL 领域模型 ✅
 - [x] `MySQLConnectionConfig`
 - [x] `MySQLSession` 运行时状态
 - [x] `MySQLDatabaseSummary`
@@ -91,7 +91,7 @@
 - [x] `MySQLRowValue`
 - [x] `SQLRiskLevel` SQL风险分析
 
-### 2.3 MySQL 服务层
+### 2.3 MySQL 服务层 ✅
 - [x] `MySQLService` - 封装数据库操作
 - [x] 获取数据库列表
 - [x] 获取表列表
@@ -101,50 +101,45 @@
 
 ### 2.4 MySQL UI - DataGrip 风格 ✅
 - [x] `MySQLWorkspaceView` 主工作区布局
-- [x] `MySQLSidebarView` 树形侧边栏 (替代原 DatabaseListView + TableListView)
+- [x] `MySQLSidebarView` 树形侧边栏
 - [x] `MySQLStructureView` 表结构视图
 - [x] `MySQLDataView` 数据浏览视图
-- [x] **UI 风格调整** - 对齐 DataGrip
-  - [x] 更新 todoList/doneList 添加设计目标
-  - [x] `MySQLDatabaseSummary` 添加 tables 属性
-  - [x] 创建 `MySQLSidebarView` 树形侧边栏
-  - [x] 重写 `MySQLWorkspaceView` 主布局
-  - [x] 重写 `MySQLResultView` 紧凑表格样式
-  - [x] 重写 `MySQLDataView` 工具栏和表格优化
-  - [x] 重写 `MySQLStructureView` 表格样式优化
-  - [x] 重写 `MySQLEditorView` 工具栏优化
-  - [x] 修改 `MainView` 集成 MySQLWorkspaceView
-  - [x] 删除冗余文件 (MySQLDatabaseListView, MySQLTableListView)
+- [x] `MySQLResultView` 查询结果展示
+- [x] UI 风格对齐 DataGrip (紧凑、斑马纹、工具栏)
 
-### 2.5 MySQL UI - SQL 编辑器
+### 2.5 MySQL UI - SQL 编辑器 ✅
 - [x] `MySQLEditorView` SQL编辑器
-- [x] 执行按钮 / Cmd+Enter 快捷键
+- [x] 执行按钮 / 绿色播放图标
 - [x] `MySQLResultView` 查询结果展示
 - [x] 执行信息 (耗时 / 影响行数)
 - [x] 基础执行历史
-- [ ] SQL 编辑器工具栏优化
+- [x] **SQL 自动补全** - 表名和列名提示
 
-### 2.6 MySQL 安全防护
+### 2.5.1 MySQL UI - 数据表格增强 ✅
+- [x] 鼠标悬停单元格展示全部内容 (Tooltip)
+- [x] 双击单元格进入编辑模式
+- [x] 单元格选中高亮
+- [x] 编辑后保存到数据库
+- [x] SQL 标签页查询结果也支持双击编辑
+
+### 2.6 MySQL 安全防护 ✅
 - [x] 高风险 SQL 检测 (DROP / TRUNCATE / 无条件 DELETE)
 - [x] 危险操作确认对话框
 
-### 2.7 MySQL 文件导入
-- [ ] 导入 .sql 文件功能
-- [ ] 文件选择对话框
-- [ ] 导入进度 / 结果反馈
+### 2.7 MySQL 数据导入
+- [x] 导入 .sql 文件并执行
+- [x] 文件选择对话框
+- [x] 导入进度 / 结果反馈
 
-### 2.8 集成
-- [ ] **手动操作：将以下文件添加到 Xcode 项目**
-  - `Infrastructure/Drivers/MySQLClientProtocol.swift`
-  - `Infrastructure/Drivers/MySQLErrorMapper.swift`
-  - `Infrastructure/Drivers/MySQLClient.swift`
-  - `Features/MySQL/Models/` (8个文件)
-  - `Features/MySQL/Services/MySQLService.swift`
-  - `Features/MySQL/Views/` (5个文件, MySQLSidebarView.swift 已添加)
-  - `Shared/Models/OrderDirection.swift`
-  - `Features/Redis/Views/RedisWorkspaceView.swift`
-- [ ] **删除根目录重复文件**: `/MySQLSidebarView.swift`
-- [x] 更新 MainView.swift 集成 MySQLWorkspaceView
+### 2.8 MySQL SQL 文件控制台
+- [x] 打开外部 .sql 文件到编辑器
+- [x] 选择连接执行 SQL
+- [x] 保留"导入执行"功能（导入后自动执行所有语句）
+
+### 2.9 集成 ✅
+- [x] 所有 MySQL 文件已添加到 Xcode 项目
+- [x] MySQLKit 依赖已添加
+- [x] 编译通过
 
 ---
 
@@ -256,7 +251,7 @@
 | 里程碑 | 目标 | 状态 |
 |--------|------|------|
 | M1 | 阶段 0-1 完成，可管理连接配置 | ✅ |
-| M2 | 阶段 2 完成，MySQL 核心功能可用 | 🔲 |
+| M2 | 阶段 2 完成，MySQL 核心功能可用 | ✅ |
 | M3 | 阶段 3 完成，Redis 核心功能可用 | 🔲 |
 | M4 | 阶段 4 完成，通用功能完善 | 🔲 |
 | M5 | 阶段 5 完成，V1 发布就绪 | 🔲 |

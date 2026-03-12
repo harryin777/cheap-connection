@@ -176,6 +176,11 @@ final class MySQLService: MySQLServiceProtocol {
         return result
     }
 
+    /// 检查连接状态
+    func checkConnection() async -> Bool {
+        await client.checkConnected()
+    }
+
     // MARK: - Private Methods
 
     private func fetchServerInfo() async throws -> (version: String?, charset: String?) {

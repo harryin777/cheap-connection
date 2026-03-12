@@ -73,8 +73,7 @@ struct MySQLSidebarView: View {
             // 加载指示器
             if isLoading {
                 ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.6)
+                    .frame(width: 12, height: 12)
             }
         }
         .padding(.horizontal, 8)
@@ -188,8 +187,7 @@ struct MySQLSidebarView: View {
                 HStack {
                     Spacer()
                     ProgressView()
-                        .controlSize(.small)
-                        .scaleEffect(0.7)
+                        .frame(width: 14, height: 14)
                     Spacer()
                 }
                 .padding(.vertical, 8)
@@ -258,6 +256,10 @@ struct MySQLSidebarView: View {
         .onTapGesture {
             onSelectTable(database, table.name)
         }
+        .onTapGesture(count: 2) {
+            // 双击直接打开数据标签
+            onSelectTable(database, table.name)
+        }
     }
 
     // MARK: - Actions
@@ -268,6 +270,14 @@ struct MySQLSidebarView: View {
                 expandedDatabases.remove(name)
             } else {
                 expandedDatabases.insert(name)
+
+                // 展开时自动加载表（如果尚未加载）
+                if let database = databases.first(where: { $0.name == name }),
+                   database.tables == nil {
+                    Task {
+                        await onLoadTables(name)
+                    }
+                }
             }
         }
     }
