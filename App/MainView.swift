@@ -14,7 +14,7 @@ struct MainView: View {
     var body: some View {
         NavigationSplitView {
             ConnectionListView()
-                .frame(minWidth: 200)
+                .frame(minWidth: 260, idealWidth: 300)
         } detail: {
             detailView
         }

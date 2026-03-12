@@ -95,12 +95,31 @@ struct MySQLWorkspaceView: View {
             }
         }
         .task {
+            syncSelectionFromManager()
             await connectIfNeeded()
         }
         .onDisappear {
             // 视图消失时断开连接
             Task {
                 await disconnect()
+            }
+        }
+        .onChange(of: connectionManager.selectedDatabaseName) { _, _ in
+            syncSelectionFromManager()
+        }
+        .onChange(of: connectionManager.selectedTableName) { _, _ in
+            syncSelectionFromManager()
+        }
+        .onChange(of: selectedDatabase) { _, newDatabase in
+            guard connectionManager.selectedConnectionId == connectionConfig.id else { return }
+            if connectionManager.selectedDatabaseName != newDatabase {
+                connectionManager.selectedDatabaseName = newDatabase
+            }
+        }
+        .onChange(of: selectedTable) { _, newTable in
+            guard connectionManager.selectedConnectionId == connectionConfig.id else { return }
+            if connectionManager.selectedTableName != newTable {
+                connectionManager.selectedTableName = newTable
             }
         }
         .alert("错误", isPresented: $showError) {
@@ -181,43 +200,9 @@ struct MySQLWorkspaceView: View {
 
             Divider()
 
-            // 下部：侧边栏 + 详情区域
-            HSplitView {
-                // 左侧：树形侧边栏
-                MySQLSidebarView(
-                    databases: $databases,
-                    connectionName: connectionConfig.name,
-                    selectedDatabase: selectedDatabase,
-                    selectedTable: selectedTable,
-                    onSelectDatabase: { db in
-                        selectedDatabase = db
-                        selectedTable = nil
-                        if sqlExecutionDatabase == nil {
-                            sqlExecutionDatabase = db
-                        }
-                    },
-                    onSelectTable: { db, table in
-                        selectedDatabase = db
-                        selectedTable = table
-                        if sqlExecutionDatabase == nil {
-                            sqlExecutionDatabase = db
-                        }
-                    },
-                    onRefresh: {
-                        await loadDatabases()
-                    },
-                    onLoadTables: { database in
-                        await loadTablesForDatabase(database)
-                    },
-                    isLoading: isLoadingDatabases,
-                    loadingDatabase: loadingDatabase
-                )
-                .frame(minWidth: 180, idealWidth: 220, maxWidth: 300)
-
-                // 右侧：详情区域（结构和数据）
-                detailView
-                    .frame(minWidth: 400)
-            }
+            // 底部详情区域（结构和数据）
+            detailView
+                .frame(minWidth: 400)
         }
     }
 
@@ -430,6 +415,7 @@ struct MySQLWorkspaceView: View {
             let newService = MySQLService(connectionConfig: connectionConfig)
             try await newService.connect(config: connectionConfig, password: password)
             service = newService
+            connectionManager.recordConnectionUsage(connectionConfig.id)
 
             // Load databases
             await loadDatabases()
@@ -462,9 +448,13 @@ struct MySQLWorkspaceView: View {
 
         do {
             databases = try await service.fetchDatabases()
+            syncSelectionFromManager()
             if sqlExecutionDatabase == nil {
                 if let selectedDatabase {
                     sqlExecutionDatabase = selectedDatabase
+                } else if let externalSelection = connectionManager.selectedDatabaseName,
+                          sqlDatabaseOptions.contains(externalSelection) {
+                    sqlExecutionDatabase = externalSelection
                 } else if let preferred = connectionConfig.defaultDatabase,
                           sqlDatabaseOptions.contains(preferred) {
                     sqlExecutionDatabase = preferred
@@ -502,6 +492,22 @@ struct MySQLWorkspaceView: View {
         }
 
         loadingDatabase = nil
+    }
+
+    private func syncSelectionFromManager() {
+        guard connectionManager.selectedConnectionId == connectionConfig.id else { return }
+
+        if selectedDatabase != connectionManager.selectedDatabaseName {
+            selectedDatabase = connectionManager.selectedDatabaseName
+        }
+
+        if selectedTable != connectionManager.selectedTableName {
+            selectedTable = connectionManager.selectedTableName
+        }
+
+        if sqlExecutionDatabase == nil {
+            sqlExecutionDatabase = connectionManager.selectedDatabaseName
+        }
     }
 
     private func loadTableStructure(database: String, table: String) async {

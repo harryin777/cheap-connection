@@ -23,6 +23,12 @@ final class ConnectionManager {
     /// 当前选中的连接 ID
     var selectedConnectionId: UUID?
 
+    /// 当前选中的数据库名（MySQL）
+    var selectedDatabaseName: String?
+
+    /// 当前选中的表名（MySQL）
+    var selectedTableName: String?
+
     /// 错误信息
     var errorMessage: String?
 
@@ -51,6 +57,7 @@ final class ConnectionManager {
         do {
             connections = try connectionRepository.fetchAll()
             recentConnections = try recentRepository.fetchRecent(limit: 10)
+            validateSelection()
             errorMessage = nil
         } catch {
             errorMessage = "加载连接失败: \(error.localizedDescription)"
@@ -106,6 +113,12 @@ final class ConnectionManager {
         // 删除配置
         try connectionRepository.delete(id: id)
 
+        if selectedConnectionId == id {
+            selectedConnectionId = nil
+            selectedDatabaseName = nil
+            selectedTableName = nil
+        }
+
         // 刷新列表
         loadConnections()
     }
@@ -132,5 +145,22 @@ final class ConnectionManager {
     /// 清除错误信息
     func clearError() {
         errorMessage = nil
+    }
+
+    /// 统一更新当前资源选择
+    func selectConnection(_ connectionId: UUID?, database: String? = nil, table: String? = nil) {
+        selectedConnectionId = connectionId
+        selectedDatabaseName = database
+        selectedTableName = table
+    }
+
+    private func validateSelection() {
+        guard let selectedConnectionId else { return }
+
+        if !connections.contains(where: { $0.id == selectedConnectionId }) {
+            self.selectedConnectionId = nil
+            selectedDatabaseName = nil
+            selectedTableName = nil
+        }
     }
 }
