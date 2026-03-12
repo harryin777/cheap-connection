@@ -261,6 +261,21 @@
   - 连接节点包含刷新按钮和收起全部按钮
   - 优化展开/折叠动画
 
+### 2.17 MySQL Query 执行语义细化
+- [x] 2026-03-12: 实现 DataGrip 风格的 SQL 执行范围解析
+  - 优先执行选中 SQL
+  - 其次执行光标所在语句
+  - 最后回退到整个 buffer
+- [x] 2026-03-12: 新增 SQLStatementParser 解析器
+  - 支持多语句解析（正确处理字符串、行注释、块注释中的分号）
+  - 根据光标位置定位当前语句
+- [x] 2026-03-12: 新增 SQLEditorTextView (NSViewRepresentable)
+  - 包装 NSTextView 以获取选区范围和光标位置
+  - SwiftUI TextEditor 不暴露选区 API
+- [x] 2026-03-12: 修复选中单条 SQL 执行时范围错误的问题
+- [x] 2026-03-12: 明确 SQL 预处理只作用于最终执行范围
+- [x] 2026-03-12: 新增 EditorQueryTab 模型用于管理外部 .sql 文件
+
 ---
 
 ## Redis 功能
