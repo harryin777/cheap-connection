@@ -176,13 +176,13 @@
 - [x] 工具栏右上角上下文选择器调整为双 selector 结构，分别表达 schema/database 与 connection
 - [x] 移除右上角上下文选择器区域里的无关历史计数，避免污染 DataGrip 风格信息结构
 
-### 2.15 Query Context 与资源树解耦
-- [ ] 把左侧资源树选择状态与右侧 query 文件执行上下文彻底拆开，禁止共用同一套 selectedConnection / selectedDatabase / selectedTable 状态
-- [ ] 为每个 query 文件补充独立上下文：queryConnectionId、queryConnectionName、queryDatabaseName
-- [ ] 右上角 connection pill 改成真实可切换的连接列表，而不是静态展示当前 workspace connection
-- [ ] 右上角 schema/database pill 的列表必须跟随当前 queryConnectionId 动态刷新，不能继续复用左侧当前 workspace 的 databases
-- [ ] 左侧点击连接/数据库/表时，只允许影响 explorer 高亮和结构/数据面板，不允许污染当前 query 文件上下文
-- [ ] query connection 切换后，若旧 queryDatabase 不属于新连接，必须自动清空或回退到新连接的默认数据库，禁止出现串库展示
+### 2.15 Query Context 与资源树解耦 ✅
+- [x] 把左侧资源树选择状态与右侧 query 文件执行上下文彻底拆开，禁止共用同一套 selectedConnection / selectedDatabase / selectedTable 状态
+- [x] 为每个 query 文件补充独立上下文：queryConnectionId、queryConnectionName、queryDatabaseName
+- [x] 右上角 connection pill 改成真实可切换的连接列表，而不是静态展示当前 workspace connection
+- [x] 右上角 schema/database pill 的列表必须跟随当前 queryConnectionId 动态刷新，不能继续复用左侧当前 workspace 的 databases
+- [x] 左侧点击连接/数据库/表时，只允许影响 explorer 高亮和结构/数据面板，不允许污染当前 query 文件上下文
+- [x] query connection 切换后，若旧 queryDatabase 不属于新连接，必须自动清空或回退到新连接的默认数据库，禁止出现串库展示
 
 ---
 

@@ -53,21 +53,24 @@ struct MySQLWorkspaceView: View {
 
     // State
     @State private var service: MySQLService?
-    @State private var databases: [MySQLDatabaseSummary] = []
+    @State private var databases: [MySQLDatabaseSummary] = []  // 当前 workspace 连接的数据库（用于资源树浏览）
     @State private var columns: [MySQLColumnDefinition] = []
     @State private var sqlResult: MySQLQueryResult?  // SQL 查询结果
     @State private var tableDataResult: MySQLQueryResult?  // 表数据结果
     @State private var pagination = PaginationState()
+
+    // MARK: - 资源树浏览状态（左侧树选择，与 query context 完全独立）
     @State private var selectedDatabase: String?
     @State private var selectedTable: String?
     @State private var selectedTab: MySQLDetailTab = .data
-    @State private var sqlExecutionDatabase: String?
+
+    // MARK: - Query Context 缓存（按 connectionId 缓存数据库列表）
+    /// 其他连接的数据库缓存，key 是 connectionId
+    @State private var connectionDatabaseCache: [UUID: [String]] = [:]
+    /// 正在加载的连接 ID
+    @State private var loadingConnectionId: UUID?
+
     @State private var sqlHistory: [String] = []
-    // GPT TODO: 这里的 selectedDatabase / selectedTable 是左侧资源树驱动的浏览状态，
-    // GPT TODO: sqlExecutionDatabase 目前则被错误地当成“整个工作区唯一的 query 执行数据库”。
-    // GPT TODO: glm5 需要把 query context 下沉到 EditorQueryTab 或独立 query session 模型中，
-    // GPT TODO: 让每个 query 文件都有自己的 queryConnectionId / queryDatabaseName，
-    // GPT TODO: 不能继续用这份 workspace 级别的单例状态承载所有 query 文件上下文。
 
     // Query Tab 状态
     @State private var editorTabs: [EditorQueryTab] = []
@@ -102,7 +105,7 @@ struct MySQLWorkspaceView: View {
 
     // MARK: - Computed Properties
 
-    /// 获取当前选中数据库的所有表
+    /// 获取当前选中数据库的所有表（用于资源树浏览）
     private var currentDatabaseTables: [MySQLTableSummary] {
         guard let dbName = selectedDatabase,
               let db = databases.first(where: { $0.name == dbName }),
@@ -112,13 +115,42 @@ struct MySQLWorkspaceView: View {
         return tables
     }
 
-    /// SQL 可执行数据库名称列表
-    private var sqlDatabaseOptions: [String] {
-        // GPT TODO: 这里直接返回当前 workspace connectionConfig 对应连接的 databases，
-        // GPT TODO: 所以当右上角 query connection pill 切到另一个连接时，这里的库列表不会跟着切。
-        // GPT TODO: glm5 需要改成“按活动 query tab 的 queryConnectionId 查对应连接的数据库列表”，
-        // GPT TODO: 绝不能再直接依赖当前 workspace 自己 fetch 到的 databases。
-        databases.map(\.name).sorted()
+    /// 当前活动的 Query Tab
+    private var activeQueryTab: EditorQueryTab? {
+        guard let tabId = activeEditorTabId else { return nil }
+        return editorTabs.first(where: { $0.id == tabId })
+    }
+
+    /// 当前 query 上下文的连接 ID（优先从活动 tab 获取，否则回退到 workspace 连接）
+    private var currentQueryConnectionId: UUID {
+        activeQueryTab?.queryConnectionId ?? connectionConfig.id
+    }
+
+    /// 当前 query 上下文的连接名称
+    private var currentQueryConnectionName: String {
+        activeQueryTab?.queryConnectionName ?? connectionConfig.name
+    }
+
+    /// 当前 query 上下文的数据库名
+    private var currentQueryDatabase: String? {
+        activeQueryTab?.queryDatabaseName
+    }
+
+    /// 获取当前 query 连接的数据库列表
+    private var queryDatabaseOptions: [String] {
+        let connId = currentQueryConnectionId
+        if connId == connectionConfig.id {
+            // 当前 workspace 连接，直接返回已加载的数据库
+            return databases.map(\.name).sorted()
+        } else {
+            // 其他连接，从缓存获取
+            return connectionDatabaseCache[connId]?.sorted() ?? []
+        }
+    }
+
+    /// 所有可用的 MySQL 连接列表
+    private var availableConnections: [ConnectionConfig] {
+        connectionManager.connections.filter { $0.databaseKind == .mysql }
     }
 
     // MARK: - Body
@@ -207,19 +239,25 @@ struct MySQLWorkspaceView: View {
             MySQLEditorView(
                 sqlText: $sqlText,
                 history: sqlHistory,
-                // GPT TODO: 这里现在把 connectionConfig.name 直接当成右上角 query connection pill 的标题来源，
-                // GPT TODO: 因而右上角永远跟着当前 workspace 连接走，无法独立代表当前 query 文件的连接上下文。
-                // GPT TODO: glm5 需要改为传入“活动 query tab 的 connectionName / 可选连接列表 / 切换回调”，
-                // GPT TODO: 而不是传 workspace 自己的 connectionConfig.name。
-                connectionName: connectionConfig.name,
-                isExecuting: isLoadingSQL,
-                activeWorkspaceTab: displayMode == .editorOnly ? nil : selectedTab,
+                queryConnectionId: currentQueryConnectionId,
+                queryConnectionName: currentQueryConnectionName,
+                availableConnections: availableConnections,
+                queryDatabases: queryDatabaseOptions,
+                selectedQueryDatabase: currentQueryDatabase,
+                onSwitchQueryConnection: { connectionId in
+                    switchQueryConnection(connectionId)
+                },
+                onSelectQueryDatabase: { database in
+                    updateQueryDatabase(database)
+                },
                 onExecute: { sql in
                     await executeSQL(sql)
                 },
                 onSelectHistory: { sql in
                     sqlText = sql
                 },
+                isExecuting: isLoadingSQL,
+                activeWorkspaceTab: displayMode == .editorOnly ? nil : selectedTab,
                 onSelectWorkspaceTab: { tab in
                     selectedTab = tab
                     // 切换结构/数据 tab 时更新 displayMode
@@ -234,14 +272,8 @@ struct MySQLWorkspaceView: View {
                 onCloseTab: {
                     closeActiveEditorTab()
                 },
-                queryDatabases: sqlDatabaseOptions,
-                selectedQueryDatabase: sqlExecutionDatabase,
-                onSelectQueryDatabase: { database in
-                    sqlExecutionDatabase = database
-                },
                 tables: currentDatabaseTables,
                 columns: columns,
-                // Query Tab 相关
                 editorTabs: editorTabs,
                 activeEditorTabId: activeEditorTabId,
                 onSelectEditorTab: { tabId in
@@ -424,7 +456,8 @@ struct MySQLWorkspaceView: View {
         tableDataResult = nil
         selectedDatabase = nil
         selectedTable = nil
-        sqlExecutionDatabase = nil
+        // 清空连接数据库缓存
+        connectionDatabaseCache.removeAll()
     }
 
     private func loadDatabases() async {
@@ -435,26 +468,9 @@ struct MySQLWorkspaceView: View {
 
         do {
             databases = try await service.fetchDatabases()
+            // 同步到缓存
+            connectionDatabaseCache[connectionConfig.id] = databases.map(\.name)
             syncSelectionFromManager()
-            if sqlExecutionDatabase == nil {
-                // GPT TODO: 这段默认赋值逻辑把 query 执行数据库自动回填为左侧资源树当前 database / 外部 selectedDatabaseName，
-                // GPT TODO: 导致 query context 和 explorer selection 被强耦合。
-                // GPT TODO: glm5 需要改成：
-                // GPT TODO: 1) 仅在新建 query tab 或 query tab 首次没有上下文时设置默认 queryDatabase；
-                // GPT TODO: 2) 默认值来源于该 query tab 自己的 queryConnectionId 对应连接，而不是左树当前 selectedDatabase；
-                // GPT TODO: 3) 当 query connection 改变时，要立即刷新该连接的数据库列表，并校验旧 queryDatabase 是否仍然有效。
-                if let selectedDatabase {
-                    sqlExecutionDatabase = selectedDatabase
-                } else if let externalSelection = connectionManager.selectedDatabaseName,
-                          sqlDatabaseOptions.contains(externalSelection) {
-                    sqlExecutionDatabase = externalSelection
-                } else if let preferred = connectionConfig.defaultDatabase,
-                          sqlDatabaseOptions.contains(preferred) {
-                    sqlExecutionDatabase = preferred
-                } else {
-                    sqlExecutionDatabase = sqlDatabaseOptions.first
-                }
-            }
         } catch {
             errorMessage = error.localizedDescription
             showError = true
@@ -490,20 +506,13 @@ struct MySQLWorkspaceView: View {
     private func syncSelectionFromManager() {
         guard connectionManager.selectedConnectionId == connectionConfig.id else { return }
 
-        // GPT TODO: 这个同步函数只应该负责“左侧资源树 -> 结构/数据浏览态”的同步，
-        // GPT TODO: 不能再顺带影响右上角 query context pill。
-        // GPT TODO: 当前下面这段逻辑会在 sqlExecutionDatabase 为空时直接拿 selectedDatabaseName 回填，
-        // GPT TODO: 这正是用户反馈的第二个问题来源：切左树后，query db pill 会混入不属于当前 query 连接的库。
+        // 只同步资源树浏览状态到结构/数据面板，不影响 query context
         if selectedDatabase != connectionManager.selectedDatabaseName {
             selectedDatabase = connectionManager.selectedDatabaseName
         }
 
         if selectedTable != connectionManager.selectedTableName {
             selectedTable = connectionManager.selectedTableName
-        }
-
-        if sqlExecutionDatabase == nil {
-            sqlExecutionDatabase = connectionManager.selectedDatabaseName
         }
     }
 
@@ -663,7 +672,8 @@ struct MySQLWorkspaceView: View {
             var processedSQL = sql
             // 注意：传入这里的 sql 已经是 SQLStatementParser 解析后的"最终执行范围"
             // 只对这个范围进行预处理（添加数据库前缀等）
-            if let db = sqlExecutionDatabase ?? selectedDatabase {
+            // 使用当前 query context 的数据库
+            if let db = currentQueryDatabase {
                 processedSQL = preprocessSQL(sql, database: db)
                 print("🔄 Executing SQL (with db context): \(processedSQL.prefix(100))...")
             } else {
@@ -760,8 +770,14 @@ struct MySQLWorkspaceView: View {
                 sqlText = existingTab.content
                 print("📁 Switched to existing SQL file: \(url.lastPathComponent)")
             } else {
-                // 不存在：创建新 tab
-                let newTab = EditorQueryTab(fileURL: url, content: content)
+                // 不存在：创建新 tab，使用当前 workspace 连接作为默认上下文
+                let newTab = EditorQueryTab(
+                    fileURL: url,
+                    content: content,
+                    defaultConnectionId: connectionConfig.id,
+                    defaultConnectionName: connectionConfig.name,
+                    defaultDatabase: connectionConfig.defaultDatabase ?? databases.first?.name
+                )
                 editorTabs.append(newTab)
                 activeEditorTabId = newTab.id
                 sqlText = content
@@ -979,6 +995,89 @@ struct MySQLWorkspaceView: View {
         showImportResult = true
 
         print("📊 Import completed: \(successCount)/\(statements.count) success, \(failedCount) failed")
+    }
+
+    // MARK: - Query Context Management
+
+    /// 切换当前活动 tab 的 query 连接
+    private func switchQueryConnection(_ connectionId: UUID) {
+        guard let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) else { return }
+        guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else { return }
+
+        let oldDatabase = editorTabs[tabIndex].queryDatabaseName
+
+        // 更新 tab 的连接上下文
+        editorTabs[tabIndex].queryConnectionId = connectionId
+        editorTabs[tabIndex].queryConnectionName = connection.name
+
+        // 检查旧数据库是否仍有效，无效则清空
+        if let oldDb = oldDatabase {
+            Task {
+                let databases = await fetchDatabasesForConnection(connectionId)
+                if !databases.contains(oldDb) {
+                    // 旧数据库不在新连接中，回退到默认数据库
+                    editorTabs[tabIndex].queryDatabaseName = connection.defaultDatabase ?? databases.first
+                }
+            }
+        } else {
+            // 没有旧数据库，设置默认
+            Task {
+                let databases = await fetchDatabasesForConnection(connectionId)
+                editorTabs[tabIndex].queryDatabaseName = connection.defaultDatabase ?? databases.first
+            }
+        }
+
+        print("🔄 Switched query connection to: \(connection.name)")
+    }
+
+    /// 更新当前活动 tab 的 query 数据库
+    private func updateQueryDatabase(_ database: String?) {
+        guard let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) else { return }
+        editorTabs[tabIndex].queryDatabaseName = database
+        print("📝 Updated query database to: \(database ?? "nil")")
+    }
+
+    /// 获取指定连接的数据库列表（带缓存）
+    private func fetchDatabasesForConnection(_ connectionId: UUID) async -> [String] {
+        // 如果是当前 workspace 连接，直接返回已加载的
+        if connectionId == connectionConfig.id {
+            return databases.map(\.name)
+        }
+
+        // 检查缓存
+        if let cached = connectionDatabaseCache[connectionId] {
+            return cached
+        }
+
+        // 需要从对应连接获取
+        guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else {
+            return []
+        }
+
+        loadingConnectionId = connectionId
+
+        do {
+            guard let password = try connectionManager.getPassword(for: connectionId) else {
+                loadingConnectionId = nil
+                return []
+            }
+
+            let tempService = MySQLService(connectionConfig: connection)
+            try await tempService.connect(config: connection, password: password)
+
+            let dbList = try await tempService.fetchDatabases()
+            await tempService.disconnect()
+
+            let dbNames = dbList.map(\.name)
+            connectionDatabaseCache[connectionId] = dbNames
+            loadingConnectionId = nil
+
+            return dbNames
+        } catch {
+            print("❌ Failed to fetch databases for connection \(connection.name): \(error)")
+            loadingConnectionId = nil
+            return []
+        }
     }
 }
 

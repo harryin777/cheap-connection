@@ -29,12 +29,8 @@ final class ConnectionManager {
     /// 当前选中的表名（MySQL）
     var selectedTableName: String?
 
-    // GPT TODO: 这里目前只有一套全局 selectedConnectionId / selectedDatabaseName / selectedTableName，
-    // GPT TODO: 它适合表达左侧资源树的当前选择，但不适合承载右侧 query 文件的执行上下文。
-    // GPT TODO: glm5 需要新增与 query 编辑器独立的上下文模型，例如 currentQueryContext / editorTabContexts：
-    // GPT TODO: - resource explorer selection: 左树高亮哪个连接/数据库/表
-    // GPT TODO: - query execution context: 当前 query 文件绑定哪个连接、哪个 schema/database
-    // GPT TODO: 两者必须并存，且互不覆盖；否则会继续出现“左侧点 ali，右上角 query pill 被迫切 ali”这类错误。
+    // NOTE: selectedConnectionId / selectedDatabaseName / selectedTableName 只用于左侧资源树的当前选择
+    // Query 执行上下文现在由 MySQLWorkspaceView 中的 EditorQueryTab 独立管理，不再共享这些全局状态
 
     /// 错误信息
     var errorMessage: String?
@@ -154,12 +150,10 @@ final class ConnectionManager {
         errorMessage = nil
     }
 
-    /// 统一更新当前资源选择
+    /// 更新资源树选择（仅影响左侧资源树高亮，不影响 query 执行上下文）
     func selectConnection(_ connectionId: UUID?, database: String? = nil, table: String? = nil) {
-        // GPT TODO: 这个 API 当前语义过宽，名字像“选择连接”，实际却会同时覆盖数据库和表，
-        // GPT TODO: 并且它操作的是全局共享状态，导致左侧树的点击会污染右侧 query 文件上下文。
-        // GPT TODO: glm5 需要把它收敛为 resource explorer 专用 API，例如 selectExplorerResource(...)，
-        // GPT TODO: 不允许再被 query toolbar 的 connection/schema selector 直接复用。
+        // NOTE: 这个 API 只用于资源树选择，不应被 query toolbar 直接调用
+        // Query 执行上下文由 MySQLWorkspaceView 中的 EditorQueryTab 独立管理
         selectedConnectionId = connectionId
         selectedDatabaseName = database
         selectedTableName = table

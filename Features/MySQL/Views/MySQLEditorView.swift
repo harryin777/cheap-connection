@@ -60,18 +60,26 @@ struct SQLImportResult {
 struct MySQLEditorView: View {
     @Binding var sqlText: String
     let history: [String]
-    let connectionName: String
-    var isExecuting: Bool = false
-    var activeWorkspaceTab: MySQLDetailTab? = nil
+
+    // MARK: - Query Context (独立于左侧资源树)
+    let queryConnectionId: UUID
+    let queryConnectionName: String
+    let availableConnections: [ConnectionConfig]
+    let queryDatabases: [String]
+    let selectedQueryDatabase: String?
+
+    // MARK: - Callbacks
+    let onSwitchQueryConnection: (UUID) -> Void
+    let onSelectQueryDatabase: (String?) -> Void
     let onExecute: (String) async -> Void
     let onSelectHistory: (String) -> Void
+
+    var isExecuting: Bool = false
+    var activeWorkspaceTab: MySQLDetailTab? = nil
     var onSelectWorkspaceTab: ((MySQLDetailTab) -> Void)? = nil
-    var onImport: (() async -> Void)? = nil  // 导入回调
-    var onOpenFile: (() async -> Void)? = nil  // 打开文件回调
-    var onCloseTab: (() -> Void)? = nil  // 关闭 Tab 回调
-    var queryDatabases: [String] = []  // SQL 可执行数据库列表
-    var selectedQueryDatabase: String? = nil  // 当前 SQL 执行数据库
-    var onSelectQueryDatabase: (String?) -> Void = { _ in }  // 选择数据库回调
+    var onImport: (() async -> Void)? = nil
+    var onOpenFile: (() async -> Void)? = nil
+    var onCloseTab: (() -> Void)? = nil
 
     // 自动补全相关数据
     var tables: [MySQLTableSummary] = []
@@ -280,10 +288,6 @@ struct MySQLEditorView: View {
     }
 
     private var schemaSelectorMenu: some View {
-        // GPT TODO: 这里的 queryDatabases 目前来自外层 workspace 的单一数据库列表，
-        // GPT TODO: 所以当右上角 connection pill 未来切到别的连接时，这里的 schema/database 菜单仍然会显示旧连接的库。
-        // GPT TODO: glm5 必须改成“按当前活动 query tab 的 queryConnectionId 动态提供数据库列表”，
-        // GPT TODO: 而不是继续复用当前 MySQLWorkspaceView(connectionConfig) 已加载的 databases。
         Menu {
             Button {
                 onSelectQueryDatabase(nil)
@@ -328,29 +332,27 @@ struct MySQLEditorView: View {
     }
 
     private var connectionSelectorMenu: some View {
-        // GPT TODO: 这里现在是静态单项 Menu，只展示 connectionName，没有真正可选列表。
-        // GPT TODO: 用户要求右上角 connection pill 是“当前 query 文件的连接选择器”，必须支持切换到其他已保存连接，
-        // GPT TODO: 且不能与左侧资源树当前高亮连接强绑定。
-        // GPT TODO: glm5 需要把这里改成真实连接列表菜单，并在切换时只更新 active editor tab 的 queryConnectionId，
-        // GPT TODO: 不允许调用左侧资源树的全局 selectedConnectionId，否则会再次把 explorer selection 一起带走。
         Menu {
-            Button {
-            } label: {
-                HStack {
-                    Image(systemName: "externaldrive.connected.to.line.below")
-                        .font(.system(size: 10))
-                    Text(connectionName)
-                    Spacer()
-                    Text("当前连接")
-                        .foregroundStyle(.tertiary)
+            ForEach(availableConnections) { connection in
+                Button {
+                    onSwitchQueryConnection(connection.id)
+                } label: {
+                    HStack {
+                        Image(systemName: "externaldrive.connected.to.line.below")
+                            .font(.system(size: 10))
+                        Text(connection.name)
+                        if connection.id == queryConnectionId {
+                            Spacer()
+                            Image(systemName: "checkmark")
+                        }
+                    }
                 }
             }
-            .disabled(true)
         } label: {
             contextSelectorLabel(
                 icon: "externaldrive.connected.to.line.below",
                 iconColor: Color(red: 0.17, green: 0.67, blue: 0.95),
-                title: connectionName
+                title: queryConnectionName
             )
         }
         .menuStyle(.borderlessButton)
@@ -927,6 +929,16 @@ struct SQLEditorTextView: NSViewRepresentable {
 #Preview {
     struct PreviewWrapper: View {
         @State var sqlText = "SELECT * FROM users LIMIT 10;"
+        @State var selectedDb: String? = "test_db"
+
+        let previewConnection = ConnectionConfig(
+            name: "local-mysql",
+            databaseKind: .mysql,
+            host: "localhost",
+            port: 3306,
+            username: "root",
+            defaultDatabase: "test_db"
+        )
 
         var body: some View {
             MySQLEditorView(
@@ -936,9 +948,15 @@ struct SQLEditorTextView: NSViewRepresentable {
                     "SHOW DATABASES;",
                     "DESCRIBE orders;"
                 ],
-                connectionName: "local-mysql",
+                queryConnectionId: previewConnection.id,
+                queryConnectionName: previewConnection.name,
+                availableConnections: [previewConnection],
+                queryDatabases: ["test_db", "mysql", "information_schema"],
+                selectedQueryDatabase: selectedDb,
+                onSwitchQueryConnection: { _ in },
+                onSelectQueryDatabase: { db in selectedDb = db },
                 onExecute: { _ in },
-                onSelectHistory: { _ in }
+                onSelectHistory: { sql in sqlText = sql }
             )
             .frame(width: 700, height: 400)
         }

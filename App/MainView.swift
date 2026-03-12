@@ -36,13 +36,9 @@ struct MainView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        // GPT TODO: 当前 detail 区完全由 connectionManager.selectedConnectionId 决定，
-        // GPT TODO: 这意味着左侧资源树一旦切换连接，右侧整个工作区就会被强制切换到那个连接。
-        // GPT TODO: 用户要求左侧资源树选择和右侧 query 文件上下文解耦：
-        // GPT TODO: 1) 左侧树负责“资源浏览/表详情”的当前焦点；
-        // GPT TODO: 2) 右侧 query 文件需要维护自己的 queryConnectionId / queryDatabase；
-        // GPT TODO: 3) 因此 glm5 需要把“当前打开的工作区连接”与“左侧资源树当前高亮连接”拆成两套状态，
-        // GPT TODO:    不能继续让 selectedConnectionId 同时承担 explorer selection 和 query context 两种职责。
+        // NOTE: detail 区由 connectionManager.selectedConnectionId 决定
+        // 这控制的是左侧资源树高亮连接对应的 workspace 显示
+        // Query 执行上下文由 MySQLWorkspaceView 中的 EditorQueryTab 独立管理
         if let selectedId = connectionManager.selectedConnectionId,
            let config = connectionManager.connections.first(where: { $0.id == selectedId }) {
             ConnectionDetailView(config: config)
