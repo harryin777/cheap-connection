@@ -61,6 +61,7 @@ struct MySQLWorkspaceView: View {
     // State - Splitter
     @State var editorHeight: CGFloat = 200
     @State var isDraggingSplitter = false
+    @State var dragStartHeight: CGFloat = 200
 
     var currentDatabaseTables: [MySQLTableSummary] {
         guard let dbName = selectedDatabase,
@@ -193,30 +194,41 @@ struct MySQLWorkspaceView: View {
     // MARK: - Resizable Splitter
 
     private func resizableSplitter(totalHeight: CGFloat) -> some View {
-        Rectangle()
-            .fill(isDraggingSplitter ? Color.accentColor.opacity(0.3) : Color(nsColor: .separatorColor))
-            .frame(height: isDraggingSplitter ? 3 : 1)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        isDraggingSplitter = true
-                        let minHeight: CGFloat = 120
-                        let maxHeight: CGFloat = max(minHeight, totalHeight - 100)
-                        let newHeight = editorHeight + value.translation.height
-                        editorHeight = min(maxHeight, max(minHeight, newHeight))
+        // 交互热区（8px 高的透明区域，承载拖拽手势）
+        ZStack {
+            // 可见分隔线（视觉层）
+            Rectangle()
+                .fill(isDraggingSplitter ? Color.accentColor.opacity(0.3) : Color(nsColor: .separatorColor))
+                .frame(height: isDraggingSplitter ? 3 : 1)
+
+            // 透明交互层
+            Color.clear
+                .frame(height: 12)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            if !isDraggingSplitter {
+                                isDraggingSplitter = true
+                                dragStartHeight = editorHeight
+                            }
+                            let minHeight: CGFloat = 120
+                            let maxHeight: CGFloat = max(minHeight, totalHeight - 100)
+                            let newHeight = dragStartHeight + value.translation.height
+                            editorHeight = min(maxHeight, max(minHeight, newHeight))
+                        }
+                        .onEnded { _ in
+                            isDraggingSplitter = false
+                        }
+                )
+                .onHover { hovering in
+                    if hovering {
+                        NSCursor.resizeUpDown.push()
+                    } else {
+                        NSCursor.pop()
                     }
-                    .onEnded { _ in
-                        isDraggingSplitter = false
-                    }
-            )
-            .onHover { hovering in
-                if hovering {
-                    NSCursor.resizeUpDown.push()
-                } else {
-                    NSCursor.pop()
                 }
-            }
+        }
     }
 
     @ViewBuilder

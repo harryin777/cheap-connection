@@ -152,14 +152,14 @@
 ### 2.B MySQL 当前待修 Bug
 - [ ] 主界面分栏出现异常 gutter，左侧树与右侧工作区边界未对齐
 - [ ] MySQL 左侧资源树回归：连接已成功但数据库列表不渲染
-- [x] 右侧 query context selector 仍未真正独立：connection pill 不能稳定单独切换，schema/database pill 也不能独立选择
-- [x] 左侧资源树与右侧 query context 仍存在错误联动，左右两边必须完全独立，互不覆盖状态
-- [x] query connection 切换时，connection menu 选择不生效，右上角 connection pill 仍停留在旧连接名
-- [x] query connection 切换时，schema/database pill 标题不随连接一起切换，仍残留旧库名
-- [x] query connection 切换时，schema/database pill 的列表没有稳定切到新连接数据库集合
-- [x] query connection 切换链路需要确认 editorTabs 更新、activeQueryTab 传播、Menu label 重建三者一致
-- [x] SQL 结果/数据表格未填满下方面板，结果网格会按内容尺寸缩成一小块显示
-- [x] query 编辑区与下方 SQL 结果区/数据区之间的边界不可拖拽，当前只是静态 Divider
+- [ ] 右侧 query context selector 仍未真正独立：connection pill 不能稳定单独切换，schema/database pill 也不能独立选择
+- [ ] 左侧资源树与右侧 query context 仍存在错误联动，左右两边必须完全独立，互不覆盖状态
+- [ ] query connection 切换时，connection menu 选择不生效，右上角 connection pill 仍停留在旧连接名
+- [ ] query connection 切换时，schema/database pill 标题不随连接一起切换，仍残留旧库名
+- [ ] query connection 切换时，schema/database pill 的列表没有稳定切到新连接数据库集合
+- [ ] query connection 切换链路需要确认 editorTabs 更新、activeQueryTab 传播、Menu label 重建三者一致
+- [x] SQL 结果/数据表格未填满下方面板（使用 GeometryReader 传递 viewport 尺寸）
+- [x] query 编辑区与下方 SQL 结果区/数据区之间的边界不可拖拽（增大交互热区到 12px，修复累计漂移）
 - [ ] SQL 结果和表数据网格的列表头未固定
 - [ ] 结果网格横向滚动同步、列宽拖拽同步
 - [ ] 验证双向切换不会出现库名串连

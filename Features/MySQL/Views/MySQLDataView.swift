@@ -30,7 +30,6 @@ struct MySQLDataView: View {
                 } else if let result = result {
                     if result.hasResults {
                         MySQLResultView(result: result, onCellEdit: onCellEdit)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if let error = result.error {
                         errorView(error: error)
                     } else {

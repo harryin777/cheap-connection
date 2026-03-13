@@ -88,29 +88,35 @@ struct MySQLResultView: View {
     // MARK: - Result Table
 
     private var resultTableView: some View {
-        ScrollView([.horizontal, .vertical]) {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Section(header: pinnedHeaderView) {
-                    ForEach(Array(result.rows.enumerated()), id: \.offset) { index, row in
-                        ResultDataRowView(
-                            row: row,
-                            rowIndex: index,
-                            columnWidths: columnWidths,
-                            rowNumberWidth: rowNumberWidth,
-                            selectedCell: selectedCell,
-                            editingCell: editingCell,
-                            editingText: editingText,
-                            isEditingFocused: $isEditingFocused,
-                            onCellSelect: { pos in selectedCell = pos },
-                            onStartEditing: startEditing,
-                            onFinishEditing: finishEditing,
-                            onCancelEditing: cancelEditing
-                        )
+        GeometryReader { geometry in
+            ScrollView([.horizontal, .vertical]) {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    Section(header: pinnedHeaderView) {
+                        ForEach(Array(result.rows.enumerated()), id: \.offset) { index, row in
+                            ResultDataRowView(
+                                row: row,
+                                rowIndex: index,
+                                columnWidths: columnWidths,
+                                rowNumberWidth: rowNumberWidth,
+                                selectedCell: selectedCell,
+                                editingCell: editingCell,
+                                editingText: editingText,
+                                isEditingFocused: $isEditingFocused,
+                                onCellSelect: { pos in selectedCell = pos },
+                                onStartEditing: startEditing,
+                                onFinishEditing: finishEditing,
+                                onCancelEditing: cancelEditing
+                            )
+                        }
                     }
                 }
+                .frame(
+                    minWidth: geometry.size.width,
+                    minHeight: geometry.size.height,
+                    alignment: .topLeading
+                )
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var pinnedHeaderView: some View {
