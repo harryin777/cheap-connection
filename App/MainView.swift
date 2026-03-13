@@ -18,6 +18,7 @@ struct MainView: View {
         } detail: {
             detailView
         }
+        .navigationSplitViewStyle(.balanced)
         .alert("错误", isPresented: .init(
             get: { connectionManager.errorMessage != nil },
             set: { if !$0 { connectionManager.clearError() } }

@@ -7,8 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1F48D65E6AD44209891BD01A /* SQLExecutionScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F48D65F6AD44209891BD01A /* SQLExecutionScope.swift */; };
+		103D9769F0A84CB8B3B20A24 /* SQLStatementParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103D976AF0A84CB8B3B20A24 /* SQLStatementParser.swift */; };
 		4AB0F8092F6111D70027A24E /* MySQLErrorMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8082F6111D70027A24E /* MySQLErrorMapper.swift */; };
 		4AB0F80A2F6111D70027A24E /* MySQLClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8062F6111D70027A24E /* MySQLClient.swift */; };
+		BB22BB22BB22BB22BB22BB01 /* MySQLClientQueries.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22BB22BB22BB22BB22BB02 /* MySQLClientQueries.swift */; };
+		ACB26D133F5941E298D83B9A /* MySQLValueConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B27C3676CC4B41B57E548B /* MySQLValueConverter.swift */; };
+		E7A70AAE1FB64193A3D3AD97 /* MySQLEscapeUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD2C37A81C64E0A90907314 /* MySQLEscapeUtils.swift */; };
+		A1B2C3D4E5F6789012345678 /* MySQLQueries.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A78901234567 /* MySQLQueries.swift */; };
+		8A40726E8AAF42D5B42BB323 /* MySQLConnectionResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D18DD970994EC4A6F30ADF /* MySQLConnectionResolver.swift */; };
+		57C291BE4D8F43B9AF6D02E1 /* MySQLConnectionErrorHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 613F48D030A54F6BAC738E52 /* MySQLConnectionErrorHandler.swift */; };
 		4AB0F80B2F6111D70027A24E /* MySQLClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8072F6111D70027A24E /* MySQLClientProtocol.swift */; };
 		4AB0F82F2F61135A0027A24E /* MySQLWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F82D2F61135A0027A24E /* MySQLWorkspaceView.swift */; };
 		4AB0F8302F61135A0027A24E /* MySQLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8262F61135A0027A24E /* MySQLService.swift */; };
@@ -18,12 +26,31 @@
 		4AB0F8342F61135A0027A24E /* MySQLColumnDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F81D2F61135A0027A24E /* MySQLColumnDefinition.swift */; };
 		4AB0F8352F61135A0027A24E /* SQLRiskLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8242F61135A0027A24E /* SQLRiskLevel.swift */; };
 		4AB0F8362F61135A0027A24E /* MySQLResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F82A2F61135A0027A24E /* MySQLResultView.swift */; };
+		29BCEECE3C0942CFA63F74D7 /* MySQLResultTableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3569CB1ABD94510843C6E04 /* MySQLResultTableViews.swift */; };
+		B51AEA4A88A14C53885F4D73 /* MySQLResultTableCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDD099183F745F8B682188D /* MySQLResultTableCell.swift */; };
 		4AB0F8372F61135A0027A24E /* MySQLSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8222F61135A0027A24E /* MySQLSession.swift */; };
 		4AB0F8382F61135A0027A24E /* MySQLConnectionConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F81E2F61135A0027A24E /* MySQLConnectionConfig.swift */; };
 		4AB0F8392F61135A0027A24E /* MySQLRowValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8212F61135A0027A24E /* MySQLRowValue.swift */; };
 		4AB0F83A2F61135A0027A24E /* MySQLDatabaseSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F81F2F61135A0027A24E /* MySQLDatabaseSummary.swift */; };
 		4AB0F83B2F61135A0027A24E /* MySQLEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8292F61135A0027A24E /* MySQLEditorView.swift */; };
 		4AB0F83C2F61135A0027A24E /* MySQLSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F82B2F61135A0027A24E /* MySQLSidebarView.swift */; };
+		76BD3BE1028F4E7EB20084AC /* MySQLSidebarNodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9F3CB20F454108A3438F22 /* MySQLSidebarNodeViews.swift */; };
+		9A1B2C3D4E5F678901234567 /* MySQLEditorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8Z0A1B2C3D4E567890123456 /* MySQLEditorModels.swift */; };
+		AA11AA11AA11AA11AA11AA01 /* MySQLEditorToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA02 /* MySQLEditorToolbar.swift */; };
+		AA11AA11AA11AA11AA11AA03 /* MySQLEditorTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA04 /* MySQLEditorTabBar.swift */; };
+		AA11AA11AA11AA11AA11AA05 /* MySQLEditorAutocomplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA06 /* MySQLEditorAutocomplete.swift */; };
+		2B3C4D5E6F7A890123456789 /* SQLEditorTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C2D3E4F5A6B789012345678 /* SQLEditorTextView.swift */; };
+		e504b4f559c64acbb48b9cbd /* SQLEditorHistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 088e29fc97b244b186dc05f7 /* SQLEditorHistoryPanel.swift */; };
+		2256e3f64519431b931c290a /* SQLEditorAutocompleteOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55dbd64c862446daaef4c3dc /* SQLEditorAutocompleteOverlay.swift */; };
+		13c022392b0b49a0a6a80a9c /* SQLEditorContextSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = a0cd5009bfe64ad9bbc42f55 /* SQLEditorContextSelector.swift */; };
+		3C4D5E6F7A8B90123456789A /* WorkspaceEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5E6F7A8B9C012345678901 /* WorkspaceEnums.swift */; };
+		5D6E7F8A9B0C1234567890AB /* ConnectionStateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E7F8A9B0C1D23456789012C /* ConnectionStateViews.swift */; };
+		AA11AA11AA11AA11AA11AA07 /* MySQLWorkspaceConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */; };
+		AA11AA11AA11AA11AA11AA09 /* MySQLWorkspaceSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0A /* MySQLWorkspaceSelection.swift */; };
+		AA11AA11AA11AA11AA11AA0B /* MySQLWorkspaceFileTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */; };
+		AA11AA11AA11AA11AA11AA0D /* MySQLWorkspaceQueryContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */; };
+		6E7F8A9B0C123456789012CD /* SQLFileOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8A9B0C1D234567890123D /* SQLFileOperations.swift */; };
+		55c78129daf5412aa76beb2f /* SQLPreprocessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3dd67efc70734c8db37616a5 /* SQLPreprocessor.swift */; };
 		4AB0F83D2F61135A0027A24E /* MySQLTableSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8232F61135A0027A24E /* MySQLTableSummary.swift */; };
 		4AB0F8402F6113760027A24E /* RedisWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F83E2F6113760027A24E /* RedisWorkspaceView.swift */; };
 		4AB0F8422F6113930027A24E /* OrderDirection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8412F6113930027A24E /* OrderDirection.swift */; };
@@ -41,14 +68,26 @@
 		4AB8270B2F60300000BC4BE6 /* ConnectionFormData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB8270A2F60300000BC4BE6 /* ConnectionFormData.swift */; };
 		4AB8270D2F60300000BC4BE6 /* ConnectionFormViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB8270C2F60300000BC4BE6 /* ConnectionFormViewModel.swift */; };
 		4AB8270F2F60300000BC4BE6 /* ConnectionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB8270E2F60300000BC4BE6 /* ConnectionListView.swift */; };
+		BB22BB22BB22BB22BB22BB03 /* ConnectionListInteractions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22BB22BB22BB22BB22BB04 /* ConnectionListInteractions.swift */; };
 		4AB827112F60300000BC4BE6 /* ConnectionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB827102F60300000BC4BE6 /* ConnectionRowView.swift */; };
 		4AB827132F60300000BC4BE6 /* ConnectionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB827122F60300000BC4BE6 /* ConnectionFormView.swift */; };
 		4AB827152F60300000BC4BE6 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB827142F60300000BC4BE6 /* MainView.swift */; };
+		7D3A8B9C2E7F4A1582C1D0B /* ConnectionListNodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E4B9CD3F6A25B2693E2C1F /* ConnectionListNodeViews.swift */; };
+		5A3B8C9D1E2F4A5678901234 /* ConnectionListDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4C9DAE2F3A5B6789012345 /* ConnectionListDataLoader.swift */; };
+		7C5DAEBF304B6C7890123456 /* ConnectionListRowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D6EBFC0415C7D8901234567 /* ConnectionListRowViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1F48D65F6AD44209891BD01A /* SQLExecutionScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLExecutionScope.swift; sourceTree = "<group>"; };
+		103D976AF0A84CB8B3B20A24 /* SQLStatementParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLStatementParser.swift; sourceTree = "<group>"; };
 		4A2E660B2F60294300E9C832 /* cheap-connection.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "cheap-connection.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4AB0F8062F6111D70027A24E /* MySQLClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLClient.swift; sourceTree = "<group>"; };
+		BB22BB22BB22BB22BB22BB02 /* MySQLClientQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLClientQueries.swift; sourceTree = "<group>"; };
+		70B27C3676CC4B41B57E548B /* MySQLValueConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLValueConverter.swift; sourceTree = "<group>"; };
+		1CD2C37A81C64E0A90907314 /* MySQLEscapeUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEscapeUtils.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6A78901234567 /* MySQLQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLQueries.swift; sourceTree = "<group>"; };
+		05D18DD970994EC4A6F30ADF /* MySQLConnectionResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLConnectionResolver.swift; sourceTree = "<group>"; };
+		613F48D030A54F6BAC738E52 /* MySQLConnectionErrorHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLConnectionErrorHandler.swift; sourceTree = "<group>"; };
 		4AB0F8072F6111D70027A24E /* MySQLClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLClientProtocol.swift; sourceTree = "<group>"; };
 		4AB0F8082F6111D70027A24E /* MySQLErrorMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLErrorMapper.swift; sourceTree = "<group>"; };
 		4AB0F81D2F61135A0027A24E /* MySQLColumnDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLColumnDefinition.swift; sourceTree = "<group>"; };
@@ -62,8 +101,27 @@
 		4AB0F8262F61135A0027A24E /* MySQLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLService.swift; sourceTree = "<group>"; };
 		4AB0F8282F61135A0027A24E /* MySQLDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLDataView.swift; sourceTree = "<group>"; };
 		4AB0F8292F61135A0027A24E /* MySQLEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEditorView.swift; sourceTree = "<group>"; };
+		8Z0A1B2C3D4E567890123456 /* MySQLEditorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEditorModels.swift; sourceTree = "<group>"; };
+		AA11AA11AA11AA11AA11AA02 /* MySQLEditorToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEditorToolbar.swift; sourceTree = "<group>"; };
+		AA11AA11AA11AA11AA11AA04 /* MySQLEditorTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEditorTabBar.swift; sourceTree = "<group>"; };
+		AA11AA11AA11AA11AA11AA06 /* MySQLEditorAutocomplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEditorAutocomplete.swift; sourceTree = "<group>"; };
+		1C2D3E4F5A6B789012345678 /* SQLEditorTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLEditorTextView.swift; sourceTree = "<group>"; };
+		088e29fc97b244b186dc05f7 /* SQLEditorHistoryPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLEditorHistoryPanel.swift; sourceTree = "<group>"; };
+		55dbd64c862446daaef4c3dc /* SQLEditorAutocompleteOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLEditorAutocompleteOverlay.swift; sourceTree = "<group>"; };
+		a0cd5009bfe64ad9bbc42f55 /* SQLEditorContextSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLEditorContextSelector.swift; sourceTree = "<group>"; };
 		4AB0F82A2F61135A0027A24E /* MySQLResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLResultView.swift; sourceTree = "<group>"; };
+		F3569CB1ABD94510843C6E04 /* MySQLResultTableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLResultTableViews.swift; sourceTree = "<group>"; };
+		0DDD099183F745F8B682188D /* MySQLResultTableCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLResultTableCell.swift; sourceTree = "<group>"; };
 		4AB0F82B2F61135A0027A24E /* MySQLSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLSidebarView.swift; sourceTree = "<group>"; };
+		CD9F3CB20F454108A3438F22 /* MySQLSidebarNodeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLSidebarNodeViews.swift; sourceTree = "<group>"; };
+		4D5E6F7A8B9C012345678901 /* WorkspaceEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceEnums.swift; sourceTree = "<group>"; };
+		6E7F8A9B0C1D23456789012C /* ConnectionStateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStateViews.swift; sourceTree = "<group>"; };
+		AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceConnection.swift; sourceTree = "<group>"; };
+		AA11AA11AA11AA11AA11AA0A /* MySQLWorkspaceSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceSelection.swift; sourceTree = "<group>"; };
+		AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceFileTabs.swift; sourceTree = "<group>"; };
+		AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceQueryContext.swift; sourceTree = "<group>"; };
+		7F8A9B0C1D234567890123D /* SQLFileOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLFileOperations.swift; sourceTree = "<group>"; };
+		3dd67efc70734c8db37616a5 /* SQLPreprocessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLPreprocessor.swift; sourceTree = "<group>"; };
 		4AB0F82C2F61135A0027A24E /* MySQLStructureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLStructureView.swift; sourceTree = "<group>"; };
 		4AB0F82D2F61135A0027A24E /* MySQLWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceView.swift; sourceTree = "<group>"; };
 		4AB0F83E2F6113760027A24E /* RedisWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisWorkspaceView.swift; sourceTree = "<group>"; };
@@ -89,9 +147,13 @@
 		4AB8270A2F60300000BC4BE6 /* ConnectionFormData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFormData.swift; sourceTree = "<group>"; };
 		4AB8270C2F60300000BC4BE6 /* ConnectionFormViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFormViewModel.swift; sourceTree = "<group>"; };
 		4AB8270E2F60300000BC4BE6 /* ConnectionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListView.swift; sourceTree = "<group>"; };
+		BB22BB22BB22BB22BB22BB04 /* ConnectionListInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListInteractions.swift; sourceTree = "<group>"; };
 		4AB827102F60300000BC4BE6 /* ConnectionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionRowView.swift; sourceTree = "<group>"; };
 		4AB827122F60300000BC4BE6 /* ConnectionFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFormView.swift; sourceTree = "<group>"; };
 		4AB827142F60300000BC4BE6 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		8E4B9CD3F6A25B2693E2C1F /* ConnectionListNodeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListNodeViews.swift; sourceTree = "<group>"; };
+		6B4C9DAE2F3A5B6789012345 /* ConnectionListDataLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListDataLoader.swift; sourceTree = "<group>"; };
+		8D6EBFC0415C7D8901234567 /* ConnectionListRowViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListRowViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +201,8 @@
 				4AB0F8212F61135A0027A24E /* MySQLRowValue.swift */,
 				4AB0F8222F61135A0027A24E /* MySQLSession.swift */,
 				4AB0F8232F61135A0027A24E /* MySQLTableSummary.swift */,
+				1F48D65F6AD44209891BD01A /* SQLExecutionScope.swift */,
+				103D976AF0A84CB8B3B20A24 /* SQLStatementParser.swift */,
 				4AB0F8242F61135A0027A24E /* SQLRiskLevel.swift */,
 			);
 			path = Models;
@@ -157,10 +221,29 @@
 			children = (
 				4AB0F8282F61135A0027A24E /* MySQLDataView.swift */,
 				4AB0F8292F61135A0027A24E /* MySQLEditorView.swift */,
+				8Z0A1B2C3D4E567890123456 /* MySQLEditorModels.swift */,
+				AA11AA11AA11AA11AA11AA02 /* MySQLEditorToolbar.swift */,
+				AA11AA11AA11AA11AA11AA04 /* MySQLEditorTabBar.swift */,
+				AA11AA11AA11AA11AA11AA06 /* MySQLEditorAutocomplete.swift */,
+				1C2D3E4F5A6B789012345678 /* SQLEditorTextView.swift */,
+				088e29fc97b244b186dc05f7 /* SQLEditorHistoryPanel.swift */,
+				55dbd64c862446daaef4c3dc /* SQLEditorAutocompleteOverlay.swift */,
+				a0cd5009bfe64ad9bbc42f55 /* SQLEditorContextSelector.swift */,
 				4AB0F82A2F61135A0027A24E /* MySQLResultView.swift */,
+				F3569CB1ABD94510843C6E04 /* MySQLResultTableViews.swift */,
+				0DDD099183F745F8B682188D /* MySQLResultTableCell.swift */,
 				4AB0F82B2F61135A0027A24E /* MySQLSidebarView.swift */,
+				CD9F3CB20F454108A3438F22 /* MySQLSidebarNodeViews.swift */,
 				4AB0F82C2F61135A0027A24E /* MySQLStructureView.swift */,
 				4AB0F82D2F61135A0027A24E /* MySQLWorkspaceView.swift */,
+				4D5E6F7A8B9C012345678901 /* WorkspaceEnums.swift */,
+				6E7F8A9B0C1D23456789012C /* ConnectionStateViews.swift */,
+				AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */,
+				AA11AA11AA11AA11AA11AA0A /* MySQLWorkspaceSelection.swift */,
+				AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */,
+				AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */,
+				7F8A9B0C1D234567890123D /* SQLFileOperations.swift */,
+				3dd67efc70734c8db37616a5 /* SQLPreprocessor.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -225,6 +308,12 @@
 			isa = PBXGroup;
 			children = (
 				4AB0F8062F6111D70027A24E /* MySQLClient.swift */,
+				BB22BB22BB22BB22BB22BB02 /* MySQLClientQueries.swift */,
+				70B27C3676CC4B41B57E548B /* MySQLValueConverter.swift */,
+				1CD2C37A81C64E0A90907314 /* MySQLEscapeUtils.swift */,
+				B2C3D4E5F6A78901234567 /* MySQLQueries.swift */,
+				05D18DD970994EC4A6F30ADF /* MySQLConnectionResolver.swift */,
+				613F48D030A54F6BAC738E52 /* MySQLConnectionErrorHandler.swift */,
 				4AB0F8072F6111D70027A24E /* MySQLClientProtocol.swift */,
 				4AB0F8082F6111D70027A24E /* MySQLErrorMapper.swift */,
 			);
@@ -355,6 +444,10 @@
 			isa = PBXGroup;
 			children = (
 				4AB8270E2F60300000BC4BE6 /* ConnectionListView.swift */,
+				BB22BB22BB22BB22BB22BB04 /* ConnectionListInteractions.swift */,
+				8E4B9CD3F6A25B2693E2C1F /* ConnectionListNodeViews.swift */,
+				6B4C9DAE2F3A5B6789012345 /* ConnectionListDataLoader.swift */,
+				8D6EBFC0415C7D8901234567 /* ConnectionListRowViews.swift */,
 				4AB827102F60300000BC4BE6 /* ConnectionRowView.swift */,
 				4AB827122F60300000BC4BE6 /* ConnectionFormView.swift */,
 			);
@@ -457,12 +550,24 @@
 				4AB827072F60300000BC4BE6 /* RecentHistoryRepository.swift in Sources */,
 				4AB827092F60300000BC4BE6 /* ConnectionManager.swift in Sources */,
 				4AB8270B2F60300000BC4BE6 /* ConnectionFormData.swift in Sources */,
+				1F48D65E6AD44209891BD01A /* SQLExecutionScope.swift in Sources */,
+				103D9769F0A84CB8B3B20A24 /* SQLStatementParser.swift in Sources */,
 				4AB0F8092F6111D70027A24E /* MySQLErrorMapper.swift in Sources */,
 				4AB0F80A2F6111D70027A24E /* MySQLClient.swift in Sources */,
+				BB22BB22BB22BB22BB22BB01 /* MySQLClientQueries.swift in Sources */,
+				ACB26D133F5941E298D83B9A /* MySQLValueConverter.swift in Sources */,
+				E7A70AAE1FB64193A3D3AD97 /* MySQLEscapeUtils.swift in Sources */,
+				A1B2C3D4E5F6789012345678 /* MySQLQueries.swift in Sources */,
+				8A40726E8AAF42D5B42BB323 /* MySQLConnectionResolver.swift in Sources */,
+				57C291BE4D8F43B9AF6D02E1 /* MySQLConnectionErrorHandler.swift in Sources */,
 				4AB0F8422F6113930027A24E /* OrderDirection.swift in Sources */,
 				4AB0F80B2F6111D70027A24E /* MySQLClientProtocol.swift in Sources */,
 				4AB8270D2F60300000BC4BE6 /* ConnectionFormViewModel.swift in Sources */,
 				4AB0F82F2F61135A0027A24E /* MySQLWorkspaceView.swift in Sources */,
+				3C4D5E6F7A8B90123456789A /* WorkspaceEnums.swift in Sources */,
+				5D6E7F8A9B0C1234567890AB /* ConnectionStateViews.swift in Sources */,
+				6E7F8A9B0C123456789012CD /* SQLFileOperations.swift in Sources */,
+				55c78129daf5412aa76beb2f /* SQLPreprocessor.swift in Sources */,
 				4AB0F8302F61135A0027A24E /* MySQLService.swift in Sources */,
 				4AB0F8312F61135A0027A24E /* MySQLQueryResult.swift in Sources */,
 				4AB0F8322F61135A0027A24E /* MySQLStructureView.swift in Sources */,
@@ -471,14 +576,33 @@
 				4AB0F8342F61135A0027A24E /* MySQLColumnDefinition.swift in Sources */,
 				4AB0F8352F61135A0027A24E /* SQLRiskLevel.swift in Sources */,
 				4AB0F8362F61135A0027A24E /* MySQLResultView.swift in Sources */,
+				29BCEECE3C0942CFA63F74D7 /* MySQLResultTableViews.swift in Sources */,
+				B51AEA4A88A14C53885F4D73 /* MySQLResultTableCell.swift in Sources */,
 				4AB0F8372F61135A0027A24E /* MySQLSession.swift in Sources */,
 				4AB0F8382F61135A0027A24E /* MySQLConnectionConfig.swift in Sources */,
 				4AB0F8392F61135A0027A24E /* MySQLRowValue.swift in Sources */,
 				4AB0F83A2F61135A0027A24E /* MySQLDatabaseSummary.swift in Sources */,
 				4AB0F83B2F61135A0027A24E /* MySQLEditorView.swift in Sources */,
+				9A1B2C3D4E5F678901234567 /* MySQLEditorModels.swift in Sources */,
+				AA11AA11AA11AA11AA11AA01 /* MySQLEditorToolbar.swift in Sources */,
+				AA11AA11AA11AA11AA11AA03 /* MySQLEditorTabBar.swift in Sources */,
+				AA11AA11AA11AA11AA11AA05 /* MySQLEditorAutocomplete.swift in Sources */,
+				2B3C4D5E6F7A890123456789 /* SQLEditorTextView.swift in Sources */,
+				e504b4f559c64acbb48b9cbd /* SQLEditorHistoryPanel.swift in Sources */,
+				2256e3f64519431b931c290a /* SQLEditorAutocompleteOverlay.swift in Sources */,
+				13c022392b0b49a0a6a80a9c /* SQLEditorContextSelector.swift in Sources */,
 				4AB0F83C2F61135A0027A24E /* MySQLSidebarView.swift in Sources */,
+				76BD3BE1028F4E7EB20084AC /* MySQLSidebarNodeViews.swift in Sources */,
+				AA11AA11AA11AA11AA11AA07 /* MySQLWorkspaceConnection.swift in Sources */,
+				AA11AA11AA11AA11AA11AA09 /* MySQLWorkspaceSelection.swift in Sources */,
+				AA11AA11AA11AA11AA11AA0B /* MySQLWorkspaceFileTabs.swift in Sources */,
+				AA11AA11AA11AA11AA11AA0D /* MySQLWorkspaceQueryContext.swift in Sources */,
 				4AB0F83D2F61135A0027A24E /* MySQLTableSummary.swift in Sources */,
 				4AB8270F2F60300000BC4BE6 /* ConnectionListView.swift in Sources */,
+				BB22BB22BB22BB22BB22BB03 /* ConnectionListInteractions.swift in Sources */,
+				7D3A8B9C2E7F4A1582C1D0B /* ConnectionListNodeViews.swift in Sources */,
+				5A3B8C9D1E2F4A5678901234 /* ConnectionListDataLoader.swift in Sources */,
+				7C5DAEBF304B6C7890123456 /* ConnectionListRowViews.swift in Sources */,
 				4AB827112F60300000BC4BE6 /* ConnectionRowView.swift in Sources */,
 				4AB827132F60300000BC4BE6 /* ConnectionFormView.swift in Sources */,
 				4AB827152F60300000BC4BE6 /* MainView.swift in Sources */,

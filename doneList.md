@@ -305,6 +305,17 @@
   - 只从缓存或新连接的实时拉取结果获取数据库列表
 - [x] 2026-03-12: 清理所有 GPT TODO 注释
 
+### 2.20 Swift 文件行数重构
+- [x] 2026-03-12: 更新 CLAUDE.md 添加文件大小限制规则
+  - Swift 文件行数不得超过 300 行
+  - 使用 MARK: - 注释清晰划分功能区域
+- [x] 2026-03-12: 重构 SQLRiskLevel.swift (345 行 → 3 个文件)
+  - `SQLRiskLevel.swift` (137 行) - SQL 风险等级枚举
+  - `SQLExecutionScope.swift` (22 行) - SQL 执行范围定义
+  - `SQLStatementParser.swift` (200 行) - SQL 语句解析器
+  - 所有文件已添加到 Xcode 项目
+  - 编译通过
+
 ---
 
 ## Redis 功能
