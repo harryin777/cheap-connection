@@ -126,6 +126,7 @@ struct SQLEditorConnectionMenu: View {
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .id(selectedConnectionId)  // Force rebuild when connection changes to avoid Menu label caching
         .fixedSize()
         .help("当前 Query 连接")
     }

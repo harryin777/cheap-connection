@@ -8,6 +8,8 @@
 import Foundation
 
 extension MySQLWorkspaceView {
+    /// 从 ConnectionManager 同步左侧资源树的选中状态到本地状态
+    /// 注意：此函数只影响左侧资源树的浏览焦点，不影响右侧 query context
     func syncSelectionFromManager() {
         guard connectionManager.selectedConnectionId == connectionConfig.id else { return }
 
@@ -20,6 +22,8 @@ extension MySQLWorkspaceView {
         }
     }
 
+    /// 将左侧资源树的数据库选择同步到 ConnectionManager
+    /// 注意：此函数只用于左侧树的浏览同步，query toolbar 的数据库选择不会走到这里
     func syncDatabaseToManager(_ newDatabase: String?) {
         guard connectionManager.selectedConnectionId == connectionConfig.id else { return }
         if connectionManager.selectedDatabaseName != newDatabase {
@@ -96,7 +100,6 @@ extension MySQLWorkspaceView {
     }
 
     func executeSQL(_ sql: String) async {
-        guard let service else { return }
         isLoadingSQL = true
         defer { isLoadingSQL = false }
 
@@ -110,11 +113,21 @@ extension MySQLWorkspaceView {
         displayMode = .sqlResult
 
         do {
+            let queryConnectionId = currentQueryConnectionId
+            let queryServiceHandle = try await serviceForQueryConnection(queryConnectionId)
+            defer {
+                if queryServiceHandle.shouldDisconnect {
+                    Task {
+                        await queryServiceHandle.service.disconnect()
+                    }
+                }
+            }
+
             var processedSQL = sql
             if let currentQueryDatabase {
                 processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
             }
-            sqlResult = try await service.executeSQL(processedSQL)
+            sqlResult = try await queryServiceHandle.service.executeSQL(processedSQL)
         } catch {
             errorMessage = error.localizedDescription
             showError = true

@@ -27,6 +27,11 @@ extension MySQLWorkspaceView {
             try await newService.connect(config: connectionConfig, password: password)
             service = newService
             connectionManager.recordConnectionUsage(connectionConfig.id)
+            if scratchQueryConnectionId == nil {
+                scratchQueryConnectionId = connectionConfig.id
+                scratchQueryConnectionName = connectionConfig.name
+                scratchQueryDatabaseName = connectionConfig.defaultDatabase
+            }
             await loadDatabases()
         } catch {
             await service?.disconnect()
@@ -46,6 +51,9 @@ extension MySQLWorkspaceView {
         selectedDatabase = nil
         selectedTable = nil
         connectionDatabaseCache.removeAll()
+        scratchQueryConnectionId = nil
+        scratchQueryConnectionName = nil
+        scratchQueryDatabaseName = nil
     }
 
     func loadDatabases() async {
@@ -56,6 +64,9 @@ extension MySQLWorkspaceView {
         do {
             databases = try await service.fetchDatabases()
             connectionDatabaseCache[connectionConfig.id] = databases.map(\.name)
+            if scratchQueryConnectionId == connectionConfig.id, scratchQueryDatabaseName == nil {
+                scratchQueryDatabaseName = connectionConfig.defaultDatabase ?? databases.first?.name
+            }
             syncSelectionFromManager()
         } catch {
             errorMessage = error.localizedDescription

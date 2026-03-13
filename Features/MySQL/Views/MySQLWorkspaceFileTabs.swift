@@ -21,9 +21,9 @@ extension MySQLWorkspaceView {
             let newTab = EditorQueryTab(
                 fileURL: url,
                 content: content,
-                defaultConnectionId: connectionConfig.id,
-                defaultConnectionName: connectionConfig.name,
-                defaultDatabase: connectionConfig.defaultDatabase ?? databases.first?.name
+                defaultConnectionId: currentQueryConnectionId,
+                defaultConnectionName: currentQueryConnectionName,
+                defaultDatabase: currentQueryDatabase
             )
             editorTabs.append(newTab)
             activeEditorTabId = newTab.id
@@ -47,12 +47,6 @@ extension MySQLWorkspaceView {
     }
 
     func executeSQLStatements(_ statements: [String]) async {
-        guard let service else {
-            errorMessage = "未连接到数据库"
-            showError = true
-            return
-        }
-
         showImportProgress = true
         importProgress = 0
         importStatus = "准备执行..."
@@ -62,17 +56,35 @@ extension MySQLWorkspaceView {
         var failedCount = 0
         var errors: [String] = []
 
+        let queryServiceHandle: (service: MySQLService, shouldDisconnect: Bool)
+        do {
+            queryServiceHandle = try await serviceForQueryConnection(currentQueryConnectionId)
+        } catch {
+            showImportProgress = false
+            errorMessage = error.localizedDescription
+            showError = true
+            return
+        }
+
+        defer {
+            if queryServiceHandle.shouldDisconnect {
+                Task {
+                    await queryServiceHandle.service.disconnect()
+                }
+            }
+        }
+
         for (index, sql) in statements.enumerated() {
             importProgress = Double(index + 1) / Double(statements.count)
             importStatus = "执行中... (\(index + 1)/\(statements.count))"
 
             do {
                 var processedSQL = sql
-                if let selectedDatabase {
-                    processedSQL = SQLPreprocessor.preprocessSQL(sql, database: selectedDatabase)
+                if let currentQueryDatabase {
+                    processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
                 }
 
-                let result = try await service.executeSQL(processedSQL)
+                let result = try await queryServiceHandle.service.executeSQL(processedSQL)
                 if let error = result.error {
                     failedCount += 1
                     errors.append("语句 \(index + 1): \(error.localizedDescription)")
@@ -106,11 +118,15 @@ extension MySQLWorkspaceView {
     func closeEditorTab(_ tabId: UUID) {
         guard let index = editorTabs.firstIndex(where: { $0.id == tabId }) else { return }
         syncSQLTextToActiveTab()
+        let closingTab = editorTabs[index]
         editorTabs.remove(at: index)
 
         if activeEditorTabId == tabId {
             if editorTabs.isEmpty {
                 activeEditorTabId = nil
+                scratchQueryConnectionId = closingTab.queryConnectionId
+                scratchQueryConnectionName = closingTab.queryConnectionName
+                scratchQueryDatabaseName = closingTab.queryDatabaseName
                 sqlText = ""
                 sqlResult = nil
                 displayMode = .editorOnly

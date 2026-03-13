@@ -28,6 +28,9 @@ struct MySQLWorkspaceView: View {
 
     // State - Query Context
     @State var connectionDatabaseCache: [UUID: [String]] = [:]
+    @State var scratchQueryConnectionId: UUID?
+    @State var scratchQueryConnectionName: String?
+    @State var scratchQueryDatabaseName: String?
     @State var editorTabs: [EditorQueryTab] = []
     @State var activeEditorTabId: UUID?
     @State var sqlText = ""
@@ -68,23 +71,21 @@ struct MySQLWorkspaceView: View {
     }
 
     var currentQueryConnectionId: UUID {
-        activeQueryTab?.queryConnectionId ?? connectionConfig.id
+        activeQueryTab?.queryConnectionId ?? scratchQueryConnectionId ?? connectionConfig.id
     }
 
     var currentQueryConnectionName: String {
-        activeQueryTab?.queryConnectionName ?? connectionConfig.name
+        activeQueryTab?.queryConnectionName ?? scratchQueryConnectionName ?? connectionConfig.name
     }
 
     var currentQueryDatabase: String? {
-        activeQueryTab?.queryDatabaseName
+        activeQueryTab?.queryDatabaseName ?? scratchQueryDatabaseName
     }
 
     var queryDatabaseOptions: [String] {
-        let connectionId = currentQueryConnectionId
-        if connectionId == connectionConfig.id {
-            return databases.map(\.name).sorted()
-        }
-        return connectionDatabaseCache[connectionId]?.sorted() ?? []
+        // 统一从 connectionDatabaseCache 获取，不再借用左侧资源树的 databases 数据
+        // 这样右侧 schema menu 的选项完全独立于左侧树当前展开的连接
+        return connectionDatabaseCache[currentQueryConnectionId]?.sorted() ?? []
     }
 
     var availableConnections: [ConnectionConfig] {

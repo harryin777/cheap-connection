@@ -95,6 +95,9 @@ struct EditorQueryTab: Identifiable, Equatable {
     }
 
     static func == (lhs: EditorQueryTab, rhs: EditorQueryTab) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id &&
+        lhs.queryConnectionId == rhs.queryConnectionId &&
+        lhs.queryConnectionName == rhs.queryConnectionName &&
+        lhs.queryDatabaseName == rhs.queryDatabaseName
     }
 }

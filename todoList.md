@@ -150,11 +150,14 @@
 - [x] 编译通过
 
 ### 2.B MySQL 当前待修 Bug
-- [x] 主界面分栏出现异常 gutter，左侧树与右侧工作区边界未对齐
-- [x] MySQL 左侧资源树回归：连接已成功但数据库列表不渲染
-- [x] query connection 切换时先同步清空旧 queryDatabase 并清除缓存
-- [x] connection pill 主标签刷新问题
-- [x] schema/database pill 列表刷新问题（添加 .id() 强制刷新）
+- [ ] 主界面分栏出现异常 gutter，左侧树与右侧工作区边界未对齐
+- [ ] MySQL 左侧资源树回归：连接已成功但数据库列表不渲染
+- [ ] 右侧 query context selector 仍未真正独立：connection pill 不能稳定单独切换，schema/database pill 也不能独立选择
+- [ ] 左侧资源树与右侧 query context 仍存在错误联动，左右两边必须完全独立，互不覆盖状态
+- [ ] query connection 切换时，connection menu 选择不生效，右上角 connection pill 仍停留在旧连接名
+- [ ] query connection 切换时，schema/database pill 标题不随连接一起切换，仍残留旧库名
+- [ ] query connection 切换时，schema/database pill 的列表没有稳定切到新连接数据库集合
+- [ ] query connection 切换链路需要确认 editorTabs 更新、activeQueryTab 传播、Menu label 重建三者一致
 - [ ] SQL 结果和表数据网格的列表头未固定
 - [ ] 结果网格横向滚动同步、列宽拖拽同步
 - [ ] 验证双向切换不会出现库名串连

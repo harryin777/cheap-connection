@@ -103,9 +103,8 @@ extension MySQLEditorView {
 
             Spacer()
 
-            if !queryDatabases.isEmpty {
-                contextSelectorsView
-            }
+            // Context selectors 始终显示：connection pill 独立可点，schema pill 可在无库时显示"未指定"
+            contextSelectorsView
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -114,12 +113,15 @@ extension MySQLEditorView {
 
     var contextSelectorsView: some View {
         HStack(spacing: 8) {
+            // Schema menu 只消费当前 query connection 的数据库列表
             SQLEditorSchemaMenu(
                 databases: queryDatabases,
                 selectedDatabase: selectedQueryDatabase,
                 onSelect: onSelectQueryDatabase
             )
+            .id("\(queryConnectionId.uuidString)-\(queryDatabases.joined(separator: ","))")  // Force rebuild on connection or databases change
 
+            // Connection menu 永远独立可点
             SQLEditorConnectionMenu(
                 connections: availableConnections,
                 selectedConnectionId: queryConnectionId,

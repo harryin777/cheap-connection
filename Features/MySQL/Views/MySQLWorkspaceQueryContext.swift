@@ -9,15 +9,19 @@ import Foundation
 
 extension MySQLWorkspaceView {
     func switchQueryConnection(_ connectionId: UUID) {
-        guard let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }),
-              let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else { return }
+        guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else { return }
 
-        // 同步清空旧数据，避免库名串连
-        var updatedTab = editorTabs[tabIndex]
-        updatedTab.queryConnectionId = connectionId
-        updatedTab.queryConnectionName = connection.name
-        updatedTab.queryDatabaseName = nil
-        editorTabs[tabIndex] = updatedTab
+        if let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) {
+            var updatedTab = editorTabs[tabIndex]
+            updatedTab.queryConnectionId = connectionId
+            updatedTab.queryConnectionName = connection.name
+            updatedTab.queryDatabaseName = nil
+            editorTabs[tabIndex] = updatedTab
+        } else {
+            scratchQueryConnectionId = connectionId
+            scratchQueryConnectionName = connection.name
+            scratchQueryDatabaseName = nil
+        }
 
         // 清除新连接的数据库缓存，确保 UI 显示加载中状态
         if connectionId != connectionConfig.id {
@@ -27,22 +31,26 @@ extension MySQLWorkspaceView {
         Task {
             let databases = await fetchDatabasesForConnection(connectionId)
             await MainActor.run {
-                // 再次检查当前 tab 是否还是原来的 tab
-                guard let currentTabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }),
-                      currentTabIndex == tabIndex,
-                      editorTabs[currentTabIndex].queryConnectionId == connectionId else { return }
-
                 let defaultDatabase = connection.defaultDatabase ?? databases.first
-                var tabToUpdate = editorTabs[currentTabIndex]
-                tabToUpdate.queryDatabaseName = defaultDatabase
-                editorTabs[currentTabIndex] = tabToUpdate
+
+                if let currentTabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }),
+                   editorTabs[currentTabIndex].queryConnectionId == connectionId {
+                    var tabToUpdate = editorTabs[currentTabIndex]
+                    tabToUpdate.queryDatabaseName = defaultDatabase
+                    editorTabs[currentTabIndex] = tabToUpdate
+                } else if activeEditorTabId == nil, currentQueryConnectionId == connectionId {
+                    scratchQueryDatabaseName = defaultDatabase
+                }
             }
         }
     }
 
     func updateQueryDatabase(_ database: String?) {
-        guard let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) else { return }
-        editorTabs[tabIndex].queryDatabaseName = database
+        if let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) {
+            editorTabs[tabIndex].queryDatabaseName = database
+        } else {
+            scratchQueryDatabaseName = database
+        }
     }
 
     func fetchDatabasesForConnection(_ connectionId: UUID) async -> [String] {
@@ -72,5 +80,26 @@ extension MySQLWorkspaceView {
         } catch {
             return []
         }
+    }
+
+    func serviceForQueryConnection(_ connectionId: UUID) async throws -> (service: MySQLService, shouldDisconnect: Bool) {
+        if connectionId == connectionConfig.id {
+            guard let service else {
+                throw AppError.connectionFailed("当前工作区连接未建立")
+            }
+            return (service, false)
+        }
+
+        guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else {
+            throw AppError.connectionFailed("未找到对应连接")
+        }
+
+        guard let password = try connectionManager.getPassword(for: connectionId), !password.isEmpty else {
+            throw AppError.authenticationFailed("未找到保存的密码，请重新编辑连接")
+        }
+
+        let tempService = MySQLService(connectionConfig: connection)
+        try await tempService.connect(config: connection, password: password)
+        return (tempService, true)
     }
 }
