@@ -58,6 +58,10 @@ struct MySQLWorkspaceView: View {
     @State var importResult: SQLImportResult?
     @State var showImportResult = false
 
+    // State - Splitter
+    @State var editorHeight: CGFloat = 200
+    @State var isDraggingSplitter = false
+
     var currentDatabaseTables: [MySQLTableSummary] {
         guard let dbName = selectedDatabase,
               let db = databases.first(where: { $0.name == dbName }),
@@ -136,48 +140,83 @@ struct MySQLWorkspaceView: View {
 
     @ViewBuilder
     var connectedView: some View {
-        VStack(spacing: 0) {
-            MySQLEditorView(
-                sqlText: $sqlText,
-                history: sqlHistory,
-                queryConnectionId: currentQueryConnectionId,
-                queryConnectionName: currentQueryConnectionName,
-                availableConnections: availableConnections,
-                queryDatabases: queryDatabaseOptions,
-                selectedQueryDatabase: currentQueryDatabase,
-                onSwitchQueryConnection: { switchQueryConnection($0) },
-                onSelectQueryDatabase: { updateQueryDatabase($0) },
-                onExecute: { await executeSQL($0) },
-                onSelectHistory: { sqlText = $0 },
-                isExecuting: isLoadingSQL,
-                activeWorkspaceTab: displayMode == .editorOnly ? nil : selectedTab,
-                onSelectWorkspaceTab: { tab in
-                    selectedTab = tab
-                    displayMode = .tableDetail(tab)
-                },
-                onImport: { await importSQLFile() },
-                onOpenFile: { await openSQLFile() },
-                onCloseTab: { closeActiveEditorTab() },
-                tables: currentDatabaseTables,
-                columns: columns,
-                editorTabs: editorTabs,
-                activeEditorTabId: activeEditorTabId,
-                onSelectEditorTab: { selectEditorTab($0) },
-                onCloseEditorTab: { closeEditorTab($0) }
-            )
-            .frame(minHeight: 120)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                MySQLEditorView(
+                    sqlText: $sqlText,
+                    history: sqlHistory,
+                    queryConnectionId: currentQueryConnectionId,
+                    queryConnectionName: currentQueryConnectionName,
+                    availableConnections: availableConnections,
+                    queryDatabases: queryDatabaseOptions,
+                    selectedQueryDatabase: currentQueryDatabase,
+                    onSwitchQueryConnection: { switchQueryConnection($0) },
+                    onSelectQueryDatabase: { updateQueryDatabase($0) },
+                    onExecute: { await executeSQL($0) },
+                    onSelectHistory: { sqlText = $0 },
+                    isExecuting: isLoadingSQL,
+                    activeWorkspaceTab: displayMode == .editorOnly ? nil : selectedTab,
+                    onSelectWorkspaceTab: { tab in
+                        selectedTab = tab
+                        displayMode = .tableDetail(tab)
+                    },
+                    onImport: { await importSQLFile() },
+                    onOpenFile: { await openSQLFile() },
+                    onCloseTab: { closeActiveEditorTab() },
+                    tables: currentDatabaseTables,
+                    columns: columns,
+                    editorTabs: editorTabs,
+                    activeEditorTabId: activeEditorTabId,
+                    onSelectEditorTab: { selectEditorTab($0) },
+                    onCloseEditorTab: { closeEditorTab($0) }
+                )
+                .frame(height: displayMode == .editorOnly ? nil : editorHeight)
 
-            switch displayMode {
-            case .editorOnly:
-                EmptyView()
-            case .sqlResult:
-                Divider()
-                sqlResultArea.frame(minHeight: 100, maxHeight: .infinity)
-            case .tableDetail:
-                Divider()
-                detailView.frame(minWidth: 400, maxHeight: .infinity)
+                if displayMode != .editorOnly {
+                    resizableSplitter(totalHeight: geometry.size.height)
+                }
+
+                switch displayMode {
+                case .editorOnly:
+                    EmptyView()
+                case .sqlResult:
+                    sqlResultArea
+                        .frame(maxHeight: .infinity)
+                case .tableDetail:
+                    detailView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
+    }
+
+    // MARK: - Resizable Splitter
+
+    private func resizableSplitter(totalHeight: CGFloat) -> some View {
+        Rectangle()
+            .fill(isDraggingSplitter ? Color.accentColor.opacity(0.3) : Color(nsColor: .separatorColor))
+            .frame(height: isDraggingSplitter ? 3 : 1)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        isDraggingSplitter = true
+                        let minHeight: CGFloat = 120
+                        let maxHeight: CGFloat = max(minHeight, totalHeight - 100)
+                        let newHeight = editorHeight + value.translation.height
+                        editorHeight = min(maxHeight, max(minHeight, newHeight))
+                    }
+                    .onEnded { _ in
+                        isDraggingSplitter = false
+                    }
+            )
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.resizeUpDown.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
     }
 
     @ViewBuilder

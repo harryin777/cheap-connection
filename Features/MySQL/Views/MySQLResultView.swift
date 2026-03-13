@@ -110,6 +110,7 @@ struct MySQLResultView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var pinnedHeaderView: some View {
