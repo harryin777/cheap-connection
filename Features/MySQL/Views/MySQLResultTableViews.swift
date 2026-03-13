@@ -13,6 +13,7 @@ import SwiftUI
 struct ResultPinnedHeaderView: View {
     let columns: [String]
     @Binding var columnWidths: [CGFloat]
+    let renderWidths: [CGFloat]
     let rowNumberWidth: CGFloat
     let isDraggingColumn: Int?
     let onColumnDrag: (Int, CGFloat, DragGesture.Value) -> Void
@@ -41,7 +42,7 @@ struct ResultPinnedHeaderView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.horizontal, 8)
-                    .frame(width: columnWidths[columnIndex], alignment: .leading)
+                    .frame(width: renderWidths[columnIndex], alignment: .leading)
                     .background(Color(.controlBackgroundColor))
 
                 // 列分隔线（可拖拽调整）
@@ -51,12 +52,10 @@ struct ResultPinnedHeaderView: View {
                         isDragging: isDraggingColumn == columnIndex,
                         columnWidths: $columnWidths,
                         onDrag: onColumnDrag,
-                        onDragEnd: onColumnDragEnd
+                        onColumnDragEnd: onColumnDragEnd
                     )
                 }
             }
-
-            Spacer(minLength: 0)
         }
         .frame(height: 24)
         .background(Color(.controlBackgroundColor))
@@ -70,6 +69,7 @@ struct ResultDataRowView: View {
     let row: [MySQLRowValue]
     let rowIndex: Int
     let columnWidths: [CGFloat]
+    let renderWidths: [CGFloat]
     let rowNumberWidth: CGFloat
     let selectedCell: CellPosition?
     let editingCell: CellPosition?
@@ -107,15 +107,13 @@ struct ResultDataRowView: View {
                     onFinishEditing: onFinishEditing,
                     onCancelEditing: onCancelEditing
                 )
-                .frame(width: columnWidths[columnIndex], alignment: .leading)
+                .frame(width: renderWidths[columnIndex], alignment: .leading)
 
                 // 列分隔线
                 if columnIndex < row.count - 1 {
                     ResultVerticalDivider()
                 }
             }
-
-            Spacer(minLength: 0)
         }
         .frame(height: 22)
         .background(rowBackgroundColor(rowIndex))
@@ -134,7 +132,7 @@ struct ResultColumnResizer: View {
     let isDragging: Bool
     @Binding var columnWidths: [CGFloat]
     let onDrag: (Int, CGFloat, DragGesture.Value) -> Void
-    let onDragEnd: () -> Void
+    let onColumnDragEnd: () -> Void
 
     private let minColumnWidth: CGFloat = 60
     private let maxColumnWidth: CGFloat = 400
@@ -155,7 +153,7 @@ struct ResultColumnResizer: View {
                                 onDrag(columnIndex, minColumnWidth, value)
                             }
                             .onEnded { _ in
-                                onDragEnd()
+                                onColumnDragEnd()
                             }
                     )
                     .onHover { hovering in

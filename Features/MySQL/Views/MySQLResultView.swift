@@ -27,11 +27,36 @@ struct MySQLResultView: View {
     @FocusState private var isEditingFocused: Bool
 
     private let rowNumberWidth: CGFloat = 40
+    private let dividerWidth: CGFloat = 1
+    private let minColumnWidth: CGFloat = 60
 
     init(result: MySQLQueryResult, onCellEdit: ((Int, Int, String) async -> Void)? = nil) {
         self.result = result
         self.onCellEdit = onCellEdit
         _columnWidths = State(initialValue: Array(repeating: 120, count: result.columns.count))
+    }
+
+    /// 计算渲染列宽：当列总宽不足以填满 viewport 时，将剩余宽度分配给最后一列
+    private func calculateRenderColumnWidths(viewportWidth: CGFloat, columnCount: Int) -> [CGFloat] {
+        guard columnCount > 0 else { return [] }
+
+        // 计算可用宽度 = viewport - 行号列 - (n+1)个分隔线
+        let totalDividerWidth = CGFloat(columnCount + 1) * dividerWidth
+        let availableWidth = viewportWidth - rowNumberWidth - totalDividerWidth
+
+        // 原始列总宽
+        let totalColumnWidth = columnWidths.reduce(0, +)
+
+        if totalColumnWidth >= availableWidth {
+            // 列总宽已超过可用宽度，使用原始列宽（允许横向滚动）
+            return columnWidths
+        } else {
+            // 列总宽不足，将剩余宽度加到最后一列
+            var renderWidths = columnWidths
+            let extraWidth = availableWidth - totalColumnWidth
+            renderWidths[columnCount - 1] += extraWidth
+            return renderWidths
+        }
     }
 
     var body: some View {
@@ -89,14 +114,20 @@ struct MySQLResultView: View {
 
     private var resultTableView: some View {
         GeometryReader { geometry in
+            let renderWidths = calculateRenderColumnWidths(
+                viewportWidth: geometry.size.width,
+                columnCount: result.columns.count
+            )
+
             ScrollView([.horizontal, .vertical]) {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    Section(header: pinnedHeaderView) {
+                    Section(header: pinnedHeaderView(renderWidths: renderWidths)) {
                         ForEach(Array(result.rows.enumerated()), id: \.offset) { index, row in
                             ResultDataRowView(
                                 row: row,
                                 rowIndex: index,
                                 columnWidths: columnWidths,
+                                renderWidths: renderWidths,
                                 rowNumberWidth: rowNumberWidth,
                                 selectedCell: selectedCell,
                                 editingCell: editingCell,
@@ -119,10 +150,11 @@ struct MySQLResultView: View {
         }
     }
 
-    private var pinnedHeaderView: some View {
+    private func pinnedHeaderView(renderWidths: [CGFloat]) -> some View {
         ResultPinnedHeaderView(
             columns: result.columns,
             columnWidths: $columnWidths,
+            renderWidths: renderWidths,
             rowNumberWidth: rowNumberWidth,
             isDraggingColumn: isDraggingColumn,
             onColumnDrag: handleColumnDrag,
