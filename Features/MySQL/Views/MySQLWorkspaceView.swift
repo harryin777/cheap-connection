@@ -184,6 +184,11 @@ struct MySQLWorkspaceView: View {
     // State - Splitter
     @State var editorHeight: CGFloat = 200
 
+    // State - Autocomplete Metadata (独立于侧边栏选择)
+    @State var queryTables: [MySQLTableSummary] = []
+    @State var queryAllColumns: [MySQLColumnDefinition] = []
+    @State var isLoadingQueryMetadata = false
+
     var currentDatabaseTables: [MySQLTableSummary] {
         guard let dbName = selectedDatabase,
               let db = databases.first(where: { $0.name == dbName }),
@@ -216,6 +221,22 @@ struct MySQLWorkspaceView: View {
 
     var availableConnections: [ConnectionConfig] {
         connectionManager.connections.filter { $0.databaseKind == .mysql }
+    }
+
+    /// 自动补全使用的表列表（优先使用查询上下文的表，否则回退到侧边栏选择的数据库）
+    var autocompleteTables: [MySQLTableSummary] {
+        if !queryTables.isEmpty {
+            return queryTables
+        }
+        return currentDatabaseTables
+    }
+
+    /// 自动补全使用的列列表（优先使用查询上下文的列，否则回退到当前选中表的列）
+    var autocompleteColumns: [MySQLColumnDefinition] {
+        if !queryAllColumns.isEmpty {
+            return queryAllColumns
+        }
+        return columns
     }
 
     var body: some View {
@@ -285,8 +306,8 @@ struct MySQLWorkspaceView: View {
                 onImport: { await importSQLFile() },
                 onOpenFile: { await openSQLFile() },
                 onCloseTab: { closeActiveEditorTab() },
-                tables: currentDatabaseTables,
-                columns: columns,
+                tables: autocompleteTables,
+                columns: autocompleteColumns,
                 editorTabs: editorTabs,
                 activeEditorTabId: activeEditorTabId,
                 onSelectEditorTab: { selectEditorTab($0) },
@@ -317,8 +338,8 @@ struct MySQLWorkspaceView: View {
                         onImport: { await importSQLFile() },
                         onOpenFile: { await openSQLFile() },
                         onCloseTab: { closeActiveEditorTab() },
-                        tables: currentDatabaseTables,
-                        columns: columns,
+                        tables: autocompleteTables,
+                        columns: autocompleteColumns,
                         editorTabs: editorTabs,
                         activeEditorTabId: activeEditorTabId,
                         onSelectEditorTab: { selectEditorTab($0) },

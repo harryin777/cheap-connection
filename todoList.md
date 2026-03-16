@@ -149,21 +149,13 @@
 - [x] MySQLKit 依赖已添加
 - [x] 编译通过
 
+#### 2.10 SQL 自动补全增强 ✅
+- [x] 表名自动补全（基于当前查询数据库）
+- [x] 列名自动补全（基于当前查询数据库所有表）
+- [x] 选择查询数据库时自动加载元数据
+- [x] 切换连接时自动加载元数据
+
 ### 2.B MySQL 当前待修 Bug
-- [ ] 主界面分栏出现异常 gutter，左侧树与右侧工作区边界未对齐
-- [ ] MySQL 左侧资源树回归：连接已成功但数据库列表不渲染
-- [ ] 右侧 query context selector 仍未真正独立：connection pill 不能稳定单独切换，schema/database pill 也不能独立选择
-- [ ] 左侧资源树与右侧 query context 仍存在错误联动，左右两边必须完全独立，互不覆盖状态
-- [ ] query connection 切换时，connection menu 选择不生效，右上角 connection pill 仍停留在旧连接名
-- [ ] query connection 切换时，schema/database pill 标题不随连接一起切换，仍残留旧库名
-- [ ] query connection 切换时，schema/database pill 的列表没有稳定切到新连接数据库集合
-- [ ] query connection 切换链路需要确认 editorTabs 更新、activeQueryTab 传播、Menu label 重建三者一致
-- [x] SQL 结果/数据表格右侧仍有空白：不仅列宽分配没有最终落到可见区域，header/row 根容器本身也没有明确铺满 viewport，导致整行背景和内容都只画到内容宽度
-- [x] query 编辑区与下方 SQL 结果区/数据区之间的边界不可拖拽（增大交互热区到 12px，修复累计漂移）
-- [ ] SQL 结果和表数据网格的列表头未固定
-- [ ] 结果网格横向滚动同步、列宽拖拽同步
-- [ ] 验证双向切换不会出现库名串连
-- [x] 拖拽 query/result 分界线时上下区域仍闪烁：已改用原生 NSSplitView 替代 SwiftUI splitter，AppKit 内部处理拖拽不会触发 SwiftUI 视图重绘
 
 ---
 

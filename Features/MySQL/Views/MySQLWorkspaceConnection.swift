@@ -33,6 +33,11 @@ extension MySQLWorkspaceView {
                 scratchQueryDatabaseName = connectionConfig.defaultDatabase
             }
             await loadDatabases()
+
+            // 连接成功后，如果有默认查询数据库，加载元数据用于自动补全
+            if let defaultDb = scratchQueryDatabaseName {
+                await loadQueryMetadata(database: defaultDb)
+            }
         } catch {
             await service?.disconnect()
             service = nil
@@ -54,6 +59,8 @@ extension MySQLWorkspaceView {
         scratchQueryConnectionId = nil
         scratchQueryConnectionName = nil
         scratchQueryDatabaseName = nil
+        queryTables = []
+        queryAllColumns = []
     }
 
     func loadDatabases() async {
@@ -66,6 +73,10 @@ extension MySQLWorkspaceView {
             connectionDatabaseCache[connectionConfig.id] = databases.map(\.name)
             if scratchQueryConnectionId == connectionConfig.id, scratchQueryDatabaseName == nil {
                 scratchQueryDatabaseName = connectionConfig.defaultDatabase ?? databases.first?.name
+                // 设置了默认查询数据库后，加载元数据用于自动补全
+                if let defaultDb = scratchQueryDatabaseName {
+                    await loadQueryMetadata(database: defaultDb)
+                }
             }
             syncSelectionFromManager()
         } catch {

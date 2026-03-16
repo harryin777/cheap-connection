@@ -30,9 +30,9 @@ extension MySQLWorkspaceView {
 
         Task {
             let databases = await fetchDatabasesForConnection(connectionId)
-            await MainActor.run {
-                let defaultDatabase = connection.defaultDatabase ?? databases.first
+            let defaultDatabase = connection.defaultDatabase ?? databases.first
 
+            await MainActor.run {
                 if let currentTabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }),
                    editorTabs[currentTabIndex].queryConnectionId == connectionId {
                     var tabToUpdate = editorTabs[currentTabIndex]
@@ -42,6 +42,11 @@ extension MySQLWorkspaceView {
                     scratchQueryDatabaseName = defaultDatabase
                 }
             }
+
+            // 设置默认数据库后，加载元数据用于自动补全
+            if let defaultDb = defaultDatabase {
+                await loadQueryMetadata(database: defaultDb)
+            }
         }
     }
 
@@ -50,6 +55,55 @@ extension MySQLWorkspaceView {
             editorTabs[tabIndex].queryDatabaseName = database
         } else {
             scratchQueryDatabaseName = database
+        }
+
+        // 加载该数据库的表和列信息，用于 SQL 自动补全
+        Task {
+            await loadQueryMetadata(database: database)
+        }
+    }
+
+    /// 加载查询数据库的元数据（表和列），用于 SQL 自动补全
+    func loadQueryMetadata(database: String?) async {
+        guard let database = database else {
+            queryTables = []
+            queryAllColumns = []
+            return
+        }
+
+        isLoadingQueryMetadata = true
+        defer { isLoadingQueryMetadata = false }
+
+        do {
+            let (queryService, shouldDisconnect) = try await serviceForQueryConnection(currentQueryConnectionId)
+            defer {
+                if shouldDisconnect {
+                    Task { await queryService.disconnect() }
+                }
+            }
+
+            // 获取表列表
+            let tables = try await queryService.fetchTables(database: database)
+            await MainActor.run {
+                queryTables = tables
+            }
+
+            // 获取所有表的列信息
+            var allColumns: [MySQLColumnDefinition] = []
+            for table in tables {
+                let tableColumns = try await queryService.fetchTableStructure(database: database, table: table.name)
+                allColumns.append(contentsOf: tableColumns)
+            }
+
+            await MainActor.run {
+                queryAllColumns = allColumns
+            }
+        } catch {
+            // 加载失败时静默处理，不影响用户体验
+            await MainActor.run {
+                queryTables = []
+                queryAllColumns = []
+            }
         }
     }
 
