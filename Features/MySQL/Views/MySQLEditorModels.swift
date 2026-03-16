@@ -26,6 +26,15 @@ struct SQLCompletionSuggestion: Identifiable, Hashable {
             case .keyword: return "textformat.abc"
             }
         }
+
+        /// 左侧缩略词标识，用于快速识别类型
+        var badge: String {
+            switch self {
+            case .table: return "T"
+            case .column: return "C"
+            case .keyword: return "K"
+            }
+        }
     }
 
     static func == (lhs: SQLCompletionSuggestion, rhs: SQLCompletionSuggestion) -> Bool {

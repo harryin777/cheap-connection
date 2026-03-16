@@ -36,10 +36,13 @@ struct SQLEditorAutocompleteOverlay: View {
             onSelect(index)
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: suggestion.type.icon)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 16)
+                // 左侧类型缩略词：T(表)/C(列)/K(关键字)
+                Text(suggestion.type.badge)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .frame(width: 18, height: 18)
+                    .background(badgeColor(for: suggestion.type))
+                    .cornerRadius(3)
 
                 Text(suggestion.displayText)
                     .font(.system(size: 11, design: .monospaced))
@@ -57,6 +60,17 @@ struct SQLEditorAutocompleteOverlay: View {
         }
         .buttonStyle(.plain)
         .background(index == selectedIndex ? Color.accentColor.opacity(0.2) : Color.clear)
+    }
+
+    private func badgeColor(for type: SQLCompletionSuggestion.SuggestionType) -> Color {
+        switch type {
+        case .table:
+            return .blue
+        case .column:
+            return .orange
+        case .keyword:
+            return .purple
+        }
     }
 }
 

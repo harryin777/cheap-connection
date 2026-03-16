@@ -223,20 +223,17 @@ struct MySQLWorkspaceView: View {
         connectionManager.connections.filter { $0.databaseKind == .mysql }
     }
 
-    /// 自动补全使用的表列表（优先使用查询上下文的表，否则回退到侧边栏选择的数据库）
+    /// 自动补全使用的表列表（只使用查询上下文的表，不回退到侧边栏）
     var autocompleteTables: [MySQLTableSummary] {
-        if !queryTables.isEmpty {
-            return queryTables
-        }
-        return currentDatabaseTables
+        // 不再 fallback 到 currentDatabaseTables，让 query context 完全独立
+        // 这样可以明确区分”元数据未加载”和”没有匹配项”
+        return queryTables
     }
 
-    /// 自动补全使用的列列表（优先使用查询上下文的列，否则回退到当前选中表的列）
+    /// 自动补全使用的列列表（只使用查询上下文的列，不回退到侧边栏）
     var autocompleteColumns: [MySQLColumnDefinition] {
-        if !queryAllColumns.isEmpty {
-            return queryAllColumns
-        }
-        return columns
+        // 不再 fallback 到 columns，让 query context 完全独立
+        return queryAllColumns
     }
 
     var body: some View {

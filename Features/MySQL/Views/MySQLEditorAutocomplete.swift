@@ -19,26 +19,9 @@ extension MySQLEditorView {
             return
         }
 
-        let prefix = String(text.prefix(text.count))
-        var wordStart = prefix.endIndex
-        var index = prefix.endIndex
-
-        while index > prefix.startIndex {
-            let charIndex = prefix.index(before: index)
-            let char = prefix[charIndex]
-            if char.isWhitespace || char == "," || char == "(" || char == ")" {
-                wordStart = index
-                break
-            }
-            index = charIndex
-        }
-
-        if index == prefix.startIndex {
-            wordStart = prefix.startIndex
-        }
-
-        let currentWord = String(prefix[wordStart...])
-        guard currentWord.count >= 2 else {
+        // 基于当前光标位置提取词，而不是全文末尾
+        let currentWord = extractWordAtCursor(text: text, position: cursorPosition)
+        guard currentWord.count >= 1 else {
             showAutocomplete = false
             return
         }
@@ -46,9 +29,47 @@ extension MySQLEditorView {
         generateSuggestions(for: currentWord)
     }
 
+    /// 提取光标位置的词（用于补全）
+    private func extractWordAtCursor(text: String, position: Int) -> String {
+        guard position >= 0 && position <= text.count else { return "" }
+
+        let string = text
+        let cursorIndex = string.index(string.startIndex, offsetBy: min(position, string.count))
+
+        // 向前找到词的起始位置
+        var wordStartIndex = cursorIndex
+        var searchIndex = cursorIndex
+        while searchIndex > string.startIndex {
+            let prevIndex = string.index(before: searchIndex)
+            let char = string[prevIndex]
+            if char.isWhitespace || char == "," || char == "(" || char == ")" || char == ";" {
+                wordStartIndex = searchIndex
+                break
+            }
+            wordStartIndex = prevIndex
+            searchIndex = prevIndex
+        }
+
+        // 向后找到词的结束位置（到光标位置为止，不包括光标后的内容）
+        let wordEndIndex = cursorIndex
+
+        // 提取当前词
+        if wordStartIndex <= wordEndIndex {
+            return String(string[wordStartIndex..<wordEndIndex])
+        }
+        return ""
+    }
+
     func generateSuggestions(for word: String) {
         var suggestions: [SQLCompletionSuggestion] = []
         let lowercasedWord = word.lowercased()
+
+        // Debug: 检查候选源是否为空
+        print("[Autocomplete] 生成建议 for word: '\(word)'")
+        print("[Autocomplete] tables.count: \(tables.count), columns.count: \(columns.count)")
+        if !tables.isEmpty {
+            print("[Autocomplete] 表名: \(tables.map { $0.name })")
+        }
 
         for table in tables where table.name.lowercased().hasPrefix(lowercasedWord) {
             suggestions.append(SQLCompletionSuggestion(text: table.name, type: .table))
@@ -62,6 +83,7 @@ extension MySQLEditorView {
             suggestions.append(SQLCompletionSuggestion(text: keyword, type: .keyword))
         }
 
+        print("[Autocomplete] 匹配到 \(suggestions.count) 个建议: \(suggestions.map { $0.text })")
         autocompleteSuggestions = Array(suggestions.prefix(10))
         selectedSuggestionIndex = 0
         showAutocomplete = !autocompleteSuggestions.isEmpty
@@ -75,11 +97,36 @@ extension MySQLEditorView {
         guard index < autocompleteSuggestions.count else { return }
         let suggestion = autocompleteSuggestions[index]
 
-        let words = sqlText.split(separator: " ", omittingEmptySubsequences: false)
-        if let lastWord = words.last {
-            let prefix = sqlText.dropLast(lastWord.count)
-            sqlText = prefix + suggestion.text + " "
+        // 基于光标位置替换当前词
+        let text = sqlText
+        let cursorPos = cursorPosition
+
+        guard cursorPos >= 0 && cursorPos <= text.count else {
+            showAutocomplete = false
+            return
         }
+
+        let string = text
+        let cursorIndex = string.index(string.startIndex, offsetBy: min(cursorPos, string.count))
+
+        // 向前找到词的起始位置
+        var wordStartIndex = cursorIndex
+        var searchIndex = cursorIndex
+        while searchIndex > string.startIndex {
+            let prevIndex = string.index(before: searchIndex)
+            let char = string[prevIndex]
+            if char.isWhitespace || char == "," || char == "(" || char == ")" || char == ";" {
+                wordStartIndex = searchIndex
+                break
+            }
+            wordStartIndex = prevIndex
+            searchIndex = prevIndex
+        }
+
+        // 构建新文本：前缀 + 建议词 + 后缀
+        let prefix = String(string[string.startIndex..<wordStartIndex])
+        let suffix = String(string[cursorIndex...])
+        sqlText = prefix + suggestion.text + " " + suffix
 
         showAutocomplete = false
     }

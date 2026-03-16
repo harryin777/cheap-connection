@@ -46,6 +46,7 @@ struct MySQLEditorView: View {
     @State var selectedSuggestionIndex = 0
     @State var selectedTextRange: NSRange? = nil
     @State var cursorPosition: Int = 0
+    @State var cursorRect: CursorRectInfo? = nil
 
     let sqlKeywords = SQLKeywords.all
 
@@ -75,16 +76,16 @@ struct MySQLEditorView: View {
                 }
             }
         }
-        .confirmationDialog("确认执行", isPresented: $showConfirmDialog) {
-            Button("执行") {
+        .confirmationDialog("Confirm Execute", isPresented: $showConfirmDialog) {
+            Button("Execute") {
                 Task { await onExecute(pendingSQL) }
                 pendingSQL = ""
             }
-            Button("取消", role: .cancel) {
+            Button("Cancel", role: .cancel) {
                 pendingSQL = ""
             }
         } message: {
-            Text("此操作可能会修改或删除数据，是否继续？")
+            Text("This operation may modify or delete data. Continue?")
         }
     }
 
@@ -97,6 +98,9 @@ struct MySQLEditorView: View {
                 },
                 onCursorPositionChange: { position in
                     cursorPosition = position
+                },
+                onCursorRectChange: { rectInfo in
+                    cursorRect = rectInfo
                 }
             )
             .onChange(of: sqlText) { _, newValue in
@@ -104,13 +108,13 @@ struct MySQLEditorView: View {
             }
 
             HStack {
-                Text("⌘↵ 执行 | Tab 补全")
+                Text("Cmd+Enter execute | Tab complete")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
 
                 Spacer()
 
-                Text("\(sqlText.components(separatedBy: .newlines).filter { !$0.isEmpty }.count) 行")
+                Text("\(sqlText.components(separatedBy: .newlines).filter { !$0.isEmpty }.count) lines")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
@@ -154,7 +158,10 @@ struct MySQLEditorView: View {
             selectedIndex: selectedSuggestionIndex,
             onSelect: acceptSuggestion(at:)
         )
-        .offset(x: 50, y: 80)
+        .offset(
+            x: cursorRect?.x ?? 10,
+            y: (cursorRect.map { $0.y + $0.height + 4 } ?? 20)
+        )
     }
 
     var historyPanel: some View {

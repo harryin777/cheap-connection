@@ -8,11 +8,20 @@
 import SwiftUI
 import AppKit
 
+/// 光标在编辑器中的位置信息
+struct CursorRectInfo {
+    let x: CGFloat      // 相对于编辑器左边缘的 X 坐标
+    let y: CGFloat      // 相对于编辑器顶边缘的 Y 坐标
+    let height: CGFloat // 行高
+    let lineNumber: Int // 行号（从 1 开始）
+}
+
 /// SQL 编辑器 TextView - 支持选中范围和光标位置追踪
 struct SQLEditorTextView: NSViewRepresentable {
     @Binding var text: String
     var onSelectionChange: ((NSRange, String) -> Void)?
     var onCursorPositionChange: ((Int) -> Void)?
+    var onCursorRectChange: ((CursorRectInfo) -> Void)?
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
@@ -80,7 +89,44 @@ struct SQLEditorTextView: NSViewRepresentable {
         if context.coordinator.lastReportedCursor != cursorPosition {
             context.coordinator.lastReportedCursor = cursorPosition
             context.coordinator.parent?.onCursorPositionChange?(cursorPosition)
+
+            // 同时更新光标矩形
+            if let cursorRect = getCursorRect(textView: textView, position: cursorPosition) {
+                context.coordinator.parent?.onCursorRectChange?(cursorRect)
+            }
         }
+    }
+
+    /// 获取光标在编辑器中的位置信息
+    private func getCursorRect(textView: NSTextView, position: Int) -> CursorRectInfo? {
+        guard position >= 0 && position <= textView.string.count else { return nil }
+
+        let text = textView.string
+        guard position <= text.utf16.count else { return nil }
+
+        // 获取光标位置的 glyph range
+        let utf16Index = text.utf16.index(text.utf16.startIndex, offsetBy: position)
+        let stringIndex = String.Index(utf16Index, within: text) ?? text.endIndex
+        let charIndex = text.distance(from: text.startIndex, to: stringIndex)
+
+        guard let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else { return nil }
+
+        // 获取该字符位置的 glyph index
+        let glyphIndex = layoutManager.glyphIndexForCharacter(at: charIndex)
+
+        // 获取该 glyph 的 bounding rect
+        let glyphRect = layoutManager.boundingRect(forGlyphRange: NSRange(location: glyphIndex, length: 0), in: textContainer)
+
+        // 考虑 textContainerInset
+        let inset = textView.textContainerInset
+        let x = glyphRect.minX + inset.width
+        let y = glyphRect.minY + inset.height
+
+        // 计算行号
+        let lineNumber = (text as NSString).substring(to: charIndex).components(separatedBy: .newlines).count
+
+        return CursorRectInfo(x: x, y: y, height: glyphRect.height, lineNumber: lineNumber)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -123,6 +169,11 @@ struct SQLEditorTextView: NSViewRepresentable {
                 if lastReportedCursor != selectedRange.location {
                     lastReportedCursor = selectedRange.location
                     parent.onCursorPositionChange?(selectedRange.location)
+
+                    // 同时更新光标矩形
+                    if let cursorRect = parent.getCursorRect(textView: textView, position: selectedRange.location) {
+                        parent.onCursorRectChange?(cursorRect)
+                    }
                 }
             }
         }

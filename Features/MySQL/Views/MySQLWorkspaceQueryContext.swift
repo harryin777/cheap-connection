@@ -68,9 +68,11 @@ extension MySQLWorkspaceView {
         guard let database = database else {
             queryTables = []
             queryAllColumns = []
+            print("[Autocomplete] 清空元数据：数据库为 nil")
             return
         }
 
+        print("[Autocomplete] 开始加载元数据，数据库: \(database)")
         isLoadingQueryMetadata = true
         defer { isLoadingQueryMetadata = false }
 
@@ -82,24 +84,32 @@ extension MySQLWorkspaceView {
                 }
             }
 
-            // 获取表列表
+            // 第一步：获取表列表（成功就立即保存）
             let tables = try await queryService.fetchTables(database: database)
+            print("[Autocomplete] 获取到 \(tables.count) 个表")
             await MainActor.run {
                 queryTables = tables
             }
 
-            // 获取所有表的列信息
+            // 第二步：获取所有表的列信息（单独处理，失败不影响表名候选）
             var allColumns: [MySQLColumnDefinition] = []
             for table in tables {
-                let tableColumns = try await queryService.fetchTableStructure(database: database, table: table.name)
-                allColumns.append(contentsOf: tableColumns)
+                do {
+                    let tableColumns = try await queryService.fetchTableStructure(database: database, table: table.name)
+                    allColumns.append(contentsOf: tableColumns)
+                } catch {
+                    // 单张表列结构失败只打印日志，不影响其他表
+                    print("[Autocomplete] 获取表 \(table.name) 列信息失败: \(error.localizedDescription)")
+                }
             }
 
+            print("[Autocomplete] 获取到 \(allColumns.count) 个列")
             await MainActor.run {
                 queryAllColumns = allColumns
             }
         } catch {
-            // 加载失败时静默处理，不影响用户体验
+            // 只有表列表获取失败时才清空，并打印错误
+            print("[Autocomplete] 加载元数据失败: \(error.localizedDescription)")
             await MainActor.run {
                 queryTables = []
                 queryAllColumns = []
