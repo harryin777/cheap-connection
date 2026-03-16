@@ -158,11 +158,12 @@
 - [ ] query connection 切换时，schema/database pill 标题不随连接一起切换，仍残留旧库名
 - [ ] query connection 切换时，schema/database pill 的列表没有稳定切到新连接数据库集合
 - [ ] query connection 切换链路需要确认 editorTabs 更新、activeQueryTab 传播、Menu label 重建三者一致
-- [x] SQL 结果/数据表格右侧仍有空白：列总宽不足时没有自然拉伸填满整个数据区域，剩余宽度被尾部 Spacer 吃掉
+- [x] SQL 结果/数据表格右侧仍有空白：不仅列宽分配没有最终落到可见区域，header/row 根容器本身也没有明确铺满 viewport，导致整行背景和内容都只画到内容宽度
 - [x] query 编辑区与下方 SQL 结果区/数据区之间的边界不可拖拽（增大交互热区到 12px，修复累计漂移）
 - [ ] SQL 结果和表数据网格的列表头未固定
 - [ ] 结果网格横向滚动同步、列宽拖拽同步
 - [ ] 验证双向切换不会出现库名串连
+- [x] 拖拽 query/result 分界线时上下区域仍闪烁：已改用原生 NSSplitView 替代 SwiftUI splitter，AppKit 内部处理拖拽不会触发 SwiftUI 视图重绘
 
 ---
 

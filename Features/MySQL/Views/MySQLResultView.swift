@@ -121,7 +121,7 @@ struct MySQLResultView: View {
 
             ScrollView([.horizontal, .vertical]) {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    Section(header: pinnedHeaderView(renderWidths: renderWidths)) {
+                    Section(header: pinnedHeaderView(renderWidths: renderWidths, viewportWidth: geometry.size.width)) {
                         ForEach(Array(result.rows.enumerated()), id: \.offset) { index, row in
                             ResultDataRowView(
                                 row: row,
@@ -129,6 +129,7 @@ struct MySQLResultView: View {
                                 columnWidths: columnWidths,
                                 renderWidths: renderWidths,
                                 rowNumberWidth: rowNumberWidth,
+                                viewportWidth: geometry.size.width,
                                 selectedCell: selectedCell,
                                 editingCell: editingCell,
                                 editingText: editingText,
@@ -150,12 +151,13 @@ struct MySQLResultView: View {
         }
     }
 
-    private func pinnedHeaderView(renderWidths: [CGFloat]) -> some View {
+    private func pinnedHeaderView(renderWidths: [CGFloat], viewportWidth: CGFloat) -> some View {
         ResultPinnedHeaderView(
             columns: result.columns,
             columnWidths: $columnWidths,
             renderWidths: renderWidths,
             rowNumberWidth: rowNumberWidth,
+            viewportWidth: viewportWidth,
             isDraggingColumn: isDraggingColumn,
             onColumnDrag: handleColumnDrag,
             onColumnDragEnd: { isDraggingColumn = nil }

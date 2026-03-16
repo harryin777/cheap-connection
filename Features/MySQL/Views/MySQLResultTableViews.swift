@@ -15,6 +15,7 @@ struct ResultPinnedHeaderView: View {
     @Binding var columnWidths: [CGFloat]
     let renderWidths: [CGFloat]
     let rowNumberWidth: CGFloat
+    let viewportWidth: CGFloat // 新增：viewport 宽度，确保根容器铺满
     let isDraggingColumn: Int?
     let onColumnDrag: (Int, CGFloat, DragGesture.Value) -> Void
     let onColumnDragEnd: () -> Void
@@ -56,9 +57,24 @@ struct ResultPinnedHeaderView: View {
                     )
                 }
             }
+
+            // 尾部填充：确保整行铺满 viewport 宽度
+            if totalContentWidth < viewportWidth {
+                Spacer()
+                    .frame(minWidth: 0)
+            }
         }
-        .frame(height: 24)
+        // 根容器至少铺满 viewport 宽度
+        .frame(minWidth: viewportWidth, maxHeight: 24)
         .background(Color(.controlBackgroundColor))
+    }
+
+    /// 计算当前内容总宽度
+    private var totalContentWidth: CGFloat {
+        let dividersCount = CGFloat(columns.count) // 行号分隔线 + 列间分隔线
+        let dividersWidth = dividersCount * dividerWidth
+        let columnsWidth = renderWidths.reduce(0, +)
+        return rowNumberWidth + dividersWidth + columnsWidth
     }
 }
 
@@ -71,6 +87,7 @@ struct ResultDataRowView: View {
     let columnWidths: [CGFloat]
     let renderWidths: [CGFloat]
     let rowNumberWidth: CGFloat
+    let viewportWidth: CGFloat // 新增：viewport 宽度，确保根容器铺满
     let selectedCell: CellPosition?
     let editingCell: CellPosition?
     let editingText: String
@@ -79,6 +96,8 @@ struct ResultDataRowView: View {
     let onStartEditing: (CellPosition, MySQLRowValue) -> Void
     let onFinishEditing: () -> Void
     let onCancelEditing: () -> Void
+
+    private let dividerWidth: CGFloat = 1
 
     var body: some View {
         HStack(spacing: 0) {
@@ -114,9 +133,24 @@ struct ResultDataRowView: View {
                     ResultVerticalDivider()
                 }
             }
+
+            // 尾部填充：确保整行铺满 viewport 宽度
+            if totalContentWidth < viewportWidth {
+                Spacer()
+                    .frame(minWidth: 0)
+            }
         }
-        .frame(height: 22)
+        // 根容器至少铺满 viewport 宽度
+        .frame(minWidth: viewportWidth, maxHeight: 22)
         .background(rowBackgroundColor(rowIndex))
+    }
+
+    /// 计算当前内容总宽度
+    private var totalContentWidth: CGFloat {
+        let dividersCount = CGFloat(row.count) // 行号分隔线 + 列间分隔线
+        let dividersWidth = dividersCount * dividerWidth
+        let columnsWidth = renderWidths.reduce(0, +)
+        return rowNumberWidth + dividersWidth + columnsWidth
     }
 
     private func rowBackgroundColor(_ rowIndex: Int) -> Color {

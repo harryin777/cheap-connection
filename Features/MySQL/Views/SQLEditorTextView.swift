@@ -61,18 +61,26 @@ struct SQLEditorTextView: NSViewRepresentable {
             }
         }
 
-        // 通知选中范围变化
+        // 只在选区/光标真正变化时才回调，避免 resize 期间重复触发 SwiftUI setState
         let selectedRange = textView.selectedRange()
+
+        // 选中范围变化时才回调（使用 coordinator 级别的缓存去重）
         if selectedRange.length > 0 {
-            let startIndex = text.index(text.startIndex, offsetBy: selectedRange.location)
-            let endIndex = text.index(startIndex, offsetBy: min(selectedRange.length, text.count - selectedRange.location))
-            let selectedText = String(text[startIndex..<endIndex])
-            context.coordinator.parent?.onSelectionChange?(selectedRange, selectedText)
+            if context.coordinator.lastReportedSelection != selectedRange {
+                context.coordinator.lastReportedSelection = selectedRange
+                let startIndex = text.index(text.startIndex, offsetBy: selectedRange.location)
+                let endIndex = text.index(startIndex, offsetBy: min(selectedRange.length, text.count - selectedRange.location))
+                let selectedText = String(text[startIndex..<endIndex])
+                context.coordinator.parent?.onSelectionChange?(selectedRange, selectedText)
+            }
         }
 
-        // 通知光标位置变化
+        // 光标位置变化时才回调
         let cursorPosition = selectedRange.location
-        context.coordinator.parent?.onCursorPositionChange?(cursorPosition)
+        if context.coordinator.lastReportedCursor != cursorPosition {
+            context.coordinator.lastReportedCursor = cursorPosition
+            context.coordinator.parent?.onCursorPositionChange?(cursorPosition)
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -81,6 +89,9 @@ struct SQLEditorTextView: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: SQLEditorTextView?
+        // 去重缓存：避免 resize 期间重复触发 SwiftUI setState
+        var lastReportedSelection: NSRange?
+        var lastReportedCursor: Int?
 
         init(_ parent: SQLEditorTextView) {
             self.parent = parent
@@ -96,17 +107,23 @@ struct SQLEditorTextView: NSViewRepresentable {
             let selectedRange = textView.selectedRange()
 
             if let parent = parent {
-                // 通知选中范围变化
+                // 通知选中范围变化（只在真正变化时回调）
                 if selectedRange.length > 0 {
-                    let text = textView.string
-                    let startIndex = text.index(text.startIndex, offsetBy: selectedRange.location)
-                    let endIndex = text.index(startIndex, offsetBy: min(selectedRange.length, text.count - selectedRange.location))
-                    let selectedText = String(text[startIndex..<endIndex])
-                    parent.onSelectionChange?(selectedRange, selectedText)
+                    if lastReportedSelection != selectedRange {
+                        lastReportedSelection = selectedRange
+                        let text = textView.string
+                        let startIndex = text.index(text.startIndex, offsetBy: selectedRange.location)
+                        let endIndex = text.index(startIndex, offsetBy: min(selectedRange.length, text.count - selectedRange.location))
+                        let selectedText = String(text[startIndex..<endIndex])
+                        parent.onSelectionChange?(selectedRange, selectedText)
+                    }
                 }
 
-                // 通知光标位置变化
-                parent.onCursorPositionChange?(selectedRange.location)
+                // 通知光标位置变化（只在真正变化时回调）
+                if lastReportedCursor != selectedRange.location {
+                    lastReportedCursor = selectedRange.location
+                    parent.onCursorPositionChange?(selectedRange.location)
+                }
             }
         }
     }

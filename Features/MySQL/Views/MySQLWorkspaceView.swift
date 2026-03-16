@@ -6,6 +6,129 @@
 //
 
 import SwiftUI
+import AppKit
+
+// MARK: - SplitView (NSSplitView Wrapper)
+
+/// 原生 NSSplitView 包装器 - 避免 SwiftUI 拖拽重绘循环
+/// NSSplitView 的 splitter 拖拽由 AppKit 内部处理，不会触发 SwiftUI 视图重绘
+struct SplitView: NSViewRepresentable {
+    var topView: AnyView
+    var bottomView: AnyView
+    @Binding var topHeight: CGFloat
+    var minTopHeight: CGFloat = 120
+    var minBottomHeight: CGFloat = 100
+
+    func makeNSView(context: Context) -> NSSplitView {
+        let splitView = NSSplitView()
+        splitView.isVertical = false
+        splitView.dividerStyle = .thin
+        splitView.delegate = context.coordinator
+
+        // 创建上下两个视图的 hosting controller
+        let topHosting = NSHostingController(rootView: topView)
+        let bottomHosting = NSHostingController(rootView: bottomView)
+
+        topHosting.view.identifier = NSUserInterfaceItemIdentifier("topView")
+        bottomHosting.view.identifier = NSUserInterfaceItemIdentifier("bottomView")
+
+        splitView.addArrangedSubview(topHosting.view)
+        splitView.addArrangedSubview(bottomHosting.view)
+
+        // 存储引用
+        context.coordinator.topHostingController = topHosting
+        context.coordinator.bottomHostingController = bottomHosting
+
+        return splitView
+    }
+
+    func updateNSView(_ splitView: NSSplitView, context: Context) {
+        // 更新子视图内容
+        context.coordinator.topHostingController?.rootView = topView
+        context.coordinator.bottomHostingController?.rootView = bottomView
+
+        // 只在非拖拽状态时响应外部 topHeight 变化
+        if !context.coordinator.isDragging {
+            if let topView = splitView.arrangedSubviews.first {
+                let constraints = topView.constraints
+                // 移除旧的高度约束
+                constraints.filter { $0.identifier == "topHeight" }.forEach {
+                    topView.removeConstraint($0)
+                }
+
+                let heightConstraint = NSLayoutConstraint(
+                    item: topView,
+                    attribute: .height,
+                    relatedBy: .greaterThanOrEqual,
+                    toItem: nil,
+                    attribute: .notAnAttribute,
+                    multiplier: 1,
+                    constant: topHeight
+                )
+                heightConstraint.identifier = "topHeight"
+                heightConstraint.priority = .required
+                topView.addConstraint(heightConstraint)
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, NSSplitViewDelegate {
+        var parent: SplitView
+        var topHostingController: NSHostingController<AnyView>?
+        var bottomHostingController: NSHostingController<AnyView>?
+        var isDragging = false
+        var lastReportedHeight: CGFloat?
+
+        init(_ parent: SplitView) {
+            self.parent = parent
+        }
+
+        func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimum: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
+            if dividerIndex == 0 {
+                return parent.minTopHeight
+            }
+            return proposedMinimum
+        }
+
+        func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximum: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
+            if dividerIndex == 0 {
+                return splitView.bounds.height - parent.minBottomHeight
+            }
+            return proposedMaximum
+        }
+
+        func splitViewWillResizeSubviews(_ notification: Notification) {
+            isDragging = true
+        }
+
+        func splitViewDidResizeSubviews(_ notification: Notification) {
+            guard let splitView = notification.object as? NSSplitView,
+                  let topView = splitView.arrangedSubviews.first else { return }
+
+            let newHeight = topView.bounds.height
+
+            // 只在高度真正变化时才更新，避免循环
+            if lastReportedHeight != newHeight {
+                lastReportedHeight = newHeight
+                DispatchQueue.main.async { [weak self] in
+                    self?.parent.topHeight = newHeight
+                }
+            }
+        }
+
+        func splitView(_ splitView: NSSplitView, resizeSubviewsWithOldSize oldSize: NSSize) {
+            // 拖拽结束
+            isDragging = false
+            splitView.adjustSubviews()
+        }
+    }
+}
+
+// MARK: - MySQLWorkspaceView
 
 /// MySQL工作区视图
 struct MySQLWorkspaceView: View {
@@ -60,8 +183,6 @@ struct MySQLWorkspaceView: View {
 
     // State - Splitter
     @State var editorHeight: CGFloat = 200
-    @State var isDraggingSplitter = false
-    @State var dragStartHeight: CGFloat = 200
 
     var currentDatabaseTables: [MySQLTableSummary] {
         guard let dbName = selectedDatabase,
@@ -141,93 +262,88 @@ struct MySQLWorkspaceView: View {
 
     @ViewBuilder
     var connectedView: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                MySQLEditorView(
-                    sqlText: $sqlText,
-                    history: sqlHistory,
-                    queryConnectionId: currentQueryConnectionId,
-                    queryConnectionName: currentQueryConnectionName,
-                    availableConnections: availableConnections,
-                    queryDatabases: queryDatabaseOptions,
-                    selectedQueryDatabase: currentQueryDatabase,
-                    onSwitchQueryConnection: { switchQueryConnection($0) },
-                    onSelectQueryDatabase: { updateQueryDatabase($0) },
-                    onExecute: { await executeSQL($0) },
-                    onSelectHistory: { sqlText = $0 },
-                    isExecuting: isLoadingSQL,
-                    activeWorkspaceTab: displayMode == .editorOnly ? nil : selectedTab,
-                    onSelectWorkspaceTab: { tab in
-                        selectedTab = tab
-                        displayMode = .tableDetail(tab)
-                    },
-                    onImport: { await importSQLFile() },
-                    onOpenFile: { await openSQLFile() },
-                    onCloseTab: { closeActiveEditorTab() },
-                    tables: currentDatabaseTables,
-                    columns: columns,
-                    editorTabs: editorTabs,
-                    activeEditorTabId: activeEditorTabId,
-                    onSelectEditorTab: { selectEditorTab($0) },
-                    onCloseEditorTab: { closeEditorTab($0) }
-                )
-                .frame(height: displayMode == .editorOnly ? nil : editorHeight)
-
-                if displayMode != .editorOnly {
-                    resizableSplitter(totalHeight: geometry.size.height)
-                }
-
-                switch displayMode {
-                case .editorOnly:
-                    EmptyView()
-                case .sqlResult:
-                    sqlResultArea
-                        .frame(maxHeight: .infinity)
-                case .tableDetail:
-                    detailView
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
+        if displayMode == .editorOnly {
+            // 纯编辑器模式 - 不需要分割
+            MySQLEditorView(
+                sqlText: $sqlText,
+                history: sqlHistory,
+                queryConnectionId: currentQueryConnectionId,
+                queryConnectionName: currentQueryConnectionName,
+                availableConnections: availableConnections,
+                queryDatabases: queryDatabaseOptions,
+                selectedQueryDatabase: currentQueryDatabase,
+                onSwitchQueryConnection: { switchQueryConnection($0) },
+                onSelectQueryDatabase: { updateQueryDatabase($0) },
+                onExecute: { await executeSQL($0) },
+                onSelectHistory: { sqlText = $0 },
+                isExecuting: isLoadingSQL,
+                activeWorkspaceTab: nil,
+                onSelectWorkspaceTab: { tab in
+                    selectedTab = tab
+                    displayMode = .tableDetail(tab)
+                },
+                onImport: { await importSQLFile() },
+                onOpenFile: { await openSQLFile() },
+                onCloseTab: { closeActiveEditorTab() },
+                tables: currentDatabaseTables,
+                columns: columns,
+                editorTabs: editorTabs,
+                activeEditorTabId: activeEditorTabId,
+                onSelectEditorTab: { selectEditorTab($0) },
+                onCloseEditorTab: { closeEditorTab($0) }
+            )
+        } else {
+            // 使用原生 NSSplitView 避免拖拽闪烁
+            SplitView(
+                topView: AnyView(
+                    MySQLEditorView(
+                        sqlText: $sqlText,
+                        history: sqlHistory,
+                        queryConnectionId: currentQueryConnectionId,
+                        queryConnectionName: currentQueryConnectionName,
+                        availableConnections: availableConnections,
+                        queryDatabases: queryDatabaseOptions,
+                        selectedQueryDatabase: currentQueryDatabase,
+                        onSwitchQueryConnection: { switchQueryConnection($0) },
+                        onSelectQueryDatabase: { updateQueryDatabase($0) },
+                        onExecute: { await executeSQL($0) },
+                        onSelectHistory: { sqlText = $0 },
+                        isExecuting: isLoadingSQL,
+                        activeWorkspaceTab: selectedTab,
+                        onSelectWorkspaceTab: { tab in
+                            selectedTab = tab
+                            displayMode = .tableDetail(tab)
+                        },
+                        onImport: { await importSQLFile() },
+                        onOpenFile: { await openSQLFile() },
+                        onCloseTab: { closeActiveEditorTab() },
+                        tables: currentDatabaseTables,
+                        columns: columns,
+                        editorTabs: editorTabs,
+                        activeEditorTabId: activeEditorTabId,
+                        onSelectEditorTab: { selectEditorTab($0) },
+                        onCloseEditorTab: { closeEditorTab($0) }
+                    )
+                ),
+                bottomView: AnyView(
+                    bottomContentView
+                ),
+                topHeight: $editorHeight,
+                minTopHeight: 120,
+                minBottomHeight: 100
+            )
         }
     }
 
-    // MARK: - Resizable Splitter
-
-    private func resizableSplitter(totalHeight: CGFloat) -> some View {
-        // 交互热区（8px 高的透明区域，承载拖拽手势）
-        ZStack {
-            // 可见分隔线（视觉层）
-            Rectangle()
-                .fill(isDraggingSplitter ? Color.accentColor.opacity(0.3) : Color(nsColor: .separatorColor))
-                .frame(height: isDraggingSplitter ? 3 : 1)
-
-            // 透明交互层
-            Color.clear
-                .frame(height: 12)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            if !isDraggingSplitter {
-                                isDraggingSplitter = true
-                                dragStartHeight = editorHeight
-                            }
-                            let minHeight: CGFloat = 120
-                            let maxHeight: CGFloat = max(minHeight, totalHeight - 100)
-                            let newHeight = dragStartHeight + value.translation.height
-                            editorHeight = min(maxHeight, max(minHeight, newHeight))
-                        }
-                        .onEnded { _ in
-                            isDraggingSplitter = false
-                        }
-                )
-                .onHover { hovering in
-                    if hovering {
-                        NSCursor.resizeUpDown.push()
-                    } else {
-                        NSCursor.pop()
-                    }
-                }
+    @ViewBuilder
+    private var bottomContentView: some View {
+        switch displayMode {
+        case .editorOnly:
+            EmptyView()
+        case .sqlResult:
+            sqlResultArea
+        case .tableDetail:
+            detailView
         }
     }
 
