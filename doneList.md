@@ -318,13 +318,59 @@
 
 ---
 
-## Redis 功能
+## 阶段 3: Redis 核心功能
 
-<!-- Redis 相关功能完成后在此记录 -->
+### 3.1 Redis 驱动层 (Infrastructure/Drivers/)
+- [x] 2026-03-17: 实现 `RedisClientProtocol` 协议
+  - 连接管理接口 (connect/disconnect/ping)
+  - Key 操作接口 (scan/getType/getTTL/delete)
+  - 值获取接口 (string/hash/list/set/zset)
+  - 命令执行接口
+- [x] 2026-03-17: 集成 RediStack (vapor/redis) 驱动库
+- [x] 2026-03-17: 实现 `RedisClient` 驱动适配器
+  - 基于 RediStack + SwiftNIO
+  - actor 保证线程安全
+  - 多地址连接尝试
+  - 资源正确清理
+- [x] 2026-03-17: 实现 `RedisErrorMapper` 错误映射器
+  - NIO ChannelError 处理
+  - 认证/连接/超时/网络错误映射
+- [x] 2026-03-17: 实现 `RedisValueConverter` 值转换器
+  - RESP 协议值转换
+  - Scan/Hash/Array/ZSet 结果转换
+- [x] 2026-03-17: 实现 `RedisRiskDetector` 高风险命令检测
+  - FLUSHDB/FLUSHALL 检测
+  - 大规模删除检测
+  - DEBUG 命令检测
+
+### 3.2 Redis 领域模型 (Features/Redis/Models/)
+- [x] 2026-03-17: 实现 `RedisConnectionConfig` 连接配置
+- [x] 2026-03-17: 实现 `RedisSession` 会话状态
+- [x] 2026-03-17: 实现 `RedisKeySummary` Key 摘要
+- [x] 2026-03-17: 实现 `RedisKeyDetail` Key 详情
+- [x] 2026-03-17: 实现 `RedisValueType` 值类型枚举
+- [x] 2026-03-17: 实现 `RedisValue` 值封装
+- [x] 2026-03-17: 实现 `RedisCommandResult` 命令执行结果
+
+### 3.3 Redis 服务层 (Features/Redis/Services/)
+- [x] 2026-03-17: 实现 `RedisService` 服务类
+  - 连接管理、Key 扫描、值获取
+  - 命令执行、服务器信息获取
 
 ## 通用功能
 
-<!-- 通用功能完成后在此记录 -->
+### 4.1 编译警告修复
+- [x] 2026-03-17: 修复所有 Swift 6 严格并发检查警告
+  - 添加 @preconcurrency import RediStack
+  - 添加 nonisolated 到所有工具方法和初始化器
+  - 重构 ConnectionManager 为 shared 单例模式
+  - 修复未使用变量警告 (MainView, cheap_connectionApp)
+- [x] 2026-03-17: 项目编译成功，零警告
+
+### 4.2 UI 改进
+- [x] 2026-03-17: 连接表单数据库类型显示不同图标
+  - MySQL: cylinder.split.1x2 (数据库圆筒图标)
+  - Redis: memorychip (内存芯片图标)
 
 ---
 
