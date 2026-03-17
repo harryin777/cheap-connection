@@ -87,6 +87,11 @@ extension MySQLEditorView {
         autocompleteSuggestions = Array(suggestions.prefix(10))
         selectedSuggestionIndex = 0
         showAutocomplete = !autocompleteSuggestions.isEmpty
+
+        // 记录触发补全时的光标位置，用于后续判断光标是否移出补全词
+        if showAutocomplete {
+            autocompleteStartPosition = cursorPosition
+        }
     }
 
     func acceptSuggestion() {
@@ -126,9 +131,14 @@ extension MySQLEditorView {
         // 构建新文本：前缀 + 建议词 + 后缀
         let prefix = String(string[string.startIndex..<wordStartIndex])
         let suffix = String(string[cursorIndex...])
-        sqlText = prefix + suggestion.text + " " + suffix
+        sqlText = prefix + suggestion.text + suffix
+
+        // 计算新的光标位置：精确停在补全文本最后一个字符后面
+        let newCursorPos = prefix.count + suggestion.text.count
+        requestedCursorPosition = newCursorPos
 
         showAutocomplete = false
+        autocompleteStartPosition = nil
     }
 
     func navigateSuggestion(direction: MySQLEditorSuggestionNavigationDirection) {
@@ -139,6 +149,18 @@ extension MySQLEditorView {
             selectedSuggestionIndex = (selectedSuggestionIndex + 1) % count
         } else {
             selectedSuggestionIndex = (selectedSuggestionIndex - 1 + count) % count
+        }
+    }
+
+    /// 检查光标是否移出当前补全词范围，如果是则关闭补全浮层
+    func checkAndDismissAutocompleteIfCursorMoved(newPosition: Int) {
+        guard showAutocomplete, let startPosition = autocompleteStartPosition else { return }
+
+        // 光标位置变化时，关闭补全浮层
+        // 简单策略：如果光标移动了，就关闭补全
+        if newPosition != startPosition {
+            showAutocomplete = false
+            autocompleteStartPosition = nil
         }
     }
 }

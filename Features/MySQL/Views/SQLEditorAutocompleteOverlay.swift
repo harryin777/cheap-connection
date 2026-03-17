@@ -22,7 +22,7 @@ struct SQLEditorAutocompleteOverlay: View {
         .frame(minWidth: 200, maxWidth: 300)
         .background(Color(.windowBackgroundColor))
         .cornerRadius(6)
-        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+        .shadow(color: Color(nsColor: .shadowColor).opacity(0.2), radius: 4, x: 0, y: 2)
         .overlay(
             RoundedRectangle(cornerRadius: 6)
                 .stroke(Color(.separatorColor), lineWidth: 0.5)

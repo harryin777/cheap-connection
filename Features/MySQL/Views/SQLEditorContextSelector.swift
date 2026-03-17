@@ -36,7 +36,7 @@ struct SQLEditorContextSelectorLabel: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 0.8)
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 0.8)
         )
     }
 }

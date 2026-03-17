@@ -6,8 +6,55 @@
 //
 
 import Foundation
+import AppKit
 
 extension MySQLWorkspaceView {
+
+    // MARK: - 保存 SQL 文件
+
+    /// 保存当前 SQL 内容
+    /// - 如果当前有活跃的 tab（已有 fileURL），直接保存到原文件
+    /// - 如果是草稿（无 tab），使用 sheet 保存
+    func saveSQLFile() {
+        syncSQLTextToActiveTab()
+
+        if let activeTab = activeQueryTab {
+            // 已有 tab，直接保存到原文件
+            let success = SQLFileOperations.saveToURL(activeTab.fileURL, content: sqlText)
+            if !success {
+                errorMessage = "保存文件失败"
+                showError = true
+            } else if let index = editorTabs.firstIndex(where: { $0.id == activeTab.id }) {
+                // GPT TODO: 2.8 当前要求“保存后 tab 圆点自动消失”，但现有保存成功分支没有回写 isDirty = false。
+                // GPT TODO: glm5 需要在真实写盘成功后把当前 tab 标记为已保存，否则即使编辑时已经把 isDirty 设成 true，保存后圆点也不会消失。
+            }
+        } else {
+            // 草稿模式，使用 sheet 保存
+            guard let window = NSApplication.shared.keyWindow else {
+                // 没有关键窗口时，fallback 到同步保存
+                _ = SQLFileOperations.saveSQLFileSync(content: sqlText)
+                return
+            }
+
+            SQLFileOperations.saveWithSheet(content: sqlText, window: window) { [sqlText, currentQueryConnectionId, currentQueryConnectionName, currentQueryDatabase] url in
+                guard let url = url else { return }
+
+                // 保存成功后，创建一个新的 tab
+                let newTab = EditorQueryTab(
+                    fileURL: url,
+                    content: sqlText,
+                    defaultConnectionId: currentQueryConnectionId,
+                    defaultConnectionName: currentQueryConnectionName,
+                    defaultDatabase: currentQueryDatabase
+                )
+                self.editorTabs.append(newTab)
+                self.activeEditorTabId = newTab.id
+            }
+        }
+    }
+
+    // MARK: - 打开文件
+
     func openSQLFile() async {
         guard let openedFile = await SQLFileOperations.openSQLFile() else { return }
 
@@ -151,6 +198,11 @@ extension MySQLWorkspaceView {
     func syncSQLTextToActiveTab() {
         guard let activeEditorTabId,
               let index = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) else { return }
+        // GPT TODO: 这里目前只同步 content，没有同步 isDirty。
+        // GPT TODO: 这就是“编辑外部导入的 query 文件后，tab 上没有未保存圆点”最直接的失效点之一。
+        // GPT TODO: glm5 需要在这里比较旧 content 与新的 sqlText：
+        // GPT TODO: - 内容发生真实变化时，isDirty = true；
+        // GPT TODO: - 如果内容重新回到最近一次已保存内容，isDirty 应恢复为 false。
         editorTabs[index].content = sqlText
     }
 }

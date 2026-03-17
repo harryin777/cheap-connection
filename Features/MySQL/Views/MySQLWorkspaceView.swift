@@ -182,7 +182,7 @@ struct MySQLWorkspaceView: View {
     @State var showImportResult = false
 
     // State - Splitter
-    @State var editorHeight: CGFloat = 200
+    @State var editorHeight: CGFloat = WindowStateRepository.shared.load().editorHeight ?? 200
 
     // State - Autocomplete Metadata (独立于侧边栏选择)
     @State var queryTables: [MySQLTableSummary] = []
@@ -255,6 +255,11 @@ struct MySQLWorkspaceView: View {
         .onChange(of: selectedDatabase) { _, newDatabase in syncDatabaseToManager(newDatabase) }
         .onChange(of: selectedTable) { _, newTable in handleTableSelection(newTable) }
         .onChange(of: sqlText) { _, _ in syncSQLTextToActiveTab() }
+        .onChange(of: editorHeight) { _, newHeight in
+            var state = WindowStateRepository.shared.load()
+            state.editorHeight = newHeight
+            WindowStateRepository.shared.save(state)
+        }
         .alert("错误", isPresented: $showError) {
             Button("确定", role: .cancel) { }
         } message: {
@@ -303,6 +308,7 @@ struct MySQLWorkspaceView: View {
                 onImport: { await importSQLFile() },
                 onOpenFile: { await openSQLFile() },
                 onCloseTab: { closeActiveEditorTab() },
+                onSaveFile: { saveSQLFile() },
                 tables: autocompleteTables,
                 columns: autocompleteColumns,
                 editorTabs: editorTabs,
@@ -335,6 +341,7 @@ struct MySQLWorkspaceView: View {
                         onImport: { await importSQLFile() },
                         onOpenFile: { await openSQLFile() },
                         onCloseTab: { closeActiveEditorTab() },
+                        onSaveFile: { saveSQLFile() },
                         tables: autocompleteTables,
                         columns: autocompleteColumns,
                         editorTabs: editorTabs,

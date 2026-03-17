@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+95123D0E6E3E1A078C3C959B /* WindowStateRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98879DAB39D99F2AEFABAE86 /* WindowStateRepository.swift */; };
+0A934975F880E85E59BE9F63 /* KeyboardShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CE5861E403CC7A65518DDA5 /* KeyboardShortcuts.swift */; };
+
 		1F48D65E6AD44209891BD01A /* SQLExecutionScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F48D65F6AD44209891BD01A /* SQLExecutionScope.swift */; };
 		103D9769F0A84CB8B3B20A24 /* SQLStatementParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103D976AF0A84CB8B3B20A24 /* SQLStatementParser.swift */; };
 		4AB0F8092F6111D70027A24E /* MySQLErrorMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8082F6111D70027A24E /* MySQLErrorMapper.swift */; };
@@ -78,6 +81,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+98879DAB39D99F2AEFABAE86 /* WindowStateRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowStateRepository.swift; sourceTree = "<group>"; };
+6CE5861E403CC7A65518DDA5 /* KeyboardShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcuts.swift; sourceTree = "<group>"; };
+
 		1F48D65F6AD44209891BD01A /* SQLExecutionScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLExecutionScope.swift; sourceTree = "<group>"; };
 		103D976AF0A84CB8B3B20A24 /* SQLStatementParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLStatementParser.swift; sourceTree = "<group>"; };
 		4A2E660B2F60294300E9C832 /* cheap-connection.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "cheap-connection.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -339,6 +345,7 @@
 		4AB826932F602B9D00BC4BE6 /* Storage */ = {
 			isa = PBXGroup;
 			children = (
+				98879DAB39D99F2AEFABAE86 /* WindowStateRepository.swift */,
 				4AB827042F60300000BC4BE6 /* ConnectionRepository.swift */,
 				4AB827062F60300000BC4BE6 /* RecentHistoryRepository.swift */,
 			);
@@ -372,6 +379,7 @@
 			isa = PBXGroup;
 			children = (
 				4AB827082F60300000BC4BE6 /* ConnectionManager.swift */,
+				6CE5861E403CC7A65518DDA5 /* KeyboardShortcuts.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -538,6 +546,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				95123D0E6E3E1A078C3C959B /* WindowStateRepository.swift in Sources */,
+				0A934975F880E85E59BE9F63 /* KeyboardShortcuts.swift in Sources */,
 				4AB826AC2F602B9D00BC4BE6 /* AppError.swift in Sources */,
 				4AB826AD2F602B9D00BC4BE6 /* DatabaseKind.swift in Sources */,
 				4AB826AE2F602B9D00BC4BE6 /* ContentView.swift in Sources */,

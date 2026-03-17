@@ -31,6 +31,7 @@ struct MySQLEditorView: View {
     var onImport: (() async -> Void)? = nil
     var onOpenFile: (() async -> Void)? = nil
     var onCloseTab: (() -> Void)? = nil
+    var onSaveFile: (() -> Void)? = nil
     var tables: [MySQLTableSummary] = []
     var columns: [MySQLColumnDefinition] = []
     var editorTabs: [EditorQueryTab] = []
@@ -47,6 +48,10 @@ struct MySQLEditorView: View {
     @State var selectedTextRange: NSRange? = nil
     @State var cursorPosition: Int = 0
     @State var cursorRect: CursorRectInfo? = nil
+    /// 外部请求的光标位置（用于自动补全后同步）
+    @State var requestedCursorPosition: Int?
+    /// 触发补全时的光标位置（用于判断光标是否移出补全词）
+    @State var autocompleteStartPosition: Int?
 
     let sqlKeywords = SQLKeywords.all
 
@@ -87,17 +92,39 @@ struct MySQLEditorView: View {
         } message: {
             Text("This operation may modify or delete data. Continue?")
         }
+        // MARK: - Keyboard Shortcut Listeners
+        .onReceive(NotificationCenter.default.publisher(for: .executeSQL)) { _ in
+            executeSQL()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clearEditor)) { _ in
+            sqlText = ""
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleHistory)) { _ in
+            showHistory.toggle()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .saveSQLFile)) { _ in
+            onSaveFile?()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openSQLFile)) { _ in
+            // 打开文件也使用同步模式
+            if let result = SQLFileOperations.openSQLFileSync() {
+                sqlText = result.content
+            }
+        }
     }
 
     var editorView: some View {
         VStack(alignment: .leading, spacing: 0) {
             SQLEditorTextView(
                 text: $sqlText,
+                requestedCursorPosition: requestedCursorPosition,
                 onSelectionChange: { range, _ in
                     selectedTextRange = range
                 },
                 onCursorPositionChange: { position in
                     cursorPosition = position
+                    // 检查光标是否移出当前补全词范围，如果是则关闭补全浮层
+                    checkAndDismissAutocompleteIfCursorMoved(newPosition: position)
                 },
                 onCursorRectChange: { rectInfo in
                     cursorRect = rectInfo

@@ -19,6 +19,8 @@ struct CursorRectInfo {
 /// SQL 编辑器 TextView - 支持选中范围和光标位置追踪
 struct SQLEditorTextView: NSViewRepresentable {
     @Binding var text: String
+    /// 外部请求设置的光标位置（用于自动补全后同步光标）
+    var requestedCursorPosition: Int?
     var onSelectionChange: ((NSRange, String) -> Void)?
     var onCursorPositionChange: ((Int) -> Void)?
     var onCursorRectChange: ((CursorRectInfo) -> Void)?
@@ -56,6 +58,22 @@ struct SQLEditorTextView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
+
+        // 优先处理外部请求的光标位置（自动补全后同步光标）
+        if let requestedPosition = requestedCursorPosition,
+           context.coordinator.lastRequestedCursor != requestedPosition {
+            context.coordinator.lastRequestedCursor = requestedPosition
+
+            // 先更新文本（如果需要）
+            if textView.string != text {
+                textView.string = text
+            }
+
+            // 设置新的光标位置
+            let validPosition = min(max(0, requestedPosition), text.count)
+            textView.setSelectedRange(NSRange(location: validPosition, length: 0))
+            return
+        }
 
         // 只在文本真正改变时更新
         if textView.string != text {
@@ -138,6 +156,8 @@ struct SQLEditorTextView: NSViewRepresentable {
         // 去重缓存：避免 resize 期间重复触发 SwiftUI setState
         var lastReportedSelection: NSRange?
         var lastReportedCursor: Int?
+        // 外部请求光标位置去重
+        var lastRequestedCursor: Int?
 
         init(_ parent: SQLEditorTextView) {
             self.parent = parent

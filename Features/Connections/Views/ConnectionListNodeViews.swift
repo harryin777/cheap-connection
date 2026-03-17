@@ -67,7 +67,7 @@ struct ConnectionListCountBadge: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
             )
     }
 }
