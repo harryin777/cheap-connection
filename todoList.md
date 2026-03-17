@@ -195,19 +195,19 @@
 - [x] 获取 TTL (TTL / PTTL)
 - [x] 获取各类型 value (GET / HGETALL / LRANGE / SMEMBERS / ZRANGE)
 
-### 3.4 Redis UI - Key 浏览
-- [ ] Key 列表视图 (增量加载)
-- [ ] Key 搜索功能
-- [ ] Key 详情面板
-- [ ] 类型 / TTL 显示
+### 3.4 Redis UI - Key 浏览 ✅
+- [x] Key 列表视图 (增量加载)
+- [x] Key 搜索功能
+- [x] Key 详情面板
+- [x] 类型 / TTL 显示
 
-### 3.5 Redis UI - Value 展示
-- [ ] String 类型展示
-- [ ] Hash 类型展示 (键值表格)
-- [ ] List 类型展示 (有序列表)
-- [ ] Set 类型展示 (列表)
-- [ ] ZSet 类型展示 (member + score 表格)
-- [ ] 大 value 预览 / 按需加载
+### 3.5 Redis UI - Value 展示 ✅
+- [x] String 类型展示
+- [x] Hash 类型展示 (键值表格)
+- [x] List 类型展示 (有序列表)
+- [x] Set 类型展示 (列表)
+- [x] ZSet 类型展示 (member + score 表格)
+- [x] 大 value 预览 / 按需加载
 
 ### 3.6 Redis UI - 命令执行
 - [ ] 命令输入界面

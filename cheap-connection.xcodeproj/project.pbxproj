@@ -54,6 +54,10 @@
 		4AB0F83C2F61135A0027A24E /* MySQLSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F82B2F61135A0027A24E /* MySQLSidebarView.swift */; };
 		4AB0F83D2F61135A0027A24E /* MySQLTableSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8232F61135A0027A24E /* MySQLTableSummary.swift */; };
 		4AB0F8402F6113760027A24E /* RedisWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F83E2F6113760027A24E /* RedisWorkspaceView.swift */; };
+		CE7FDC6A75DD446BAF8F15A5 /* RedisKeyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F77FBE9F85E4B82A68EC55F /* RedisKeyListView.swift */; };
+		93570AC33AEC4DE8A5240F24 /* RedisKeyDetailHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9FCB9D74FEE4842A06DF689 /* RedisKeyDetailHeaderView.swift */; };
+		EFC886148E764D49B9C06892 /* RedisValueViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA117B7222344B588A0A657 /* RedisValueViews.swift */; };
+
 		4AB0F8422F6113930027A24E /* OrderDirection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB0F8412F6113930027A24E /* OrderDirection.swift */; };
 		4AB826AC2F602B9D00BC4BE6 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB8269B2F602B9D00BC4BE6 /* AppError.swift */; };
 		4AB826AD2F602B9D00BC4BE6 /* DatabaseKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB8269D2F602B9D00BC4BE6 /* DatabaseKind.swift */; };
@@ -142,6 +146,10 @@
 		4AB0F82C2F61135A0027A24E /* MySQLStructureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLStructureView.swift; sourceTree = "<group>"; };
 		4AB0F82D2F61135A0027A24E /* MySQLWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceView.swift; sourceTree = "<group>"; };
 		4AB0F83E2F6113760027A24E /* RedisWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisWorkspaceView.swift; sourceTree = "<group>"; };
+		0F77FBE9F85E4B82A68EC55F /* RedisKeyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisKeyListView.swift; sourceTree = "<group>"; };
+		D9FCB9D74FEE4842A06DF689 /* RedisKeyDetailHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisKeyDetailHeaderView.swift; sourceTree = "<group>"; };
+		CDA117B7222344B588A0A657 /* RedisValueViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisValueViews.swift; sourceTree = "<group>"; };
+
 		4AB0F8412F6113930027A24E /* OrderDirection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDirection.swift; sourceTree = "<group>"; };
 		4AB826862F602B9D00BC4BE6 /* cheap_connectionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cheap_connectionApp.swift; sourceTree = "<group>"; };
 		4AB826872F602B9D00BC4BE6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -318,6 +326,10 @@
 			isa = PBXGroup;
 			children = (
 				4AB0F83E2F6113760027A24E /* RedisWorkspaceView.swift */,
+				0F77FBE9F85E4B82A68EC55F /* RedisKeyListView.swift */,
+				D9FCB9D74FEE4842A06DF689 /* RedisKeyDetailHeaderView.swift */,
+				CDA117B7222344B588A0A657 /* RedisValueViews.swift */,
+
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -666,6 +678,10 @@
 				4AB0F8312F61135A0027A24E /* MySQLQueryResult.swift in Sources */,
 				4AB0F8322F61135A0027A24E /* MySQLStructureView.swift in Sources */,
 				4AB0F8402F6113760027A24E /* RedisWorkspaceView.swift in Sources */,
+				CE7FDC6A75DD446BAF8F15A5 /* RedisKeyListView.swift in Sources */,
+				93570AC33AEC4DE8A5240F24 /* RedisKeyDetailHeaderView.swift in Sources */,
+				EFC886148E764D49B9C06892 /* RedisValueViews.swift in Sources */,
+
 				4AB0F8332F61135A0027A24E /* MySQLDataView.swift in Sources */,
 				4AB0F8342F61135A0027A24E /* MySQLColumnDefinition.swift in Sources */,
 				4AB0F8352F61135A0027A24E /* SQLRiskLevel.swift in Sources */,

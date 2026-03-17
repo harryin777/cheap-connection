@@ -357,6 +357,47 @@
   - 连接管理、Key 扫描、值获取
   - 命令执行、服务器信息获取
 
+### 3.4 Redis UI - Key 浏览 (Features/Redis/Views/)
+- [x] 2026-03-17: 实现 `RedisWorkspaceView` 主工作区
+  - 连接状态管理 (连接中/已连接/错误)
+  - 左右分栏布局 (Key 列表 + 详情)
+- [x] 2026-03-17: 实现 `RedisKeyListView` Key 列表视图
+  - 增量加载 (SCAN 命令)
+  - 搜索功能 (支持通配符)
+  - 类型图标和 TTL 显示
+  - 加载更多按钮
+- [x] 2026-03-17: 实现 `RedisKeyDetailHeaderView` Key 详情头部
+  - 类型图标和名称
+  - 长度/元素数显示
+  - 内存大小显示
+  - TTL 过期时间显示
+
+### 3.5 Redis UI - Value 展示 (Features/Redis/Views/)
+- [x] 2026-03-17: 实现 `RedisStringValueView` String 类型展示
+  - 等宽字体显示
+  - 大 value 预览截断
+  - 字符/字节统计
+- [x] 2026-03-17: 实现 `RedisHashValueView` Hash 类型展示
+  - 键值表格布局
+  - 搜索字段功能
+  - 按名称排序
+- [x] 2026-03-17: 实现 `RedisListValueView` List 类型展示
+  - 带索引的列表显示
+  - 有序展示
+- [x] 2026-03-17: 实现 `RedisSetValueView` Set 类型展示
+  - 成员列表
+  - 搜索功能
+  - 排序功能
+- [x] 2026-03-17: 实现 `RedisZSetValueView` ZSet 类型展示
+  - 分数 + 成员表格
+  - 按分数排序 (升序/降序)
+  - 搜索功能
+
+### 3.3 Redis 服务层 (Features/Redis/Services/)
+- [x] 2026-03-17: 实现 `RedisService` 服务类
+  - 连接管理、Key 扫描、值获取
+  - 命令执行、服务器信息获取
+
 ## 通用功能
 
 ### 4.1 编译警告修复
