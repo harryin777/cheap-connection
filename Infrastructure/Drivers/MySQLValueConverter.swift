@@ -13,7 +13,7 @@ import NIOCore
 /// MySQL行值转换器
 enum MySQLValueConverter {
     /// 将 MySQLData 转换为 MySQLRowValue
-    static func convertRowValue(_ data: MySQLData?) -> MySQLRowValue {
+    nonisolated static func convertRowValue(_ data: MySQLData?) -> MySQLRowValue {
         guard let data = data else { return .null }
 
         // 检查是否为 null (buffer 为 nil)
@@ -52,7 +52,7 @@ enum MySQLValueConverter {
     }
 
     /// 格式化 MySQL 时间类型
-    static func formatMySQLTime(_ value: MySQLTime, type: MySQLProtocol.DataType) -> String {
+    nonisolated static func formatMySQLTime(_ value: MySQLTime, type: MySQLProtocol.DataType) -> String {
         let year = value.year.map(Int.init)
         let month = value.month.map(Int.init)
         let day = value.day.map(Int.init)

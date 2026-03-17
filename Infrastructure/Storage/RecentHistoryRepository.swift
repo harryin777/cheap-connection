@@ -27,8 +27,6 @@ protocol RecentHistoryRepositoryProtocol: Sendable {
 
 /// 最近连接记录仓储实现
 final class RecentHistoryRepository: RecentHistoryRepositoryProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static let shared = RecentHistoryRepository()
-
     /// 存储文件名
     private let fileName = "recent_connections.json"
 
@@ -56,6 +54,8 @@ final class RecentHistoryRepository: RecentHistoryRepositoryProtocol, @unchecked
     private init() {
         ensureDirectoryExists()
     }
+
+    static let shared = RecentHistoryRepository()
 
     // MARK: - RecentHistoryRepositoryProtocol
 

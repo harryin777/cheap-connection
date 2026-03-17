@@ -17,7 +17,7 @@ enum MySQLConnectionErrorHandler {
     ///   - host: 原始主机名
     ///   - port: 端口号
     /// - Returns: 适合显示给用户的错误信息
-    static func buildFinalError(
+    nonisolated static func buildFinalError(
         errors: [Error],
         resolvedAddresses: [ResolvedSocketAddress],
         host: String,
@@ -48,7 +48,7 @@ enum MySQLConnectionErrorHandler {
     }
 
     /// 检查错误是否为连接超时
-    static func isConnectTimeout(_ error: Error) -> Bool {
+    nonisolated static func isConnectTimeout(_ error: Error) -> Bool {
         // 检查 NIO ChannelError.connectTimeout
         if let channelError = error as? ChannelError, case .connectTimeout = channelError {
             return true
@@ -58,7 +58,7 @@ enum MySQLConnectionErrorHandler {
     }
 
     /// 检查IP地址是否为私网地址
-    static func isPrivateIPAddress(_ ipAddress: String) -> Bool {
+    nonisolated static func isPrivateIPAddress(_ ipAddress: String) -> Bool {
         if ipAddress.contains(".") {
             return isPrivateIPv4(ipAddress)
         }
@@ -66,7 +66,7 @@ enum MySQLConnectionErrorHandler {
     }
 
     /// 检查IPv4地址是否为私网地址
-    private static func isPrivateIPv4(_ ipAddress: String) -> Bool {
+    private nonisolated static func isPrivateIPv4(_ ipAddress: String) -> Bool {
         let parts = ipAddress.split(separator: ".").compactMap { Int($0) }
         guard parts.count == 4 else {
             return false
@@ -100,7 +100,7 @@ enum MySQLConnectionErrorHandler {
     }
 
     /// 检查IPv6地址是否为私网地址
-    private static func isPrivateIPv6(_ ipAddress: String) -> Bool {
+    private nonisolated static func isPrivateIPv6(_ ipAddress: String) -> Bool {
         let normalized = ipAddress.lowercased()
 
         // ::1 (loopback)

@@ -165,27 +165,35 @@
 
 ## 阶段 3: Redis 核心功能
 
-### 3.1 Redis 驱动层
-- [ ] 定义 `RedisClientProtocol` 协议
-- [ ] 集成 Redis 驱动库 (选择: RediStack / 其他)
-- [ ] 实现 `RedisClient` 适配器
-- [ ] 连接 / 断开 / PING 检测
-- [ ] 错误映射到内部错误类型
+### 3.1 Redis 驱动层 ✅
+- [x] 定义 `RedisClientProtocol` 协议
+- [x] 集成 Redis 驱动库 (选择: RediStack)
+- [x] 实现 `RedisClient` 适配器
+- [x] 连接 / 断开 / PING 检测
+- [x] 错误映射到内部错误类型
+- [x] 高风险命令检测 `RedisRiskDetector`
 
-### 3.2 Redis 领域模型
-- [ ] `RedisConnectionConfig`
-- [ ] `RedisSession` 运行时状态
-- [ ] `RedisKeySummary`
-- [ ] `RedisKeyDetail`
-- [ ] `RedisValueType` 枚举
-- [ ] `RedisCommandResult`
+**注意**: 需要在 Xcode 中添加 RediStack SPM 依赖
+- URL: `https://github.com/swift-server/RediStack.git`
+- 版本: 1.6.0 或更高
 
-### 3.3 Redis 服务层
-- [ ] `RedisService` - 封装 Redis 操作
-- [ ] SCAN 增量扫描 key
-- [ ] 获取 key 类型 (TYPE)
-- [ ] 获取 TTL (TTL / PTTL)
-- [ ] 获取各类型 value (GET / HGETALL / LRANGE / SMEMBERS / ZRANGE)
+### 3.2 Redis 领域模型 ✅
+- [x] `RedisConnectionConfig`
+- [x] `RedisSession` 运行时状态
+- [x] `RedisKeySummary`
+- [x] `RedisKeyDetail`
+- [x] `RedisValueType` 枚举
+- [x] `RedisCommandResult`
+- [x] `RedisValue` 值封装
+- [x] `RedisZSetMember`
+- [x] `RedisScanResult`
+
+### 3.3 Redis 服务层 ✅
+- [x] `RedisService` - 封装 Redis 操作
+- [x] SCAN 增量扫描 key
+- [x] 获取 key 类型 (TYPE)
+- [x] 获取 TTL (TTL / PTTL)
+- [x] 获取各类型 value (GET / HGETALL / LRANGE / SMEMBERS / ZRANGE)
 
 ### 3.4 Redis UI - Key 浏览
 - [ ] Key 列表视图 (增量加载)

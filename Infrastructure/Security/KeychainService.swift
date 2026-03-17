@@ -20,12 +20,12 @@ protocol KeychainServiceProtocol: Sendable {
 
 /// Keychain 服务实现
 final class KeychainService: KeychainServiceProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static let shared = KeychainService()
-
     /// 服务标识符
     private let service = "com.yzz.cheap-connection"
 
     private init() {}
+
+    static let shared = KeychainService()
 
     // MARK: - KeychainServiceProtocol
 

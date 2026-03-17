@@ -23,8 +23,6 @@ protocol ConnectionRepositoryProtocol: Sendable {
 
 /// 连接配置仓储实现
 final class ConnectionRepository: ConnectionRepositoryProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static let shared = ConnectionRepository()
-
     /// 存储文件名
     private let fileName = "connections.json"
 
@@ -49,6 +47,8 @@ final class ConnectionRepository: ConnectionRepositoryProtocol, @unchecked Senda
     private init() {
         ensureDirectoryExists()
     }
+
+    static let shared = ConnectionRepository()
 
     // MARK: - ConnectionRepositoryProtocol
 

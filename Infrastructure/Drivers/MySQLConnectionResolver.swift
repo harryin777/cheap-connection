@@ -21,7 +21,7 @@ enum MySQLConnectionResolver {
     ///   - host: 主机名或IP地址
     ///   - port: 端口号
     /// - Returns: 解析后的地址列表
-    static func resolve(host: String, port: Int) throws -> [ResolvedSocketAddress] {
+    nonisolated static func resolve(host: String, port: Int) throws -> [ResolvedSocketAddress] {
         var hints = addrinfo()
         hints.ai_family = AF_UNSPEC
         hints.ai_socktype = SOCK_STREAM
@@ -84,7 +84,7 @@ enum MySQLConnectionResolver {
     }
 
     /// 将套接字地址转换为数字形式的IP字符串
-    private static func numericHost(from address: UnsafePointer<sockaddr>, length: socklen_t) -> String? {
+    private nonisolated static func numericHost(from address: UnsafePointer<sockaddr>, length: socklen_t) -> String? {
         var hostBuffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
         let result = getnameinfo(
             address,

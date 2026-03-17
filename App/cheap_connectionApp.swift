@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct cheap_connectionApp: App {
-    @State private var connectionManager = ConnectionManager()
+    @State private var connectionManager = ConnectionManager.shared
     @State private var windowState = WindowStateRepository.shared.load()
 
     var body: some Scene {
@@ -200,8 +200,7 @@ class WindowObserverView: NSView {
     }
 
     private func notifyWindowChange() {
-        guard let window = window else { return }
-        let frame = window.frame
+        guard window != nil else { return }
 
         // 防抖 - 避免频繁保存
         debounceTimer?.invalidate()

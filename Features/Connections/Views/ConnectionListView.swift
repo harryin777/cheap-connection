@@ -192,7 +192,7 @@ struct ConnectionListView: View {
 #Preview {
     NavigationSplitView {
         ConnectionListView()
-            .environment(ConnectionManager())
+            .environment(ConnectionManager.shared)
     } detail: {
         Text("选择一个连接")
     }

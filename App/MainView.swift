@@ -172,7 +172,7 @@ class SidebarObserverNSView: NSView {
         guard let splitView = notification.object as? NSSplitView else { return }
         guard let sidebarView = splitView.arrangedSubviews.first else { return }
 
-        let newWidth = sidebarView.bounds.width
+        let _ = sidebarView.bounds.width  // 触发 resize 事件
 
         // 防抖
         debounceTimer?.invalidate()
@@ -214,5 +214,5 @@ private extension NSView {
 
 #Preview {
     MainView()
-        .environment(ConnectionManager())
+        .environment(ConnectionManager.shared)
 }

@@ -21,7 +21,7 @@ enum MySQLQueries {
         """
 
     /// 获取表列表
-    static func fetchTables(database: String) -> String {
+    nonisolated static func fetchTables(database: String) -> String {
         let escapedDB = MySQLEscapeUtils.escapeString(database)
         return """
             SELECT
@@ -38,7 +38,7 @@ enum MySQLQueries {
     }
 
     /// 获取表结构
-    static func fetchTableStructure(database: String, table: String) -> String {
+    nonisolated static func fetchTableStructure(database: String, table: String) -> String {
         let escapedDB = MySQLEscapeUtils.escapeString(database)
         let escapedTable = MySQLEscapeUtils.escapeString(table)
         return """
@@ -59,7 +59,7 @@ enum MySQLQueries {
     }
 
     /// 获取表数据（分页）
-    static func fetchTableData(
+    nonisolated static func fetchTableData(
         database: String,
         table: String,
         pageSize: Int,

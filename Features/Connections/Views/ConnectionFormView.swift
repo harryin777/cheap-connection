@@ -30,7 +30,8 @@ struct ConnectionFormView: View {
 
                 Picker("数据库类型", selection: $viewModel.formData.databaseKind) {
                     ForEach(DatabaseKind.allCases) { kind in
-                        Text(kind.displayName).tag(kind)
+                        Label(kind.displayName, systemImage: kind.iconName)
+                            .tag(kind)
                     }
                 }
                 .onChange(of: viewModel.formData.databaseKind) {
@@ -105,7 +106,7 @@ struct ConnectionFormView: View {
 
 #Preview("新建") {
     ConnectionFormView()
-        .environment(ConnectionManager())
+        .environment(ConnectionManager.shared)
 }
 
 #Preview("编辑") {
@@ -118,5 +119,5 @@ struct ConnectionFormView: View {
             username: "root"
         )
     )
-    .environment(ConnectionManager())
+    .environment(ConnectionManager.shared)
 }

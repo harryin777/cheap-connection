@@ -41,12 +41,20 @@ final class ConnectionManager {
     private let recentRepository: RecentHistoryRepositoryProtocol
     private let keychainService: KeychainServiceProtocol
 
+    // MARK: - Shared Instance
+
+    static let shared = ConnectionManager(
+        connectionRepository: ConnectionRepository.shared,
+        recentRepository: RecentHistoryRepository.shared,
+        keychainService: KeychainService.shared
+    )
+
     // MARK: - Init
 
     init(
-        connectionRepository: ConnectionRepositoryProtocol = ConnectionRepository.shared,
-        recentRepository: RecentHistoryRepositoryProtocol = RecentHistoryRepository.shared,
-        keychainService: KeychainServiceProtocol = KeychainService.shared
+        connectionRepository: ConnectionRepositoryProtocol,
+        recentRepository: RecentHistoryRepositoryProtocol,
+        keychainService: KeychainServiceProtocol
     ) {
         self.connectionRepository = connectionRepository
         self.recentRepository = recentRepository
