@@ -64,10 +64,9 @@ struct EditorQueryTab: Identifiable, Equatable {
     let id: UUID
     let fileURL: URL
     var title: String          // url.lastPathComponent
-    var content: String        // SQL 文本
-    var isDirty: Bool = false  // 内容是否被修改（暂不实现保存，仅预留）
-    // GPT TODO: 2.8 最后一条“未保存圆点”当前还不工作，根因之一就是 isDirty 仍停留在占位字段，没有真正接入编辑/保存链路。
-    // GPT TODO: glm5 需要把 isDirty 变成真实状态：打开文件/保存成功后为 false；编辑内容后为 true；保存成功后必须自动回到 false。
+    var content: String        // SQL 文本（当前编辑内容）
+    var savedContent: String   // 上次保存时的内容（用于判断 isDirty）
+    var isDirty: Bool          // 内容是否被修改
 
     // MARK: - Query Context (独立于左侧资源树选择)
 
@@ -91,17 +90,31 @@ struct EditorQueryTab: Identifiable, Equatable {
         self.fileURL = fileURL
         self.title = fileURL.lastPathComponent
         self.content = content
+        self.savedContent = content  // 初始时内容与已保存内容相同
+        self.isDirty = false         // 新打开的文件未修改
         self.queryConnectionId = defaultConnectionId
         self.queryConnectionName = defaultConnectionName
         self.queryDatabaseName = defaultDatabase
     }
 
+    /// 标记为已保存
+    mutating func markAsSaved() {
+        savedContent = content
+        isDirty = false
+    }
+
+    /// 更新内容并自动计算 isDirty
+    mutating func updateContent(_ newContent: String) {
+        content = newContent
+        isDirty = (content != savedContent)
+    }
+
     static func == (lhs: EditorQueryTab, rhs: EditorQueryTab) -> Bool {
         lhs.id == rhs.id &&
+        lhs.content == rhs.content &&
+        lhs.isDirty == rhs.isDirty &&
         lhs.queryConnectionId == rhs.queryConnectionId &&
         lhs.queryConnectionName == rhs.queryConnectionName &&
         lhs.queryDatabaseName == rhs.queryDatabaseName
-        // GPT TODO: 如果后续继续保留自定义 Equatable，这里不能长期忽略 content / isDirty。
-        // GPT TODO: 否则与未保存状态相关的 UI 刷新有可能被值相等判断短路，导致圆点不出现或保存后不消失。
     }
 }

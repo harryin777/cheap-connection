@@ -25,8 +25,8 @@ extension MySQLWorkspaceView {
                 errorMessage = "保存文件失败"
                 showError = true
             } else if let index = editorTabs.firstIndex(where: { $0.id == activeTab.id }) {
-                // GPT TODO: 2.8 当前要求“保存后 tab 圆点自动消失”，但现有保存成功分支没有回写 isDirty = false。
-                // GPT TODO: glm5 需要在真实写盘成功后把当前 tab 标记为已保存，否则即使编辑时已经把 isDirty 设成 true，保存后圆点也不会消失。
+                // 保存成功，标记为已保存状态
+                editorTabs[index].markAsSaved()
             }
         } else {
             // 草稿模式，使用 sheet 保存
@@ -39,7 +39,7 @@ extension MySQLWorkspaceView {
             SQLFileOperations.saveWithSheet(content: sqlText, window: window) { [sqlText, currentQueryConnectionId, currentQueryConnectionName, currentQueryDatabase] url in
                 guard let url = url else { return }
 
-                // 保存成功后，创建一个新的 tab
+                // 保存成功后，创建一个新的 tab（已保存状态）
                 let newTab = EditorQueryTab(
                     fileURL: url,
                     content: sqlText,
@@ -198,11 +198,6 @@ extension MySQLWorkspaceView {
     func syncSQLTextToActiveTab() {
         guard let activeEditorTabId,
               let index = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) else { return }
-        // GPT TODO: 这里目前只同步 content，没有同步 isDirty。
-        // GPT TODO: 这就是“编辑外部导入的 query 文件后，tab 上没有未保存圆点”最直接的失效点之一。
-        // GPT TODO: glm5 需要在这里比较旧 content 与新的 sqlText：
-        // GPT TODO: - 内容发生真实变化时，isDirty = true；
-        // GPT TODO: - 如果内容重新回到最近一次已保存内容，isDirty 应恢复为 false。
-        editorTabs[index].content = sqlText
+        editorTabs[index].updateContent(sqlText)
     }
 }

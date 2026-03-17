@@ -32,13 +32,17 @@ extension MySQLEditorView {
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
 
-                    // GPT TODO: 2.8 最后一条要求“未保存时在文件名 tab 上显示圆点，保存后自动消失”，但这里完全没有消费 tab.isDirty。
-                    // GPT TODO: glm5 需要在文件名附近增加稳定可见的 unsaved indicator（圆点），并直接绑定 tab.isDirty。
-                    // GPT TODO: 不要把圆点和关闭按钮复用，也不要做成 hover 态，否则用户无法稳定感知未保存状态。
                     Text(tab.title)
                         .font(.system(size: 11))
                         .lineLimit(1)
                         .foregroundStyle(.primary)
+
+                    // 未保存圆点指示器
+                    if tab.isDirty {
+                        Circle()
+                            .fill(Color.accentColor)
+                            .frame(width: 6, height: 6)
+                    }
                 }
                 .padding(.leading, 10)
                 .padding(.trailing, 4)
