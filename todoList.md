@@ -158,8 +158,8 @@
 - [x] Tab 补全后光标精确停在补全文本最后一个字符后面，且不再自动追加空格
 
 ### 2.B MySQL 当前待修 Bug
-- [x] 右侧”独立工作区”仍未真正独立：`QueryWorkspaceView` 仍按 `databaseKind` 分流，Redis 会进入 `RedisQueryWorkspaceView/RedisConsoleView` 这套专用右侧面板，而不是保持 MySQL 那种统一工作区壳层 → **已通过 UnifiedWorkspaceView 解决**
-- [x] MySQL / Redis 来回切换时的 `mysql-nio` / `MySQLQueryCommand.deinit` / `Statement not closed` 断言：右侧现在会保留所有已打开 workspace，只切换可见性；MySQL 的连接建立、执行 SQL、分页刷新、表数据加载都会纳入 `pendingTasks`，切走时先取消并等待，再断连
+- [x] 右侧”独立工作区”仍未真正独立：`QueryWorkspaceView` 仍按 `databaseKind` 分流，Redis 会进入 `RedisQueryWorkspaceView/RedisConsoleView` 这套专用右侧面板，而不是保持 MySQL 那种统一工作区壳层 → **已通过 UnifiedWorkspaceView 解决** (2026-03-18)
+- [x] MySQL / Redis 来回切换时的 `mysql-nio` / `MySQLQueryCommand.deinit` / `Statement not closed` 断言 → **已通过 pendingTasks + Task.isCancelled 解决** (2026-03-18)
 
 
 ---

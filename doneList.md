@@ -413,6 +413,30 @@
   - MySQL: cylinder.split.1x2 (数据库圆筒图标)
   - Redis: memorychip (内存芯片图标)
 
+### 4.3 统一工作区壳层
+- [x] 2026-03-18: 创建 `UnifiedWorkspaceView` 统一右侧工作区壳层
+  - MySQL/Redis 使用相同的上下分割布局
+  - 保持一致的编辑器 + 结果区布局
+- [x] 2026-03-18: 创建 `RedisEditorView` 命令编辑器
+  - 与 MySQL 风格一致的工具栏设计
+  - 历史面板、执行按钮
+- [x] 2026-03-18: 创建 `SplitView` 共享组件 (NSSplitView wrapper)
+  - 从 MySQLWorkspaceView 提取为共享组件
+  - 支持拖拽调整分割比例
+- [x] 2026-03-18: 创建 `WorkspaceManager` 工作区生命周期管理
+  - 活动工作区切换
+  - 工作区打开/关闭通知
+  - 断连完成同步
+
+### 4.4 Task 竞态问题修复
+- [x] 2026-03-18: 修复 MySQL workspace 切换时的 Task 竞态问题
+  - 添加 `pendingTasks` 字典管理异步任务引用
+  - `workspaceWillClose` 时先取消所有任务再断连
+  - 各异步操作增加 `Task.isCancelled` 检查
+- [x] 2026-03-18: 解决 mysql-nio "Statement not closed" 断言错误
+  - 确保连接断开前所有查询任务已完成或取消
+  - 使用 `cancelPendingTasksAndWait()` 等待任务结束
+
 ---
 
 ## 格式说明
