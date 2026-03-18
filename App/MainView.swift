@@ -54,12 +54,28 @@ struct MainView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        // NOTE: detail 区由 connectionManager.selectedConnectionId 决定
-        // 这控制的是左侧资源树高亮连接对应的 workspace 显示
-        // Query 执行上下文由 MySQLWorkspaceView 中的 EditorQueryTab 独立管理
-        if let selectedId = connectionManager.selectedConnectionId,
-           let config = connectionManager.connections.first(where: { $0.id == selectedId }) {
-            ConnectionDetailView(config: config)
+        let sessions = connectionManager.workspaceManager.openSessions.values
+            .sorted { lhs, rhs in
+                if lhs.lastActiveAt != rhs.lastActiveAt {
+                    return lhs.lastActiveAt < rhs.lastActiveAt
+                }
+                return lhs.createdAt < rhs.createdAt
+            }
+
+        if let activeWorkspaceId = connectionManager.workspaceManager.activeWorkspaceId,
+           !sessions.isEmpty {
+            ZStack {
+                ForEach(sessions) { session in
+                    if let config = connectionManager.connections.first(where: { $0.id == session.connectionId }) {
+                        UnifiedWorkspaceView(connectionConfig: config, workspaceId: session.id)
+                            .id(session.id)
+                            .opacity(session.id == activeWorkspaceId ? 1 : 0)
+                            .allowsHitTesting(session.id == activeWorkspaceId)
+                            .zIndex(session.id == activeWorkspaceId ? 1 : 0)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             emptyStateView
         }
@@ -81,20 +97,6 @@ struct MainView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-/// 连接详情视图
-struct ConnectionDetailView: View {
-    let config: ConnectionConfig
-
-    var body: some View {
-        switch config.databaseKind {
-        case .mysql:
-            MySQLWorkspaceView(connectionConfig: config)
-        case .redis:
-            RedisWorkspaceView(connectionConfig: config)
-        }
     }
 }
 

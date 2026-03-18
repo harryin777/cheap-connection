@@ -27,7 +27,13 @@ extension ConnectionListView {
     }
 
     func selectConnection(_ config: ConnectionConfig) {
+        // 更新左侧资源树选择
         connectionManager.selectConnection(config.id)
+
+        // 如果没有打开的工作区，自动打开（保持用户体验）
+        if connectionManager.workspaceManager.activeWorkspaceId == nil {
+            openConnectionInWorkspace(config)
+        }
 
         guard config.databaseKind == .mysql else { return }
         expandedConnectionIds.insert(config.id)
@@ -35,6 +41,13 @@ extension ConnectionListView {
         Task {
             await dataLoader.ensureDatabasesLoaded(for: config, connectionManager: connectionManager)
         }
+    }
+
+    /// 打开连接的工作区（用于双击）
+    func openConnectionInWorkspace(_ config: ConnectionConfig) {
+        // 工作区类型用于内部跟踪，UnifiedWorkspaceView 统一处理 MySQL 和 Redis
+        let kind: WorkspaceKind = config.databaseKind == .mysql ? .mysql : .redis
+        connectionManager.workspaceManager.openWorkspace(for: config.id, kind: kind)
     }
 
     func toggleConnection(_ config: ConnectionConfig) {

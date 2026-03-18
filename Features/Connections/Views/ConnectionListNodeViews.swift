@@ -83,6 +83,7 @@ struct ConnectionListNodeView: View {
 
     let onToggle: () -> Void
     let onSelect: () -> Void
+    let onDoubleClick: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
 
@@ -122,7 +123,10 @@ struct ConnectionListNodeView: View {
             .padding(.vertical, 4)
             .background(isSelected ? Color.accentColor.opacity(0.16) : .clear)
             .contentShape(Rectangle())
-            .onTapGesture {
+            .onTapGesture(count: 2) {
+                onDoubleClick()
+            }
+            .onTapGesture(count: 1) {
                 onSelect()
             }
             .contextMenu {

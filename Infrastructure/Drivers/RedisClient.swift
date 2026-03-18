@@ -146,13 +146,14 @@ actor RedisClient: RedisClientProtocol {
 
         // 构建连接配置
         let password: String? = config.password
-        var username: String? = config.username
+        let username: String? = config.username
 
-        // 如果密码存在但用户名不存在，使用 Redis 默认认证
-        if password != nil && username == nil {
-            // 使用 default 用户
-            username = "default"
-        }
+        // DEBUG: 打印认证信息
+        print("🔴 Redis Connection Debug:")
+        print("  - Host: \(config.host):\(config.port)")
+        print("  - Username: \(username ?? "nil")")
+        print("  - Password: \(password != nil ? "\(password!.prefix(3))***" : "nil")")
+        print("  - Database: \(config.database ?? 0)")
 
         // 创建 RediStack 配置
         // 注意：RediStack 的 Configuration 使用 initialDatabase 而不是 database

@@ -8,12 +8,30 @@
 import SwiftUI
 import AppKit
 
+/// Redis 工作区视图模式
+enum RedisWorkspaceMode: String, CaseIterable {
+    case keys = "Key 浏览"
+    case console = "命令控制台"
+
+    var iconName: String {
+        switch self {
+        case .keys: return "key"
+        case .console: return "terminal"
+        }
+    }
+}
+
 /// Redis工作区视图
 struct RedisWorkspaceView: View {
     let connectionConfig: ConnectionConfig
+    let workspaceId: UUID
+    @Environment(ConnectionManager.self) var connectionManager
 
     // State - Service
     @State var service: RedisService?
+
+    // State - View Mode
+    @State var workspaceMode: RedisWorkspaceMode = .keys
 
     // State - Key List
     @State var keys: [RedisKeySummary] = []
@@ -46,6 +64,8 @@ struct RedisWorkspaceView: View {
     @State var errorMessage: String = ""
 
     var body: some View {
+        // RedisWorkspaceView 提供 Key 浏览和命令控制台两种模式
+        // 可通过工具栏切换。用于需要完整 Redis 管理功能的场景。
         Group {
             if let service, service.session.connectionState.isConnected {
                 connectedView
@@ -58,7 +78,18 @@ struct RedisWorkspaceView: View {
             }
         }
         .task { await connectIfNeeded() }
-        .onDisappear { Task { await disconnect() } }
+        // 监听工作区关闭通知，只在显式关闭时断连
+        .onReceive(NotificationCenter.default.publisher(for: .workspaceWillClose)) { notification in
+            guard let closingWorkspaceId = notification.object as? UUID,
+                  closingWorkspaceId == workspaceId else { return }
+            Task {
+                await disconnect()
+                // 断连完成后通知 WorkspaceManager
+                await MainActor.run {
+                    connectionManager.workspaceManager.notifyDisconnectComplete(workspaceId)
+                }
+            }
+        }
         .alert("错误", isPresented: $showError) {
             Button("确定", role: .cancel) { }
         } message: {
@@ -70,6 +101,79 @@ struct RedisWorkspaceView: View {
 
     @ViewBuilder
     var connectedView: some View {
+        VStack(spacing: 0) {
+            // 模式切换工具栏
+            modeToolbar
+            Divider()
+
+            // 内容区域
+            switch workspaceMode {
+            case .keys:
+                keysBrowseView
+            case .console:
+                if let service {
+                    RedisConsoleView(service: service)
+                } else {
+                    Text("服务未初始化")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+        }
+    }
+
+    // MARK: - Mode Toolbar
+
+    @ViewBuilder
+    private var modeToolbar: some View {
+        HStack(spacing: 0) {
+            ForEach(RedisWorkspaceMode.allCases, id: \.self) { mode in
+                Button {
+                    workspaceMode = mode
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: mode.iconName)
+                            .font(.system(size: 11))
+                        Text(mode.rawValue)
+                            .font(.system(size: 11))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(workspaceMode == mode ? Color.accentColor.opacity(0.15) : Color.clear)
+                    .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer()
+
+            // 服务器信息
+            if let version = service?.session.serverVersion {
+                Text("Redis \(version)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+            }
+
+            // 数据库索引
+            if let db = service?.session.selectedDatabase {
+                Text("DB \(db)")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(4)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    // MARK: - Keys Browse View
+
+    @ViewBuilder
+    private var keysBrowseView: some View {
         HSplitView {
             // 左侧: Key 列表
             RedisKeyListView(
@@ -189,6 +293,9 @@ struct RedisWorkspaceView: View {
 
         do {
             let password = try? ConnectionManager.shared.getPassword(for: connectionConfig.id)
+            // DEBUG: 打印获取到的密码
+            print("🔵 RedisWorkspaceView - Password from Keychain: \(password != nil ? "\(password!.prefix(3))***" : "nil")")
+            print("🔵 RedisWorkspaceView - ConnectionConfig ID: \(connectionConfig.id)")
             try await newService.connect(config: connectionConfig, password: password)
             await loadInitialKeys()
         } catch {
@@ -346,6 +453,6 @@ struct RedisWorkspaceView: View {
         defaultDatabase: nil
     )
 
-    RedisWorkspaceView(connectionConfig: config)
+    RedisWorkspaceView(connectionConfig: config, workspaceId: UUID())
         .frame(width: 900, height: 600)
 }

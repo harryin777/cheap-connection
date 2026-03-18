@@ -92,6 +92,8 @@ struct ConnectionListView: View {
                 toggleConnection(config)
             } onSelect: {
                 selectConnection(config)
+            } onDoubleClick: {
+                openConnectionInWorkspace(config)
             } onEdit: {
                 editingConnection = config
             } onDelete: {

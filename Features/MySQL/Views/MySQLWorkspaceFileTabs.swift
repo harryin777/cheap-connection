@@ -103,45 +103,37 @@ extension MySQLWorkspaceView {
         var failedCount = 0
         var errors: [String] = []
 
-        let queryServiceHandle: (service: MySQLService, shouldDisconnect: Bool)
         do {
-            queryServiceHandle = try await serviceForQueryConnection(currentQueryConnectionId)
+            // 使用 withQueryService 确保 disconnect 被正确等待
+            try await withQueryService(currentQueryConnectionId) { queryService in
+                for (index, sql) in statements.enumerated() {
+                    importProgress = Double(index + 1) / Double(statements.count)
+                    importStatus = "执行中... (\(index + 1)/\(statements.count))"
+
+                    do {
+                        var processedSQL = sql
+                        if let currentQueryDatabase {
+                            processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
+                        }
+
+                        let result = try await queryService.executeSQL(processedSQL)
+                        if let error = result.error {
+                            failedCount += 1
+                            errors.append("语句 \(index + 1): \(error.localizedDescription)")
+                        } else {
+                            successCount += 1
+                        }
+                    } catch {
+                        failedCount += 1
+                        errors.append("语句 \(index + 1): \(error.localizedDescription)")
+                    }
+                }
+            }
         } catch {
             showImportProgress = false
             errorMessage = error.localizedDescription
             showError = true
             return
-        }
-
-        defer {
-            if queryServiceHandle.shouldDisconnect {
-                Task {
-                    await queryServiceHandle.service.disconnect()
-                }
-            }
-        }
-
-        for (index, sql) in statements.enumerated() {
-            importProgress = Double(index + 1) / Double(statements.count)
-            importStatus = "执行中... (\(index + 1)/\(statements.count))"
-
-            do {
-                var processedSQL = sql
-                if let currentQueryDatabase {
-                    processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
-                }
-
-                let result = try await queryServiceHandle.service.executeSQL(processedSQL)
-                if let error = result.error {
-                    failedCount += 1
-                    errors.append("语句 \(index + 1): \(error.localizedDescription)")
-                } else {
-                    successCount += 1
-                }
-            } catch {
-                failedCount += 1
-                errors.append("语句 \(index + 1): \(error.localizedDescription)")
-            }
         }
 
         showImportProgress = false
@@ -158,6 +150,11 @@ extension MySQLWorkspaceView {
 
     func selectEditorTab(_ tabId: UUID) {
         guard let tab = editorTabs.first(where: { $0.id == tabId }) else { return }
+
+        // 先同步当前 tab 的内容（确保 isDirty 状态正确）
+        syncSQLTextToActiveTab()
+
+        // 再切换到新 tab
         activeEditorTabId = tabId
         sqlText = tab.content
     }
@@ -198,6 +195,10 @@ extension MySQLWorkspaceView {
     func syncSQLTextToActiveTab() {
         guard let activeEditorTabId,
               let index = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) else { return }
-        editorTabs[index].updateContent(sqlText)
+
+        // 显式更新数组元素以触发 SwiftUI 变化检测
+        var tab = editorTabs[index]
+        tab.updateContent(sqlText)
+        editorTabs[index] = tab
     }
 }

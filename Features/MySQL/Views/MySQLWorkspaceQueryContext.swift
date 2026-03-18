@@ -8,6 +8,39 @@
 import Foundation
 
 extension MySQLWorkspaceView {
+    // MARK: - 安全的临时 Service 执行辅助函数
+
+    /// 使用临时或现有 service 执行操作，确保临时 service 在操作完成后正确断连
+    /// - Parameters:
+    ///   - connectionId: 连接 ID
+    ///   - operation: 要执行的操作
+    /// - Returns: 操作的返回值
+    /// - Note: 此函数解决 defer + Task 的 fire-and-forget 问题，确保 disconnect 被等待
+    func withQueryService<T>(
+        _ connectionId: UUID,
+        operation: (MySQLService) async throws -> T
+    ) async throws -> T {
+        try Task.checkCancellation()
+        guard !isWorkspaceClosing else {
+            throw CancellationError()
+        }
+        let (service, shouldDisconnect) = try await serviceForQueryConnection(connectionId)
+
+        do {
+            let result = try await operation(service)
+            try Task.checkCancellation()
+            if shouldDisconnect {
+                await service.disconnect()
+            }
+            return result
+        } catch {
+            if shouldDisconnect {
+                await service.disconnect()
+            }
+            throw error
+        }
+    }
+
     func switchQueryConnection(_ connectionId: UUID) {
         guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else { return }
 
@@ -28,8 +61,13 @@ extension MySQLWorkspaceView {
             connectionDatabaseCache.removeValue(forKey: connectionId)
         }
 
-        Task {
+        // 使用可取消的 Task 拉取数据库列表并加载元数据
+        enqueuePendingTask {
             let databases = await fetchDatabasesForConnection(connectionId)
+
+            // 检查任务是否被取消
+            guard !Task.isCancelled else { return }
+
             let defaultDatabase = connection.defaultDatabase ?? databases.first
 
             await MainActor.run {
@@ -43,10 +81,11 @@ extension MySQLWorkspaceView {
                 }
             }
 
+            // 检查任务是否被取消
+            guard !Task.isCancelled, let defaultDb = defaultDatabase else { return }
+
             // 设置默认数据库后，加载元数据用于自动补全
-            if let defaultDb = defaultDatabase {
-                await loadQueryMetadata(database: defaultDb)
-            }
+            await loadQueryMetadata(database: defaultDb)
         }
     }
 
@@ -58,7 +97,8 @@ extension MySQLWorkspaceView {
         }
 
         // 加载该数据库的表和列信息，用于 SQL 自动补全
-        Task {
+        // 使用可取消的 Task，在 workspace 关闭时可以被正确取消
+        enqueuePendingTask {
             await loadQueryMetadata(database: database)
         }
     }
@@ -77,16 +117,24 @@ extension MySQLWorkspaceView {
         defer { isLoadingQueryMetadata = false }
 
         do {
-            let (queryService, shouldDisconnect) = try await serviceForQueryConnection(currentQueryConnectionId)
-            defer {
-                if shouldDisconnect {
-                    Task { await queryService.disconnect() }
-                }
+            // 检查任务是否被取消
+            guard !Task.isCancelled else {
+                print("[Autocomplete] 任务已取消")
+                return
             }
 
-            // 第一步：获取表列表（成功就立即保存）
-            let tables = try await queryService.fetchTables(database: database)
+            // 使用 withQueryService 确保 disconnect 被正确等待
+            let tables = try await withQueryService(currentQueryConnectionId) { queryService in
+                try await queryService.fetchTables(database: database)
+            }
             print("[Autocomplete] 获取到 \(tables.count) 个表")
+
+            // 检查任务是否被取消
+            guard !Task.isCancelled else {
+                print("[Autocomplete] 任务已取消")
+                return
+            }
+
             await MainActor.run {
                 queryTables = tables
             }
@@ -94,8 +142,16 @@ extension MySQLWorkspaceView {
             // 第二步：获取所有表的列信息（单独处理，失败不影响表名候选）
             var allColumns: [MySQLColumnDefinition] = []
             for table in tables {
+                // 检查任务是否被取消
+                guard !Task.isCancelled else {
+                    print("[Autocomplete] 任务已取消")
+                    return
+                }
+
                 do {
-                    let tableColumns = try await queryService.fetchTableStructure(database: database, table: table.name)
+                    let tableColumns = try await withQueryService(currentQueryConnectionId) { queryService in
+                        try await queryService.fetchTableStructure(database: database, table: table.name)
+                    }
                     allColumns.append(contentsOf: tableColumns)
                 } catch {
                     // 单张表列结构失败只打印日志，不影响其他表
@@ -104,6 +160,10 @@ extension MySQLWorkspaceView {
             }
 
             print("[Autocomplete] 获取到 \(allColumns.count) 个列")
+
+            // 检查任务是否被取消
+            guard !Task.isCancelled else { return }
+
             await MainActor.run {
                 queryAllColumns = allColumns
             }
@@ -118,6 +178,7 @@ extension MySQLWorkspaceView {
     }
 
     func fetchDatabasesForConnection(_ connectionId: UUID) async -> [String] {
+        guard !Task.isCancelled, !isWorkspaceClosing else { return [] }
         if connectionId == connectionConfig.id {
             return databases.map(\.name)
         }
@@ -126,26 +187,27 @@ extension MySQLWorkspaceView {
             return cached
         }
 
-        guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else {
-            return []
-        }
-
         do {
-            guard let password = try connectionManager.getPassword(for: connectionId) else { return [] }
-
-            let tempService = MySQLService(connectionConfig: connection)
-            try await tempService.connect(config: connection, password: password)
-            let databaseList = try await tempService.fetchDatabases()
-            await tempService.disconnect()
+            let databaseList = try await withQueryService(connectionId) { queryService in
+                try await queryService.fetchDatabases()
+            }
+            guard !Task.isCancelled, !isWorkspaceClosing else {
+                return []
+            }
 
             let databaseNames = databaseList.map(\.name)
             connectionDatabaseCache[connectionId] = databaseNames
             return databaseNames
         } catch {
+            guard !Task.isCancelled, !isWorkspaceClosing else { return [] }
             return []
         }
     }
 
+    /// 获取查询连接的 service
+    /// - Parameter connectionId: 连接 ID
+    /// - Returns: (service, shouldDisconnect) 元组
+    /// - Note: 优先使用 `withQueryService` 辅助函数，它能自动管理临时 service 的断连
     func serviceForQueryConnection(_ connectionId: UUID) async throws -> (service: MySQLService, shouldDisconnect: Bool) {
         if connectionId == connectionConfig.id {
             guard let service else {

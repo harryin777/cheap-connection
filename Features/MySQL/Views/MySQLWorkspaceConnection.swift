@@ -9,13 +9,15 @@ import Foundation
 
 extension MySQLWorkspaceView {
     func connectIfNeeded() async {
-        guard service == nil else { return }
+        guard !isWorkspaceClosing, service == nil else { return }
         await connect()
     }
 
     func connect() async {
+        guard !isWorkspaceClosing else { return }
         isConnecting = true
         defer { isConnecting = false }
+        isWorkspaceClosing = false
         await disconnect()
 
         do {
@@ -25,6 +27,10 @@ extension MySQLWorkspaceView {
 
             let newService = MySQLService(connectionConfig: connectionConfig)
             try await newService.connect(config: connectionConfig, password: password)
+            guard !Task.isCancelled, !isWorkspaceClosing else {
+                await newService.disconnect()
+                return
+            }
             service = newService
             connectionManager.recordConnectionUsage(connectionConfig.id)
             if scratchQueryConnectionId == nil {
@@ -33,12 +39,18 @@ extension MySQLWorkspaceView {
                 scratchQueryDatabaseName = connectionConfig.defaultDatabase
             }
             await loadDatabases()
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
 
             // 连接成功后，如果有默认查询数据库，加载元数据用于自动补全
             if let defaultDb = scratchQueryDatabaseName {
                 await loadQueryMetadata(database: defaultDb)
             }
         } catch {
+            if Task.isCancelled || isWorkspaceClosing {
+                await service?.disconnect()
+                service = nil
+                return
+            }
             await service?.disconnect()
             service = nil
             errorMessage = error.localizedDescription
@@ -47,6 +59,12 @@ extension MySQLWorkspaceView {
     }
 
     func disconnect() async {
+        isConnecting = false
+        isLoadingDatabases = false
+        isLoadingStructure = false
+        isLoadingData = false
+        isLoadingSQL = false
+        isLoadingQueryMetadata = false
         await service?.disconnect()
         service = nil
         databases = []
@@ -64,54 +82,63 @@ extension MySQLWorkspaceView {
     }
 
     func loadDatabases() async {
-        guard let service else { return }
+        guard !Task.isCancelled, !isWorkspaceClosing, let service else { return }
         isLoadingDatabases = true
         defer { isLoadingDatabases = false }
 
         do {
-            databases = try await service.fetchDatabases()
+            let loadedDatabases = try await service.fetchDatabases()
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
+            databases = loadedDatabases
             connectionDatabaseCache[connectionConfig.id] = databases.map(\.name)
             if scratchQueryConnectionId == connectionConfig.id, scratchQueryDatabaseName == nil {
                 scratchQueryDatabaseName = connectionConfig.defaultDatabase ?? databases.first?.name
                 // 设置了默认查询数据库后，加载元数据用于自动补全
-                if let defaultDb = scratchQueryDatabaseName {
+                if !Task.isCancelled, !isWorkspaceClosing, let defaultDb = scratchQueryDatabaseName {
                     await loadQueryMetadata(database: defaultDb)
                 }
             }
             syncSelectionFromManager()
         } catch {
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
             errorMessage = error.localizedDescription
             showError = true
         }
     }
 
     func loadTableStructure(database: String, table: String) async {
-        guard let service else { return }
+        guard !Task.isCancelled, !isWorkspaceClosing, let service else { return }
         isLoadingStructure = true
         defer { isLoadingStructure = false }
 
         do {
-            columns = try await service.fetchTableStructure(database: database, table: table)
+            let loadedColumns = try await service.fetchTableStructure(database: database, table: table)
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
+            columns = loadedColumns
         } catch {
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
             errorMessage = error.localizedDescription
             showError = true
         }
     }
 
     func loadTableData(database: String, table: String) async {
-        guard let service else { return }
+        guard !Task.isCancelled, !isWorkspaceClosing, let service else { return }
         isLoadingData = true
         defer { isLoadingData = false }
 
         do {
-            tableDataResult = try await service.fetchTableData(
+            let result = try await service.fetchTableData(
                 database: database,
                 table: table,
                 pagination: pagination,
                 orderBy: orderBy,
                 orderDirection: orderDirection
             )
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
+            tableDataResult = result
         } catch {
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
             errorMessage = error.localizedDescription
             showError = true
         }

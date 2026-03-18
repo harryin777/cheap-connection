@@ -37,13 +37,18 @@ extension MySQLWorkspaceView {
         selectedTab = .data
         displayMode = .tableDetail(.data)
 
-        Task {
+        // 使用可取消的 Task 加载表结构和数据
+        // 在 workspace 关闭时可以被正确取消，避免与 disconnect 并发
+        enqueuePendingTask {
             await loadTableStructure(database: database, table: table)
+            // 检查任务是否被取消
+            guard !Task.isCancelled else { return }
             await loadTableData(database: database, table: table)
         }
     }
 
     func updateCell(database: String, table: String, rowIndex: Int, columnIndex: Int, newValue: String) async {
+        guard !Task.isCancelled, !isWorkspaceClosing else { return }
         guard let service,
               let result = tableDataResult,
               rowIndex < result.rows.count,
@@ -87,6 +92,7 @@ extension MySQLWorkspaceView {
 
         do {
             let updateResult = try await service.executeSQL(sql)
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
             if let error = updateResult.error {
                 errorMessage = "更新失败: \(error.localizedDescription)"
                 showError = true
@@ -94,12 +100,14 @@ extension MySQLWorkspaceView {
                 await loadTableData(database: database, table: table)
             }
         } catch {
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
             errorMessage = "更新失败: \(error.localizedDescription)"
             showError = true
         }
     }
 
     func executeSQL(_ sql: String) async {
+        guard !isWorkspaceClosing else { return }
         isLoadingSQL = true
         defer { isLoadingSQL = false }
 
@@ -113,22 +121,17 @@ extension MySQLWorkspaceView {
         displayMode = .sqlResult
 
         do {
+            // 使用 withQueryService 确保 disconnect 被正确等待
             let queryConnectionId = currentQueryConnectionId
-            let queryServiceHandle = try await serviceForQueryConnection(queryConnectionId)
-            defer {
-                if queryServiceHandle.shouldDisconnect {
-                    Task {
-                        await queryServiceHandle.service.disconnect()
-                    }
+            sqlResult = try await withQueryService(queryConnectionId) { queryService in
+                var processedSQL = sql
+                if let currentQueryDatabase {
+                    processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
                 }
+                return try await queryService.executeSQL(processedSQL)
             }
-
-            var processedSQL = sql
-            if let currentQueryDatabase {
-                processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
-            }
-            sqlResult = try await queryServiceHandle.service.executeSQL(processedSQL)
         } catch {
+            guard !Task.isCancelled, !isWorkspaceClosing else { return }
             errorMessage = error.localizedDescription
             showError = true
         }

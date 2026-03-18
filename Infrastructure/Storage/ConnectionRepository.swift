@@ -62,6 +62,8 @@ final class ConnectionRepository: ConnectionRepositoryProtocol, @unchecked Senda
         decoder.dateDecodingStrategy = .iso8601
 
         let configs = try decoder.decode([ConnectionConfig].self, from: data)
+        // 按 lastUsedAt（回退 updatedAt）倒序排列，最近使用的连接在前
+        // 如果 UI 需要其他排序方式（如按类型或名称分组），应由上层处理
         return configs.sorted { ($0.lastUsedAt ?? $0.updatedAt) > ($1.lastUsedAt ?? $1.updatedAt) }
     }
 

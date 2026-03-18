@@ -32,6 +32,9 @@ final class ConnectionManager {
     // NOTE: selectedConnectionId / selectedDatabaseName / selectedTableName 只用于左侧资源树的当前选择
     // Query 执行上下文现在由 MySQLWorkspaceView 中的 EditorQueryTab 独立管理，不再共享这些全局状态
 
+    /// 工作区管理器 - 管理独立的工作区状态
+    var workspaceManager = WorkspaceManager()
+
     /// 错误信息
     var errorMessage: String?
 
@@ -59,6 +62,11 @@ final class ConnectionManager {
         self.connectionRepository = connectionRepository
         self.recentRepository = recentRepository
         self.keychainService = keychainService
+
+        // 设置工作区激活回调，用于记录连接使用时间
+        workspaceManager.onWorkspaceActivated = { [weak self] connectionId in
+            self?.recordConnectionUsage(connectionId)
+        }
     }
 
     // MARK: - Public Methods
@@ -118,6 +126,9 @@ final class ConnectionManager {
     /// 删除连接
     /// - Parameter id: 连接 ID
     func deleteConnection(id: UUID) throws {
+        // 关闭该连接的所有工作区
+        workspaceManager.closeWorkspaces(forConnection: id)
+
         // 删除 Keychain 中的密码
         try? keychainService.deletePassword(for: id)
 
@@ -143,6 +154,7 @@ final class ConnectionManager {
 
     /// 记录连接使用
     /// - Parameter connectionId: 连接 ID
+    /// - Note: 此方法会通过 WorkspaceManager.onWorkspaceActivated 回调在打开/激活工作区时自动调用
     func recordConnectionUsage(_ connectionId: UUID) {
         do {
             try recentRepository.recordConnection(connectionId)
@@ -158,10 +170,10 @@ final class ConnectionManager {
         errorMessage = nil
     }
 
-    /// 更新资源树选择（仅影响左侧资源树高亮，不影响 query 执行上下文）
+    /// 更新资源树选择（仅影响左侧资源树高亮，不影响右侧工作区）
+    /// NOTE: 这个 API 只用于资源树选择，不应被 query toolbar 直接调用
+    /// Query 执行上下文由 MySQLWorkspaceView 中的 EditorQueryTab 独立管理
     func selectConnection(_ connectionId: UUID?, database: String? = nil, table: String? = nil) {
-        // NOTE: 这个 API 只用于资源树选择，不应被 query toolbar 直接调用
-        // Query 执行上下文由 MySQLWorkspaceView 中的 EditorQueryTab 独立管理
         selectedConnectionId = connectionId
         selectedDatabaseName = database
         selectedTableName = table

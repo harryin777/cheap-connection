@@ -6,136 +6,19 @@
 //
 
 import SwiftUI
-import AppKit
-
-// MARK: - SplitView (NSSplitView Wrapper)
-
-/// 原生 NSSplitView 包装器 - 避免 SwiftUI 拖拽重绘循环
-/// NSSplitView 的 splitter 拖拽由 AppKit 内部处理，不会触发 SwiftUI 视图重绘
-struct SplitView: NSViewRepresentable {
-    var topView: AnyView
-    var bottomView: AnyView
-    @Binding var topHeight: CGFloat
-    var minTopHeight: CGFloat = 120
-    var minBottomHeight: CGFloat = 100
-
-    func makeNSView(context: Context) -> NSSplitView {
-        let splitView = NSSplitView()
-        splitView.isVertical = false
-        splitView.dividerStyle = .thin
-        splitView.delegate = context.coordinator
-
-        // 创建上下两个视图的 hosting controller
-        let topHosting = NSHostingController(rootView: topView)
-        let bottomHosting = NSHostingController(rootView: bottomView)
-
-        topHosting.view.identifier = NSUserInterfaceItemIdentifier("topView")
-        bottomHosting.view.identifier = NSUserInterfaceItemIdentifier("bottomView")
-
-        splitView.addArrangedSubview(topHosting.view)
-        splitView.addArrangedSubview(bottomHosting.view)
-
-        // 存储引用
-        context.coordinator.topHostingController = topHosting
-        context.coordinator.bottomHostingController = bottomHosting
-
-        return splitView
-    }
-
-    func updateNSView(_ splitView: NSSplitView, context: Context) {
-        // 更新子视图内容
-        context.coordinator.topHostingController?.rootView = topView
-        context.coordinator.bottomHostingController?.rootView = bottomView
-
-        // 只在非拖拽状态时响应外部 topHeight 变化
-        if !context.coordinator.isDragging {
-            if let topView = splitView.arrangedSubviews.first {
-                let constraints = topView.constraints
-                // 移除旧的高度约束
-                constraints.filter { $0.identifier == "topHeight" }.forEach {
-                    topView.removeConstraint($0)
-                }
-
-                let heightConstraint = NSLayoutConstraint(
-                    item: topView,
-                    attribute: .height,
-                    relatedBy: .greaterThanOrEqual,
-                    toItem: nil,
-                    attribute: .notAnAttribute,
-                    multiplier: 1,
-                    constant: topHeight
-                )
-                heightConstraint.identifier = "topHeight"
-                heightConstraint.priority = .required
-                topView.addConstraint(heightConstraint)
-            }
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    class Coordinator: NSObject, NSSplitViewDelegate {
-        var parent: SplitView
-        var topHostingController: NSHostingController<AnyView>?
-        var bottomHostingController: NSHostingController<AnyView>?
-        var isDragging = false
-        var lastReportedHeight: CGFloat?
-
-        init(_ parent: SplitView) {
-            self.parent = parent
-        }
-
-        func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimum: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-            if dividerIndex == 0 {
-                return parent.minTopHeight
-            }
-            return proposedMinimum
-        }
-
-        func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximum: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-            if dividerIndex == 0 {
-                return splitView.bounds.height - parent.minBottomHeight
-            }
-            return proposedMaximum
-        }
-
-        func splitViewWillResizeSubviews(_ notification: Notification) {
-            isDragging = true
-        }
-
-        func splitViewDidResizeSubviews(_ notification: Notification) {
-            guard let splitView = notification.object as? NSSplitView,
-                  let topView = splitView.arrangedSubviews.first else { return }
-
-            let newHeight = topView.bounds.height
-
-            // 只在高度真正变化时才更新，避免循环
-            if lastReportedHeight != newHeight {
-                lastReportedHeight = newHeight
-                DispatchQueue.main.async { [weak self] in
-                    self?.parent.topHeight = newHeight
-                }
-            }
-        }
-
-        func splitView(_ splitView: NSSplitView, resizeSubviewsWithOldSize oldSize: NSSize) {
-            // 拖拽结束
-            isDragging = false
-            splitView.adjustSubviews()
-        }
-    }
-}
 
 // MARK: - MySQLWorkspaceView
 
 /// MySQL工作区视图
 struct MySQLWorkspaceView: View {
     let connectionConfig: ConnectionConfig
+    let workspaceId: UUID
     @Environment(ConnectionManager.self) var connectionManager
 
     // State - Service & Data
+    // 注意：service 虽然挂在 View 的 @State 上，但在 workspace 切换时，
+    // WorkspaceManager 会通过 closeWorkspaceAndWait 先发送 workspaceWillClose 通知，
+    // 让 View 正确执行 disconnect 并等待完成，然后再销毁 View。
     @State var service: MySQLService?
     @State var databases: [MySQLDatabaseSummary] = []
     @State var columns: [MySQLColumnDefinition] = []
@@ -183,6 +66,10 @@ struct MySQLWorkspaceView: View {
 
     // State - Splitter
     @State var editorHeight: CGFloat = WindowStateRepository.shared.load().editorHeight ?? 200
+
+    // State - Task Management (用于取消未完成的 Task)
+    @State var pendingTasks: [UUID: Task<Void, Never>] = [:]
+    @State var isWorkspaceClosing = false
 
     // State - Autocomplete Metadata (独立于侧边栏选择)
     @State var queryTables: [MySQLTableSummary] = []
@@ -248,8 +135,26 @@ struct MySQLWorkspaceView: View {
                 }
             }
         }
-        .task { await connectIfNeeded() }
-        .onDisappear { Task { await disconnect() } }
+        .onAppear {
+            enqueuePendingTask {
+                await connectIfNeeded()
+            }
+        }
+        // 监听工作区关闭通知，只在显式关闭时断连
+        .onReceive(NotificationCenter.default.publisher(for: .workspaceWillClose)) { notification in
+            guard let closingWorkspaceId = notification.object as? UUID,
+                  closingWorkspaceId == workspaceId,
+                  !isWorkspaceClosing else { return }
+            isWorkspaceClosing = true
+            Task {
+                await cancelPendingTasksAndWait()
+                await disconnect()
+                // 断连完成后通知 WorkspaceManager
+                await MainActor.run {
+                    connectionManager.workspaceManager.notifyDisconnectComplete(workspaceId)
+                }
+            }
+        }
         .onChange(of: connectionManager.selectedDatabaseName) { _, _ in syncSelectionFromManager() }
         .onChange(of: connectionManager.selectedTableName) { _, _ in syncSelectionFromManager() }
         .onChange(of: selectedDatabase) { _, newDatabase in syncDatabaseToManager(newDatabase) }
@@ -297,7 +202,11 @@ struct MySQLWorkspaceView: View {
                 selectedQueryDatabase: currentQueryDatabase,
                 onSwitchQueryConnection: { switchQueryConnection($0) },
                 onSelectQueryDatabase: { updateQueryDatabase($0) },
-                onExecute: { await executeSQL($0) },
+                onExecute: { sql in
+                    enqueuePendingTask {
+                        await executeSQL(sql)
+                    }
+                },
                 onSelectHistory: { sqlText = $0 },
                 isExecuting: isLoadingSQL,
                 activeWorkspaceTab: nil,
@@ -330,7 +239,11 @@ struct MySQLWorkspaceView: View {
                         selectedQueryDatabase: currentQueryDatabase,
                         onSwitchQueryConnection: { switchQueryConnection($0) },
                         onSelectQueryDatabase: { updateQueryDatabase($0) },
-                        onExecute: { await executeSQL($0) },
+                        onExecute: { sql in
+                            enqueuePendingTask {
+                                await executeSQL(sql)
+                            }
+                        },
                         onSelectHistory: { sqlText = $0 },
                         isExecuting: isLoadingSQL,
                         activeWorkspaceTab: selectedTab,
@@ -384,18 +297,26 @@ struct MySQLWorkspaceView: View {
                     pagination: $pagination,
                     isLoading: isLoadingData,
                     onLoadPage: { [self] offset in
-                        pagination.page = max(1, (offset / pagination.pageSize) + 1)
-                        await loadTableData(database: database, table: table)
+                        enqueuePendingTask {
+                            pagination.page = max(1, (offset / pagination.pageSize) + 1)
+                            await loadTableData(database: database, table: table)
+                        }
                     },
-                    onRefresh: { await loadTableData(database: database, table: table) },
+                    onRefresh: { [self] in
+                        enqueuePendingTask {
+                            await loadTableData(database: database, table: table)
+                        }
+                    },
                     onCellEdit: { [self] rowIndex, columnIndex, newValue in
-                        await updateCell(
-                            database: database,
-                            table: table,
-                            rowIndex: rowIndex,
-                            columnIndex: columnIndex,
-                            newValue: newValue
-                        )
+                        enqueuePendingTask {
+                            await updateCell(
+                                database: database,
+                                table: table,
+                                rowIndex: rowIndex,
+                                columnIndex: columnIndex,
+                                newValue: newValue
+                            )
+                        }
                     }
                 )
             }
@@ -410,6 +331,33 @@ struct MySQLWorkspaceView: View {
             MySQLResultView(result: sqlResult)
         }
     }
+
+    @MainActor
+    func enqueuePendingTask(_ operation: @escaping @Sendable () async -> Void) {
+        guard !isWorkspaceClosing else { return }
+        let taskId = UUID()
+        let task = Task {
+            await operation()
+            await MainActor.run {
+                pendingTasks.removeValue(forKey: taskId)
+            }
+        }
+        pendingTasks[taskId] = task
+    }
+
+    @MainActor
+    func cancelPendingTasksAndWait() async {
+        let tasks = Array(pendingTasks.values)
+        pendingTasks.removeAll()
+
+        for task in tasks {
+            task.cancel()
+        }
+
+        for task in tasks {
+            await task.value
+        }
+    }
 }
 
 #Preview {
@@ -421,5 +369,5 @@ struct MySQLWorkspaceView: View {
         username: "root",
         defaultDatabase: nil
     )
-    MySQLWorkspaceView(connectionConfig: config).frame(width: 900, height: 600)
+    MySQLWorkspaceView(connectionConfig: config, workspaceId: UUID()).frame(width: 900, height: 600)
 }

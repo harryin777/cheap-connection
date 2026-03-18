@@ -158,7 +158,8 @@
 - [x] Tab 补全后光标精确停在补全文本最后一个字符后面，且不再自动追加空格
 
 ### 2.B MySQL 当前待修 Bug
-(暂无)
+- [x] 右侧”独立工作区”仍未真正独立：`QueryWorkspaceView` 仍按 `databaseKind` 分流，Redis 会进入 `RedisQueryWorkspaceView/RedisConsoleView` 这套专用右侧面板，而不是保持 MySQL 那种统一工作区壳层 → **已通过 UnifiedWorkspaceView 解决**
+- [x] MySQL / Redis 来回切换时的 `mysql-nio` / `MySQLQueryCommand.deinit` / `Statement not closed` 断言：右侧现在会保留所有已打开 workspace，只切换可见性；MySQL 的连接建立、执行 SQL、分页刷新、表数据加载都会纳入 `pendingTasks`，切走时先取消并等待，再断连
 
 
 ---
@@ -209,14 +210,14 @@
 - [x] ZSet 类型展示 (member + score 表格)
 - [x] 大 value 预览 / 按需加载
 
-### 3.6 Redis UI - 命令执行
-- [ ] 命令输入界面
-- [ ] 命令执行 / 结果展示
-- [ ] 基础命令历史
+### 3.6 Redis UI - 命令执行 ✅
+- [x] 命令输入界面
+- [x] 命令执行 / 结果展示
+- [x] 基础命令历史
 
-### 3.7 Redis 安全防护
-- [ ] 高风险命令检测 (FLUSHDB / FLUSHALL / 大规模删除)
-- [ ] 危险操作确认对话框
+### 3.7 Redis 安全防护 ✅
+- [x] 高风险命令检测 (FLUSHDB / FLUSHALL / 大规模删除)
+- [x] 危险操作确认对话框
 
 ---
 
@@ -280,7 +281,7 @@
 |--------|------|------|
 | M1 | 阶段 0-1 完成，可管理连接配置 | ✅ |
 | M2 | 阶段 2 完成，MySQL 核心功能可用 | ✅ |
-| M3 | 阶段 3 完成，Redis 核心功能可用 | 🔲 |
+| M3 | 阶段 3 完成，Redis 核心功能可用 | ✅ |
 | M4 | 阶段 4 完成，通用功能完善 | 🔲 |
 | M5 | 阶段 5 完成，V1 发布就绪 | 🔲 |
 
