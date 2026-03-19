@@ -2,26 +2,38 @@
 //  RedisWorkspaceView.swift
 //  cheap-connection
 //
-//  Redis工作区视图 - DataGrip风格布局
+//  Redis 工作区视图 - DataGrip 风格布局（与 MySQL 一致）
 //
 
 import SwiftUI
 import AppKit
 
-/// Redis 工作区视图模式
-enum RedisWorkspaceMode: String, CaseIterable {
-    case keys = "Key 浏览"
-    case console = "命令控制台"
+// MARK: - Redis Workspace Enums
 
-    var iconName: String {
+/// Redis 工作区标签页（Key 浏览 和 命令结果）
+enum RedisDetailTab: String, CaseIterable {
+    case keys = "Key 浏览"
+    case result = "命令结果"
+
+    var icon: String {
         switch self {
         case .keys: return "key"
-        case .console: return "terminal"
+        case .result: return "terminal"
         }
     }
 }
 
-/// Redis工作区视图
+/// 工作区显示模式 - 互斥状态
+enum RedisDisplayMode: Equatable {
+    /// 默认编辑态：只展示命令编辑内容
+    case editorOnly
+    /// 命令结果态：执行命令后显示结果面板
+    case commandResult
+    /// Key 详情态：选择 Key 后显示 Key 浏览面板
+    case keyDetail(RedisDetailTab)
+}
+
+/// Redis 工作区视图
 struct RedisWorkspaceView: View {
     let connectionConfig: ConnectionConfig
     let workspaceId: UUID
@@ -29,9 +41,6 @@ struct RedisWorkspaceView: View {
 
     // State - Service
     @State var service: RedisService?
-
-    // State - View Mode
-    @State var workspaceMode: RedisWorkspaceMode = .keys
 
     // State - Key List
     @State var keys: [RedisKeySummary] = []
@@ -53,19 +62,29 @@ struct RedisWorkspaceView: View {
     @State var zsetValue: [RedisZSetMember] = []
     @State var isLoadingValue: Bool = false
 
+    // State - Command
+    @State var commandText = ""
+    @State var commandResult: RedisCommandResult?
+    @State var isLoadingCommand = false
+
     // State - Connection
     @State var isConnecting: Bool = false
 
+    // State - Display Mode
+    @State var displayMode: RedisDisplayMode = .editorOnly
+    @State var selectedTab: RedisDetailTab = .keys
+
     // State - Splitter
-    @State var sidebarWidth: CGFloat = 280
+    @State var editorHeight: CGFloat = WindowStateRepository.shared.load().editorHeight ?? 200
 
     // State - Error
     @State var showError: Bool = false
     @State var errorMessage: String = ""
 
+    // State - Sidebar Width (for key browser)
+    @State var sidebarWidth: CGFloat = 280
+
     var body: some View {
-        // RedisWorkspaceView 提供 Key 浏览和命令控制台两种模式
-        // 可通过工具栏切换。用于需要完整 Redis 管理功能的场景。
         Group {
             if let service, service.session.connectionState.isConnected {
                 connectedView
@@ -77,18 +96,24 @@ struct RedisWorkspaceView: View {
                 }
             }
         }
-        .task { await connectIfNeeded() }
-        // 监听工作区关闭通知，只在显式关闭时断连
+        .onAppear {
+            Task { await connectIfNeeded() }
+        }
+        // 监听工作区关闭通知
         .onReceive(NotificationCenter.default.publisher(for: .workspaceWillClose)) { notification in
             guard let closingWorkspaceId = notification.object as? UUID,
                   closingWorkspaceId == workspaceId else { return }
             Task {
                 await disconnect()
-                // 断连完成后通知 WorkspaceManager
                 await MainActor.run {
                     connectionManager.workspaceManager.notifyDisconnectComplete(workspaceId)
                 }
             }
+        }
+        .onChange(of: editorHeight) { _, newHeight in
+            var state = WindowStateRepository.shared.load()
+            state.editorHeight = newHeight
+            WindowStateRepository.shared.save(state)
         }
         .alert("错误", isPresented: $showError) {
             Button("确定", role: .cancel) { }
@@ -101,79 +126,114 @@ struct RedisWorkspaceView: View {
 
     @ViewBuilder
     var connectedView: some View {
-        VStack(spacing: 0) {
-            // 模式切换工具栏
-            modeToolbar
-            Divider()
-
-            // 内容区域
-            switch workspaceMode {
-            case .keys:
-                keysBrowseView
-            case .console:
-                if let service {
-                    RedisConsoleView(service: service)
-                } else {
-                    Text("服务未初始化")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        if displayMode == .editorOnly {
+            // 纯编辑器模式 - 不需要分割
+            RedisEditorView(
+                commandText: $commandText,
+                history: service?.session.commandHistory ?? [],
+                serverVersion: service?.session.serverVersion,
+                selectedDatabase: service?.session.selectedDatabase,
+                onExecute: { command in
+                    await executeCommand(command)
+                },
+                onSelectHistory: { commandText = $0 },
+                isExecuting: isLoadingCommand,
+                activeWorkspaceTab: nil,
+                onSelectWorkspaceTab: { tab in
+                    selectedTab = tab
+                    displayMode = .keyDetail(tab)
                 }
-            }
+            )
+        } else {
+            // 使用原生 NSSplitView 避免拖拽闪烁
+            SplitView(
+                topView: AnyView(
+                    RedisEditorView(
+                        commandText: $commandText,
+                        history: service?.session.commandHistory ?? [],
+                        serverVersion: service?.session.serverVersion,
+                        selectedDatabase: service?.session.selectedDatabase,
+                        onExecute: { command in
+                            await executeCommand(command)
+                        },
+                        onSelectHistory: { commandText = $0 },
+                        isExecuting: isLoadingCommand,
+                        activeWorkspaceTab: selectedTab,
+                        onSelectWorkspaceTab: { tab in
+                            selectedTab = tab
+                            displayMode = .keyDetail(tab)
+                        }
+                    )
+                ),
+                bottomView: AnyView(
+                    bottomContentView
+                ),
+                topHeight: $editorHeight,
+                minTopHeight: 120,
+                minBottomHeight: 100
+            )
         }
     }
 
-    // MARK: - Mode Toolbar
+    @ViewBuilder
+    private var bottomContentView: some View {
+        switch displayMode {
+        case .editorOnly:
+            EmptyView()
+        case .commandResult:
+            commandResultView
+        case .keyDetail:
+            keyDetailView
+        }
+    }
+
+    // MARK: - Command Result View
 
     @ViewBuilder
-    private var modeToolbar: some View {
-        HStack(spacing: 0) {
-            ForEach(RedisWorkspaceMode.allCases, id: \.self) { mode in
-                Button {
-                    workspaceMode = mode
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: mode.iconName)
-                            .font(.system(size: 11))
-                        Text(mode.rawValue)
-                            .font(.system(size: 11))
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(workspaceMode == mode ? Color.accentColor.opacity(0.15) : Color.clear)
-                    .cornerRadius(4)
-                }
-                .buttonStyle(.plain)
+    private var commandResultView: some View {
+        if isLoadingCommand {
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.regular)
+                Text("执行中...")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let result = commandResult {
+            RedisCommandResultView(result: result)
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "terminal")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.tertiary)
 
-            Spacer()
+                Text("命令结果")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
 
-            // 服务器信息
-            if let version = service?.session.serverVersion {
-                Text("Redis \(version)")
-                    .font(.system(size: 10))
+                Text("输入命令后点击执行查看结果")
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
-
-            // 数据库索引
-            if let db = service?.session.selectedDatabase {
-                Text("DB \(db)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(4)
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color(nsColor: .windowBackgroundColor))
     }
 
-    // MARK: - Keys Browse View
+    // MARK: - Key Detail View
 
     @ViewBuilder
-    private var keysBrowseView: some View {
+    private var keyDetailView: some View {
+        switch selectedTab {
+        case .keys:
+            keyBrowserView
+        case .result:
+            commandResultView
+        }
+    }
+
+    @ViewBuilder
+    private var keyBrowserView: some View {
         HSplitView {
             // 左侧: Key 列表
             RedisKeyListView(
@@ -190,15 +250,15 @@ struct RedisWorkspaceView: View {
             .frame(minWidth: 200, idealWidth: sidebarWidth, maxWidth: 400)
 
             // 右侧: Key 详情和值展示
-            detailView
+            keyValueDetailView
                 .frame(minWidth: 400)
         }
     }
 
-    // MARK: - Detail View
+    // MARK: - Key Value Detail View
 
     @ViewBuilder
-    var detailView: some View {
+    private var keyValueDetailView: some View {
         if selectedKey != nil {
             VStack(spacing: 0) {
                 // Key 详情头部
@@ -241,7 +301,7 @@ struct RedisWorkspaceView: View {
     // MARK: - Value View
 
     @ViewBuilder
-    var valueView: some View {
+    private var valueView: some View {
         if isLoadingValue {
             VStack(spacing: 12) {
                 ProgressView()
@@ -293,9 +353,6 @@ struct RedisWorkspaceView: View {
 
         do {
             let password = try? ConnectionManager.shared.getPassword(for: connectionConfig.id)
-            // DEBUG: 打印获取到的密码
-            print("🔵 RedisWorkspaceView - Password from Keychain: \(password != nil ? "\(password!.prefix(3))***" : "nil")")
-            print("🔵 RedisWorkspaceView - ConnectionConfig ID: \(connectionConfig.id)")
             try await newService.connect(config: connectionConfig, password: password)
             await loadInitialKeys()
         } catch {
@@ -435,6 +492,22 @@ struct RedisWorkspaceView: View {
         }
 
         isLoadingValue = false
+    }
+
+    private func executeCommand(_ command: String) async {
+        guard let service else { return }
+
+        isLoadingCommand = true
+        displayMode = .commandResult
+
+        do {
+            let result = try await service.executeCommand(command)
+            commandResult = result
+        } catch {
+            commandResult = RedisCommandResult.error(error.localizedDescription)
+        }
+
+        isLoadingCommand = false
     }
 
     private func showError(message: String) {

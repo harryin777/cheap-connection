@@ -116,13 +116,13 @@ struct RedisUnifiedWorkspaceView: View {
         RedisEditorView(
             commandText: $commandText,
             history: commandHistory,
-            isExecuting: isExecuting,
-            connectionName: connectionConfig.name,
+            serverVersion: service?.session.serverVersion,
             selectedDatabase: service?.session.selectedDatabase,
             onExecute: { command in
                 await executeCommand(command)
             },
-            onSelectHistory: { commandText = $0 }
+            onSelectHistory: { commandText = $0 },
+            isExecuting: isExecuting
         )
     }
 

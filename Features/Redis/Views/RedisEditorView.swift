@@ -2,48 +2,50 @@
 //  RedisEditorView.swift
 //  cheap-connection
 //
-//  Redis 命令编辑器视图
+//  Redis 命令编辑器视图 - DataGrip 风格
 //
 
 import SwiftUI
 
-/// Redis 命令编辑器视图
+/// Redis 命令编辑器视图 - DataGrip 风格
 struct RedisEditorView: View {
     @Binding var commandText: String
     let history: [String]
-    let isExecuting: Bool
-    let connectionName: String
+    let serverVersion: String?
     let selectedDatabase: Int?
+
+    // MARK: - Callbacks
     let onExecute: (String) async -> Void
     let onSelectHistory: (String) -> Void
 
-    @State private var showHistory = false
-    @State private var historyFilter = ""
-    @State private var showRiskConfirmation = false
-    @State private var pendingRiskLevel: RedisRiskLevel = .safe
-    @State private var pendingCommand = ""
+    var isExecuting: Bool = false
+    var activeWorkspaceTab: RedisDetailTab? = nil
+    var onSelectWorkspaceTab: ((RedisDetailTab) -> Void)? = nil
+
+    @State var showHistory = false
+    @State var showRiskConfirmation = false
+    @State var pendingRiskLevel: RedisRiskLevel = .safe
+    @State var pendingCommand = ""
 
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // 工具栏
             toolbarView
+
             Divider()
 
-            // 编辑器 + 历史面板
-            HSplitView {
-                editorView
-                    .frame(minWidth: 300)
+            ZStack(alignment: .topLeading) {
+                HSplitView {
+                    editorView
+                        .frame(minWidth: 300)
 
-                if showHistory {
-                    historyPanel
-                        .frame(minWidth: 180, maxWidth: 280)
+                    if showHistory {
+                        historyPanel
+                            .frame(minWidth: 180, maxWidth: 280)
+                    }
                 }
             }
-        }
-        .onAppear {
-            isInputFocused = true
         }
         .alert("危险操作确认", isPresented: $showRiskConfirmation) {
             Button("取消", role: .cancel) {
@@ -55,6 +57,17 @@ struct RedisEditorView: View {
             }
         } message: {
             Text(riskConfirmationMessage)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .executeSQL)) { _ in
+            Task { await executeCommand() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clearEditor)) { _ in
+            commandText = ""
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleHistory)) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showHistory.toggle()
+            }
         }
     }
 
@@ -73,150 +86,56 @@ struct RedisEditorView: View {
         }
     }
 
-    // MARK: - Toolbar
-
-    @ViewBuilder
-    private var toolbarView: some View {
-        HStack(spacing: 12) {
-            // 连接信息
-            HStack(spacing: 6) {
-                Image(systemName: "terminal")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-
-                Text(connectionName)
-                    .font(.system(size: 11, weight: .medium))
-
-                if let db = selectedDatabase {
-                    Text("DB\(db)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.accentColor)
-                        .cornerRadius(4)
-                }
-            }
-
-            Spacer()
-
-            // 执行按钮
-            Button {
-                Task { await executeCommand() }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 10))
-                    Text("执行")
-                        .font(.system(size: 11))
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
-            .disabled(commandText.trimmingCharacters(in: .whitespaces).isEmpty || isExecuting)
-            .keyboardShortcut(.return, modifiers: .command)
-
-            // 历史按钮
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    showHistory.toggle()
-                }
-            } label: {
-                Image(systemName: showHistory ? "clock.fill" : "clock")
-                    .font(.system(size: 11))
-            }
-            .buttonStyle(.plain)
-            .help("命令历史 (⌘H)")
-
-            // 清空按钮
-            Button {
-                commandText = ""
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 11))
-            }
-            .buttonStyle(.plain)
-            .help("清空编辑器")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor))
-    }
-
     // MARK: - Editor View
 
-    @ViewBuilder
-    private var editorView: some View {
-        VStack(spacing: 0) {
-            // 命令输入区
+    var editorView: some View {
+        VStack(alignment: .leading, spacing: 0) {
             TextEditor(text: $commandText)
-                .font(.system(size: 13, design: .monospaced))
+                .font(.system(size: 12, design: .monospaced))
                 .padding(8)
                 .focused($isInputFocused)
                 .background(Color(nsColor: .textBackgroundColor))
                 .scrollContentBackground(.hidden)
 
-            // 提示
             HStack {
-                Text("提示: 输入 Redis 命令，如 GET key, SET key value")
+                Text("Cmd+Enter 执行 | 输入 Redis 命令如 GET key, SET key value")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
 
                 Spacer()
 
-                Text("⌘↵ 执行")
+                Text("\(commandText.components(separatedBy: .newlines).filter { !$0.isEmpty }.count) 行")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+            .background(Color(.controlBackgroundColor))
         }
     }
 
     // MARK: - History Panel
 
-    @ViewBuilder
-    private var historyPanel: some View {
-        VStack(spacing: 0) {
-            // 搜索栏
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+    var historyPanel: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                if history.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 24))
+                            .foregroundStyle(.tertiary)
 
-                TextField("搜索历史...", text: $historyFilter)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11))
-            }
-            .padding(8)
-            .background(Color(nsColor: .controlBackgroundColor))
-
-            Divider()
-
-            // 历史列表
-            let history = filteredHistory
-            if history.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.tertiary)
-
-                    Text("暂无历史命令")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(nsColor: .windowBackgroundColor))
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(history.indices, id: \.self) { index in
-                            historyRow(history[index], index: index)
-                        }
+                        Text("暂无历史命令")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 40)
+                } else {
+                    ForEach(history.indices.reversed(), id: \.self) { index in
+                        historyRow(history[index], index: index)
                     }
                 }
-                .background(Color(nsColor: .windowBackgroundColor))
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
@@ -225,12 +144,12 @@ struct RedisEditorView: View {
     @ViewBuilder
     private func historyRow(_ command: String, index: Int) -> some View {
         Button {
-            commandText = command
+            onSelectHistory(command)
             showHistory = false
             isInputFocused = true
         } label: {
             HStack {
-                Text("\(index + 1)")
+                Text("\(history.count - index)")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.tertiary)
                     .frame(width: 30, alignment: .trailing)
@@ -251,15 +170,6 @@ struct RedisEditorView: View {
         .background(index % 2 == 0 ? Color.clear : Color(nsColor: .controlBackgroundColor).opacity(0.3))
     }
 
-    private var filteredHistory: [String] {
-        if historyFilter.isEmpty {
-            return history
-        }
-        return history.filter {
-            $0.localizedCaseInsensitiveContains(historyFilter)
-        }
-    }
-
     // MARK: - Actions
 
     private func executeCommand() async {
@@ -271,11 +181,8 @@ struct RedisEditorView: View {
 
         switch riskLevel {
         case .safe:
-            // 安全命令，直接执行
             await executeCommandWithoutCheck(trimmed)
-
         case .medium, .high, .critical:
-            // 需要用户确认
             pendingRiskLevel = riskLevel
             pendingCommand = trimmed
             showRiskConfirmation = true
@@ -285,4 +192,166 @@ struct RedisEditorView: View {
     private func executeCommandWithoutCheck(_ command: String) async {
         await onExecute(command)
     }
+}
+
+// MARK: - Toolbar Extension
+
+extension RedisEditorView {
+    var toolbarView: some View {
+        HStack(spacing: 8) {
+            // 执行按钮
+            Button {
+                Task { await executeCommand() }
+            } label: {
+                if isExecuting {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: 28, height: 24)
+                        .background(Color.gray)
+                        .cornerRadius(4)
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 24)
+                        .background(
+                            commandText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? Color.gray
+                                : Color.green
+                        )
+                        .cornerRadius(4)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(commandText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isExecuting)
+            .help("执行 (⌘↵)")
+
+            // 历史按钮
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showHistory.toggle()
+                }
+            } label: {
+                Image(systemName: showHistory ? "sidebar.right" : "clock.arrow.circlepath")
+                    .font(.system(size: 12))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .help(showHistory ? "隐藏历史" : "显示历史")
+
+            if !history.isEmpty {
+                Text("\(history.count)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+                    .monospacedDigit()
+            }
+
+            Divider()
+                .frame(height: 16)
+
+            // 清空按钮
+            Button {
+                commandText = ""
+            } label: {
+                Image(systemName: "xmark.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.plain)
+            .disabled(commandText.isEmpty)
+            .help("清空")
+
+            if let activeWorkspaceTab, let onSelectWorkspaceTab {
+                Divider()
+                    .frame(height: 16)
+
+                workspaceTabsView(activeTab: activeWorkspaceTab, onSelect: onSelectWorkspaceTab)
+            }
+
+            Spacer()
+
+            // 上下文信息
+            contextInfoView
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color(.windowBackgroundColor))
+    }
+
+    var contextInfoView: some View {
+        HStack(spacing: 8) {
+            // 数据库索引
+            if let db = selectedDatabase {
+                Text("DB \(db)")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(4)
+            }
+
+            // 服务器版本
+            if let version = serverVersion {
+                Text("Redis \(version)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    func workspaceTabsView(
+        activeTab: RedisDetailTab,
+        onSelect: @escaping (RedisDetailTab) -> Void
+    ) -> some View {
+        HStack(spacing: 0) {
+            ForEach(RedisDetailTab.allCases, id: \.self) { tab in
+                Button {
+                    onSelect(tab)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 11))
+                        Text(tab.rawValue)
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(activeTab == tab ? Color.accentColor.opacity(0.14) : Color.clear)
+                    .overlay(
+                        Rectangle()
+                            .fill(activeTab == tab ? Color.accentColor.opacity(0.35) : Color.clear)
+                            .frame(height: 1),
+                        alignment: .bottom
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+#Preview {
+    struct PreviewWrapper: View {
+        @State var commandText = "GET user:1"
+
+        var body: some View {
+            RedisEditorView(
+                commandText: $commandText,
+                history: [
+                    "GET user:1",
+                    "SET user:1 value",
+                    "KEYS *"
+                ],
+                serverVersion: "7.0.0",
+                selectedDatabase: 0,
+                onExecute: { _ in },
+                onSelectHistory: { commandText = $0 }
+            )
+            .frame(width: 700, height: 300)
+        }
+    }
+
+    return PreviewWrapper()
 }
