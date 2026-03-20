@@ -95,7 +95,8 @@ struct MySQLRightPanelView: View {
     }
 
     var availableConnections: [ConnectionConfig] {
-        connectionManager.connections.filter { $0.databaseKind == .mysql }
+        // 显示所有连接（MySQL + Redis），让用户可以在同一壳层下切换不同类型的连接
+        connectionManager.connections
     }
 
     var autocompleteTables: [MySQLTableSummary] {

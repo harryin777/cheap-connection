@@ -448,6 +448,21 @@
   - WorkspaceManager.swift
   - MainView.swift
 
+### 4.6 修复 todoList.md 中的 4 个 Bug
+- [x] 2026-03-20: 修复"导入 query 文件"按钮语义混线问题
+  - `openSQLFile()` 现在会清除所有执行结果状态（sqlResult, tableDataResult, importResult 等）
+  - 确保打开文件后界面只显示编辑器内容，不残留之前的执行结果
+- [x] 2026-03-20: 修复连接选择器只显示 MySQL 连接的问题
+  - `availableConnections` 现在返回所有连接（MySQL + Redis）
+- [x] 2026-03-20: 修复连接菜单未按类型分组的问题
+  - `SQLEditorConnectionMenu` 现在按 MySQL/Redis 分组显示
+  - 使用 Section 分组，中间加分隔线
+  - 不同类型使用不同图标（cylinder/memorybox）和颜色
+- [x] 2026-03-20: 修复连接 pill 无法区分类型的问题
+  - 闭合态 pill 现在根据当前连接类型显示不同图标和颜色
+  - MySQL: 蓝色 cylinder 图标
+  - Redis: 红色 memorybox 图标
+
 ---
 
 ## 格式说明

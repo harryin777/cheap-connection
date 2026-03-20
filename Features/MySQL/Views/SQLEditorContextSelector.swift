@@ -100,27 +100,88 @@ struct SQLEditorConnectionMenu: View {
     let selectedConnectionName: String
     let onSelect: (UUID) -> Void
 
+    // 按类型分组的连接
+    private var mysqlConnections: [ConnectionConfig] {
+        connections.filter { $0.databaseKind == .mysql }
+            .sorted { $0.name < $1.name }
+    }
+
+    private var redisConnections: [ConnectionConfig] {
+        connections.filter { $0.databaseKind == .redis }
+            .sorted { $0.name < $1.name }
+    }
+
+    // 当前选中连接的类型图标和颜色
+    private var selectedConnectionIcon: String {
+        guard let conn = connections.first(where: { $0.id == selectedConnectionId }) else {
+            return "externaldrive.connected.to.line.below"
+        }
+        return conn.databaseKind == .mysql ? "cylinder" : "memorybox"
+    }
+
+    private var selectedConnectionIconColor: Color {
+        guard let conn = connections.first(where: { $0.id == selectedConnectionId }) else {
+            return Color(red: 0.17, green: 0.67, blue: 0.95)
+        }
+        return conn.databaseKind == .mysql
+            ? Color(red: 0.17, green: 0.67, blue: 0.95)  // MySQL blue
+            : Color(red: 0.85, green: 0.27, blue: 0.22)   // Redis red
+    }
+
     var body: some View {
         Menu {
-            ForEach(connections) { connection in
-                Button {
-                    onSelect(connection.id)
-                } label: {
-                    HStack {
-                        Image(systemName: "externaldrive.connected.to.line.below")
-                            .font(.system(size: 10))
-                        Text(connection.name)
-                        if connection.id == selectedConnectionId {
-                            Spacer()
-                            Image(systemName: "checkmark")
+            // MySQL group
+            if !mysqlConnections.isEmpty {
+                Section(header: Text("MySQL")) {
+                    ForEach(mysqlConnections) { connection in
+                        Button {
+                            onSelect(connection.id)
+                        } label: {
+                            HStack {
+                                Image(systemName: "cylinder")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(Color(red: 0.17, green: 0.67, blue: 0.95))
+                                Text(connection.name)
+                                if connection.id == selectedConnectionId {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Divider
+            if !mysqlConnections.isEmpty && !redisConnections.isEmpty {
+                Divider()
+            }
+
+            // Redis group
+            if !redisConnections.isEmpty {
+                Section(header: Text("Redis")) {
+                    ForEach(redisConnections) { connection in
+                        Button {
+                            onSelect(connection.id)
+                        } label: {
+                            HStack {
+                                Image(systemName: "memorybox")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(Color(red: 0.85, green: 0.27, blue: 0.22))
+                                Text(connection.name)
+                                if connection.id == selectedConnectionId {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
                         }
                     }
                 }
             }
         } label: {
             SQLEditorContextSelectorLabel(
-                icon: "externaldrive.connected.to.line.below",
-                iconColor: Color(red: 0.17, green: 0.67, blue: 0.95),
+                icon: selectedConnectionIcon,
+                iconColor: selectedConnectionIconColor,
                 title: selectedConnectionName
             )
         }
@@ -128,7 +189,7 @@ struct SQLEditorConnectionMenu: View {
         .menuIndicator(.hidden)
         .id("\(selectedConnectionId.uuidString)-\(selectedConnectionName)")  // Force rebuild on any connection change
         .fixedSize()
-        .help("当前 Query 连接")
+        .help("Current query connection")
     }
 }
 

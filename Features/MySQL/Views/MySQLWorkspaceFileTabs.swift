@@ -78,6 +78,14 @@ extension MySQLRightPanelView {
         }
 
         displayMode = .editorOnly
+
+        // 清除所有执行结果和导入状态，确保打开文件后界面只显示编辑器内容
+        sqlResult = nil
+        tableDataResult = nil
+        importResult = nil
+        showImportResult = false
+        detailDatabase = nil
+        detailTable = nil
     }
 
     func importSQLFile() async {
@@ -94,9 +102,11 @@ extension MySQLRightPanelView {
     }
 
     func executeSQLStatements(_ statements: [String]) async {
+        // Note: This function is only called by importSQLFile() (import-and-execute)
+        // openSQLFile() must NOT call this function
         showImportProgress = true
         importProgress = 0
-        importStatus = "准备执行..."
+        importStatus = "Preparing..."
 
         let startTime = Date()
         var successCount = 0

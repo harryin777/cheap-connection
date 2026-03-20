@@ -79,7 +79,7 @@ extension MySQLEditorView {
                         .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
-                .help("打开 .sql 文件")
+                .help("Open .sql file (import to editor only, no execute)")
             }
 
             if let onImport {
@@ -91,7 +91,7 @@ extension MySQLEditorView {
                         .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
-                .help("导入并执行 .sql 文件")
+                .help("Import and execute .sql file")
             }
 
             if let activeWorkspaceTab, let onSelectWorkspaceTab {
@@ -103,7 +103,7 @@ extension MySQLEditorView {
 
             Spacer()
 
-            // Context selectors 始终显示：connection pill 独立可点，schema pill 可在无库时显示"未指定"
+            // Context selectors
             contextSelectorsView
         }
         .padding(.horizontal, 12)
@@ -113,15 +113,15 @@ extension MySQLEditorView {
 
     var contextSelectorsView: some View {
         HStack(spacing: 8) {
-            // Schema menu 只消费当前 query connection 的数据库列表
+            // Schema menu
             SQLEditorSchemaMenu(
                 databases: queryDatabases,
                 selectedDatabase: selectedQueryDatabase,
                 onSelect: onSelectQueryDatabase
             )
-            .id("\(queryConnectionId.uuidString)-\(queryDatabases.joined(separator: ","))")  // Force rebuild on connection or databases change
+            .id("\(queryConnectionId.uuidString)-\(queryDatabases.joined(separator: ","))")
 
-            // Connection menu 永远独立可点
+            // Connection menu
             SQLEditorConnectionMenu(
                 connections: availableConnections,
                 selectedConnectionId: queryConnectionId,
