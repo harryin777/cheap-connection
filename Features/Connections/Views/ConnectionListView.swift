@@ -20,6 +20,9 @@ struct ConnectionListView: View {
     @State var expandedConnectionIds: Set<UUID> = []
     @State var expandedDatabaseKeys: Set<String> = []
     @State var expandedFolderKeys: Set<String> = []
+    @State var browserSelectedConnectionId: UUID?
+    @State var browserSelectedDatabaseName: String?
+    @State var browserSelectedTableName: String?
 
     var body: some View {
         ScrollView {
@@ -42,7 +45,7 @@ struct ConnectionListView: View {
         .onDisappear {
             dataLoader.disconnectAllServices()
         }
-        .onChange(of: connectionManager.selectedConnectionId) { _, _ in
+        .onChange(of: browserSelectedConnectionId) { _, _ in
             autoExpandSelectedConnection()
         }
         .toolbar {
@@ -91,9 +94,11 @@ struct ConnectionListView: View {
             ) {
                 toggleConnection(config)
             } onSelect: {
+                // 单击只更新左侧资源树高亮与展开，不创建也不切换右侧工作区
                 selectConnection(config)
             } onDoubleClick: {
-                openConnectionInWorkspace(config)
+                // 双击与单击语义保持一致：左侧只是资源树，不承担右侧工作区路由
+                selectConnection(config)
             } onEdit: {
                 editingConnection = config
             } onDelete: {
@@ -137,7 +142,7 @@ struct ConnectionListView: View {
             ) {
                 toggleDatabase(database.name, in: config)
             } onSelect: {
-                connectionManager.selectConnection(config.id, database: database.name, table: nil)
+                updateBrowserSelection(connectionId: config.id, database: database.name, table: nil)
             }
 
             if expandedDatabaseKeys.contains(databaseKey) {
@@ -185,8 +190,14 @@ struct ConnectionListView: View {
             isSelected: isTableSelected(database: database, table: table.name, in: config),
             leading: 66
         ) {
-            connectionManager.selectConnection(config.id, database: database, table: table.name)
+            updateBrowserSelection(connectionId: config.id, database: database, table: table.name)
         }
+    }
+
+    func updateBrowserSelection(connectionId: UUID?, database: String?, table: String?) {
+        browserSelectedConnectionId = connectionId
+        browserSelectedDatabaseName = database
+        browserSelectedTableName = table
     }
 
 }

@@ -437,6 +437,17 @@
   - 确保连接断开前所有查询任务已完成或取消
   - 使用 `cancelPendingTasksAndWait()` 等待任务结束
 
+### 4.5 左侧资源树与右侧工作区解耦
+- [x] 2026-03-20: 修复左侧单击连接隐式创建 workspace 的问题
+  - 移除 `selectConnection` 中的自动打开 workspace 逻辑
+  - 单击只更新资源树高亮和展开态，不创建 workspace
+  - 保留双击打开 workspace（显式动作）
+- [x] 2026-03-20: 清理所有相关 GPT 注释
+  - ConnectionListInteractions.swift
+  - WorkspaceTabBar.swift
+  - WorkspaceManager.swift
+  - MainView.swift
+
 ---
 
 ## 格式说明

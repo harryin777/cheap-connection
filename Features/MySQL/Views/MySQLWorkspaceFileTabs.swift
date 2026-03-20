@@ -8,7 +8,7 @@
 import Foundation
 import AppKit
 
-extension MySQLWorkspaceView {
+extension MySQLRightPanelView {
 
     // MARK: - 保存 SQL 文件
 

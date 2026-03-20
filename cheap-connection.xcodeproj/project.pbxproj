@@ -93,9 +93,10 @@
 		AA11AA11AA11AA11AA11AA03 /* MySQLEditorTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA04 /* MySQLEditorTabBar.swift */; };
 		AA11AA11AA11AA11AA11AA05 /* MySQLEditorAutocomplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA06 /* MySQLEditorAutocomplete.swift */; };
 		AA11AA11AA11AA11AA11AA07 /* MySQLWorkspaceConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */; };
-		AA11AA11AA11AA11AA11AA09 /* MySQLWorkspaceSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0A /* MySQLWorkspaceSelection.swift */; };
 		AA11AA11AA11AA11AA11AA0B /* MySQLWorkspaceFileTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */; };
 		AA11AA11AA11AA11AA11AA0D /* MySQLWorkspaceQueryContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */; };
+		RIGHTPANEL001 /* MySQLRightPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = RIGHTPANEL002 /* MySQLRightPanelView.swift */; };
+		RIGHTPANEL003 /* MySQLRightPanelOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = RIGHTPANEL004 /* MySQLRightPanelOperations.swift */; };
 		ACB26D133F5941E298D83B9A /* MySQLValueConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B27C3676CC4B41B57E548B /* MySQLValueConverter.swift */; };
 		B51AEA4A88A14C53885F4D73 /* MySQLResultTableCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDD099183F745F8B682188D /* MySQLResultTableCell.swift */; };
 		BB22BB22BB22BB22BB22BB01 /* MySQLClientQueries.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22BB22BB22BB22BB22BB02 /* MySQLClientQueries.swift */; };
@@ -106,6 +107,7 @@
 		SPLITVIEW002 /* SplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPLITVIEW001 /* SplitView.swift */; };
 		REDISEDITOR002 /* RedisEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISEDITOR001 /* RedisEditorView.swift */; };
 		UNIFIED002 /* UnifiedWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = UNIFIED001 /* UnifiedWorkspaceView.swift */; };
+		WORKSPACETABBAR002 /* WorkspaceTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = WORKSPACETABBAR001 /* WorkspaceTabBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -197,9 +199,10 @@
 		AA11AA11AA11AA11AA11AA04 /* MySQLEditorTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEditorTabBar.swift; sourceTree = "<group>"; };
 		AA11AA11AA11AA11AA11AA06 /* MySQLEditorAutocomplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLEditorAutocomplete.swift; sourceTree = "<group>"; };
 		AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceConnection.swift; sourceTree = "<group>"; };
-		AA11AA11AA11AA11AA11AA0A /* MySQLWorkspaceSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceSelection.swift; sourceTree = "<group>"; };
 		AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceFileTabs.swift; sourceTree = "<group>"; };
 		AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceQueryContext.swift; sourceTree = "<group>"; };
+		RIGHTPANEL002 /* MySQLRightPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLRightPanelView.swift; sourceTree = "<group>"; };
+		RIGHTPANEL004 /* MySQLRightPanelOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLRightPanelOperations.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6A78901234567 /* MySQLQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLQueries.swift; sourceTree = "<group>"; };
 		BB22BB22BB22BB22BB22BB02 /* MySQLClientQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLClientQueries.swift; sourceTree = "<group>"; };
 		BB22BB22BB22BB22BB22BB04 /* ConnectionListInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListInteractions.swift; sourceTree = "<group>"; };
@@ -210,6 +213,7 @@
 		SPLITVIEW001 /* SplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitView.swift; sourceTree = "<group>"; };
 		REDISEDITOR001 /* RedisEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisEditorView.swift; sourceTree = "<group>"; };
 		UNIFIED001 /* UnifiedWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkspaceView.swift; sourceTree = "<group>"; };
+		WORKSPACETABBAR001 /* WorkspaceTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTabBar.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -320,10 +324,11 @@
 				CD9F3CB20F454108A3438F22 /* MySQLSidebarNodeViews.swift */,
 				4AB0F82C2F61135A0027A24E /* MySQLStructureView.swift */,
 				4AB0F82D2F61135A0027A24E /* MySQLWorkspaceView.swift */,
+				RIGHTPANEL002 /* MySQLRightPanelView.swift */,
+				RIGHTPANEL004 /* MySQLRightPanelOperations.swift */,
 				4D5E6F7A8B9C012345678901 /* WorkspaceEnums.swift */,
 				6E7F8A9B0C1D23456789012C /* ConnectionStateViews.swift */,
 				AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */,
-				AA11AA11AA11AA11AA11AA0A /* MySQLWorkspaceSelection.swift */,
 				AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */,
 				AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */,
 				7F8A9B0C1D234567890123D /* SQLFileOperations.swift */,
@@ -360,6 +365,7 @@
 			isa = PBXGroup;
 			children = (
 				UNIFIED001 /* UnifiedWorkspaceView.swift */,
+				WORKSPACETABBAR001 /* WorkspaceTabBar.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -727,9 +733,10 @@
 				4AB0F83C2F61135A0027A24E /* MySQLSidebarView.swift in Sources */,
 				76BD3BE1028F4E7EB20084AC /* MySQLSidebarNodeViews.swift in Sources */,
 				AA11AA11AA11AA11AA11AA07 /* MySQLWorkspaceConnection.swift in Sources */,
-				AA11AA11AA11AA11AA11AA09 /* MySQLWorkspaceSelection.swift in Sources */,
 				AA11AA11AA11AA11AA11AA0B /* MySQLWorkspaceFileTabs.swift in Sources */,
 				AA11AA11AA11AA11AA11AA0D /* MySQLWorkspaceQueryContext.swift in Sources */,
+				RIGHTPANEL001 /* MySQLRightPanelView.swift in Sources */,
+				RIGHTPANEL003 /* MySQLRightPanelOperations.swift in Sources */,
 				4AB0F83D2F61135A0027A24E /* MySQLTableSummary.swift in Sources */,
 				4AB8270F2F60300000BC4BE6 /* ConnectionListView.swift in Sources */,
 				BB22BB22BB22BB22BB22BB03 /* ConnectionListInteractions.swift in Sources */,
@@ -744,6 +751,7 @@
 				SPLITVIEW002 /* SplitView.swift in Sources */,
 				REDISEDITOR002 /* RedisEditorView.swift in Sources */,
 				UNIFIED002 /* UnifiedWorkspaceView.swift in Sources */,
+				WORKSPACETABBAR002 /* WorkspaceTabBar.swift in Sources */,
 );
 			runOnlyForDeploymentPostprocessing = 0;
 		};

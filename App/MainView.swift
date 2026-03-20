@@ -12,6 +12,8 @@ import AppKit
 struct MainView: View {
     @Environment(ConnectionManager.self) private var connectionManager
     @State private var sidebarWidth: CGFloat
+    @State private var fixedWorkspaceConnectionId: UUID?
+    @State private var fixedWorkspaceId = UUID()
 
     init() {
         let savedWidth = WindowStateRepository.shared.load().sidebarWidth ?? 280
@@ -41,6 +43,12 @@ struct MainView: View {
         .onChange(of: sidebarWidth) { _, newWidth in
             saveSidebarWidth(newWidth)
         }
+        .task {
+            syncFixedWorkspaceConnection()
+        }
+        .onChange(of: connectionManager.connections.map(\.id)) { _, _ in
+            syncFixedWorkspaceConnection()
+        }
         .background(SidebarWidthObserver(width: $sidebarWidth))
     }
 
@@ -54,31 +62,36 @@ struct MainView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        let sessions = connectionManager.workspaceManager.openSessions.values
-            .sorted { lhs, rhs in
-                if lhs.lastActiveAt != rhs.lastActiveAt {
-                    return lhs.lastActiveAt < rhs.lastActiveAt
-                }
-                return lhs.createdAt < rhs.createdAt
-            }
-
-        if let activeWorkspaceId = connectionManager.workspaceManager.activeWorkspaceId,
-           !sessions.isEmpty {
-            ZStack {
-                ForEach(sessions) { session in
-                    if let config = connectionManager.connections.first(where: { $0.id == session.connectionId }) {
-                        UnifiedWorkspaceView(connectionConfig: config, workspaceId: session.id)
-                            .id(session.id)
-                            .opacity(session.id == activeWorkspaceId ? 1 : 0)
-                            .allowsHitTesting(session.id == activeWorkspaceId)
-                            .zIndex(session.id == activeWorkspaceId ? 1 : 0)
-                    }
-                }
-            }
+        if let connectionConfig = fixedMySQLWorkspaceConnection {
+            MySQLWorkspaceView(
+                connectionConfig: connectionConfig,
+                workspaceId: fixedWorkspaceId
+            )
+            .id(fixedWorkspaceId)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             emptyStateView
         }
+    }
+
+    private var fixedMySQLWorkspaceConnection: ConnectionConfig? {
+        guard let fixedWorkspaceConnectionId else { return nil }
+        return connectionManager.connections.first {
+            $0.id == fixedWorkspaceConnectionId && $0.databaseKind == .mysql
+        }
+    }
+
+    private func syncFixedWorkspaceConnection() {
+        if let fixedWorkspaceConnectionId,
+           connectionManager.connections.contains(where: {
+               $0.id == fixedWorkspaceConnectionId && $0.databaseKind == .mysql
+           }) {
+            return
+        }
+
+        fixedWorkspaceConnectionId = connectionManager.connections
+            .first(where: { $0.databaseKind == .mysql })?
+            .id
     }
 
     private var emptyStateView: some View {
@@ -87,11 +100,11 @@ struct MainView: View {
                 .font(.system(size: 64))
                 .foregroundStyle(.secondary)
 
-            Text("选择一个连接")
+            Text("暂无 MySQL 工作区")
                 .font(.title2)
                 .foregroundStyle(.secondary)
 
-            Text("从左侧列表选择一个数据库连接，或创建新连接")
+            Text("请先创建至少一个 MySQL 连接。右侧固定工作区只使用 MySQL 面板。")
                 .font(.body)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)

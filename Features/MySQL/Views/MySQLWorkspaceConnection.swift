@@ -33,18 +33,6 @@ extension MySQLWorkspaceView {
             }
             service = newService
             connectionManager.recordConnectionUsage(connectionConfig.id)
-            if scratchQueryConnectionId == nil {
-                scratchQueryConnectionId = connectionConfig.id
-                scratchQueryConnectionName = connectionConfig.name
-                scratchQueryDatabaseName = connectionConfig.defaultDatabase
-            }
-            await loadDatabases()
-            guard !Task.isCancelled, !isWorkspaceClosing else { return }
-
-            // 连接成功后，如果有默认查询数据库，加载元数据用于自动补全
-            if let defaultDb = scratchQueryDatabaseName {
-                await loadQueryMetadata(database: defaultDb)
-            }
         } catch {
             if Task.isCancelled || isWorkspaceClosing {
                 await service?.disconnect()
@@ -61,86 +49,8 @@ extension MySQLWorkspaceView {
     func disconnect() async {
         isConnecting = false
         isLoadingDatabases = false
-        isLoadingStructure = false
-        isLoadingData = false
-        isLoadingSQL = false
-        isLoadingQueryMetadata = false
         await service?.disconnect()
         service = nil
         databases = []
-        columns = []
-        sqlResult = nil
-        tableDataResult = nil
-        selectedDatabase = nil
-        selectedTable = nil
-        connectionDatabaseCache.removeAll()
-        scratchQueryConnectionId = nil
-        scratchQueryConnectionName = nil
-        scratchQueryDatabaseName = nil
-        queryTables = []
-        queryAllColumns = []
-    }
-
-    func loadDatabases() async {
-        guard !Task.isCancelled, !isWorkspaceClosing, let service else { return }
-        isLoadingDatabases = true
-        defer { isLoadingDatabases = false }
-
-        do {
-            let loadedDatabases = try await service.fetchDatabases()
-            guard !Task.isCancelled, !isWorkspaceClosing else { return }
-            databases = loadedDatabases
-            connectionDatabaseCache[connectionConfig.id] = databases.map(\.name)
-            if scratchQueryConnectionId == connectionConfig.id, scratchQueryDatabaseName == nil {
-                scratchQueryDatabaseName = connectionConfig.defaultDatabase ?? databases.first?.name
-                // 设置了默认查询数据库后，加载元数据用于自动补全
-                if !Task.isCancelled, !isWorkspaceClosing, let defaultDb = scratchQueryDatabaseName {
-                    await loadQueryMetadata(database: defaultDb)
-                }
-            }
-            syncSelectionFromManager()
-        } catch {
-            guard !Task.isCancelled, !isWorkspaceClosing else { return }
-            errorMessage = error.localizedDescription
-            showError = true
-        }
-    }
-
-    func loadTableStructure(database: String, table: String) async {
-        guard !Task.isCancelled, !isWorkspaceClosing, let service else { return }
-        isLoadingStructure = true
-        defer { isLoadingStructure = false }
-
-        do {
-            let loadedColumns = try await service.fetchTableStructure(database: database, table: table)
-            guard !Task.isCancelled, !isWorkspaceClosing else { return }
-            columns = loadedColumns
-        } catch {
-            guard !Task.isCancelled, !isWorkspaceClosing else { return }
-            errorMessage = error.localizedDescription
-            showError = true
-        }
-    }
-
-    func loadTableData(database: String, table: String) async {
-        guard !Task.isCancelled, !isWorkspaceClosing, let service else { return }
-        isLoadingData = true
-        defer { isLoadingData = false }
-
-        do {
-            let result = try await service.fetchTableData(
-                database: database,
-                table: table,
-                pagination: pagination,
-                orderBy: orderBy,
-                orderDirection: orderDirection
-            )
-            guard !Task.isCancelled, !isWorkspaceClosing else { return }
-            tableDataResult = result
-        } catch {
-            guard !Task.isCancelled, !isWorkspaceClosing else { return }
-            errorMessage = error.localizedDescription
-            showError = true
-        }
     }
 }

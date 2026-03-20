@@ -9,31 +9,26 @@ import Foundation
 
 extension ConnectionListView {
     func isConnectionSelected(_ config: ConnectionConfig) -> Bool {
-        connectionManager.selectedConnectionId == config.id &&
-        connectionManager.selectedDatabaseName == nil &&
-        connectionManager.selectedTableName == nil
+        browserSelectedConnectionId == config.id &&
+        browserSelectedDatabaseName == nil &&
+        browserSelectedTableName == nil
     }
 
     func isDatabaseSelected(_ database: String, in config: ConnectionConfig) -> Bool {
-        connectionManager.selectedConnectionId == config.id &&
-        connectionManager.selectedDatabaseName == database &&
-        connectionManager.selectedTableName == nil
+        browserSelectedConnectionId == config.id &&
+        browserSelectedDatabaseName == database &&
+        browserSelectedTableName == nil
     }
 
     func isTableSelected(database: String, table: String, in config: ConnectionConfig) -> Bool {
-        connectionManager.selectedConnectionId == config.id &&
-        connectionManager.selectedDatabaseName == database &&
-        connectionManager.selectedTableName == table
+        browserSelectedConnectionId == config.id &&
+        browserSelectedDatabaseName == database &&
+        browserSelectedTableName == table
     }
 
     func selectConnection(_ config: ConnectionConfig) {
-        // 更新左侧资源树选择
-        connectionManager.selectConnection(config.id)
-
-        // 如果没有打开的工作区，自动打开（保持用户体验）
-        if connectionManager.workspaceManager.activeWorkspaceId == nil {
-            openConnectionInWorkspace(config)
-        }
+        // 更新左侧资源树选择（只影响高亮和展开，不创建右侧 workspace）
+        updateBrowserSelection(connectionId: config.id, database: nil, table: nil)
 
         guard config.databaseKind == .mysql else { return }
         expandedConnectionIds.insert(config.id)
@@ -41,13 +36,6 @@ extension ConnectionListView {
         Task {
             await dataLoader.ensureDatabasesLoaded(for: config, connectionManager: connectionManager)
         }
-    }
-
-    /// 打开连接的工作区（用于双击）
-    func openConnectionInWorkspace(_ config: ConnectionConfig) {
-        // 工作区类型用于内部跟踪，UnifiedWorkspaceView 统一处理 MySQL 和 Redis
-        let kind: WorkspaceKind = config.databaseKind == .mysql ? .mysql : .redis
-        connectionManager.workspaceManager.openWorkspace(for: config.id, kind: kind)
     }
 
     func toggleConnection(_ config: ConnectionConfig) {
@@ -105,7 +93,7 @@ extension ConnectionListView {
     }
 
     func autoExpandSelectedConnection() {
-        guard let selectedConnectionId = connectionManager.selectedConnectionId,
+        guard let selectedConnectionId = browserSelectedConnectionId,
               let config = connectionManager.connections.first(where: { $0.id == selectedConnectionId }),
               config.databaseKind == .mysql else {
             return

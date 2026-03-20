@@ -100,10 +100,7 @@ final class WorkspaceManager {
             return existingSession.id
         }
 
-        // 记录旧工作区 ID，用于后台关闭
-        let oldWorkspaceId = activeWorkspaceId
-
-        // 立即创建并激活新工作区（不阻塞等待旧工作区断连）
+        // 立即创建并激活新工作区
         let workspaceId = UUID()
         let now = Date()
         let session = WorkspaceSession(
@@ -120,17 +117,12 @@ final class WorkspaceManager {
         // 记录连接使用
         onWorkspaceActivated?(connectionId)
 
-        // 后台异步关闭旧工作区（不阻塞当前操作）
-        if let oldId = oldWorkspaceId {
-            closeWorkspaceAsync(oldId)
-        }
-
+        // 多标签模式：不自动关闭旧工作区，让用户手动切换
         return workspaceId
     }
 
     /// 激活工作区
     /// - Parameter workspaceId: 工作区 ID
-    /// - Note: 如果当前有其他活跃工作区，会在后台异步关闭它
     func activateWorkspace(_ workspaceId: UUID) {
         guard var session = openSessions[workspaceId] else { return }
 
@@ -139,10 +131,7 @@ final class WorkspaceManager {
             return
         }
 
-        // 记录旧工作区 ID，用于后台关闭
-        let oldWorkspaceId = activeWorkspaceId
-
-        // 立即激活新工作区（不阻塞等待旧工作区断连）
+        // 立即激活新工作区
         session.lastActiveAt = Date()
         openSessions[workspaceId] = session
         activeWorkspaceId = workspaceId
@@ -150,10 +139,7 @@ final class WorkspaceManager {
         // 记录连接使用
         onWorkspaceActivated?(session.connectionId)
 
-        // 后台异步关闭旧工作区（不阻塞当前操作）
-        if let oldId = oldWorkspaceId {
-            closeWorkspaceAsync(oldId)
-        }
+        // 多标签模式：不自动关闭旧工作区，让用户手动切换
     }
 
     /// 异步关闭工作区（发送关闭通知，不等待完成）

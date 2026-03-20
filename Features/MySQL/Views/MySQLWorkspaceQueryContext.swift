@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension MySQLWorkspaceView {
+extension MySQLRightPanelView {
     // MARK: - 安全的临时 Service 执行辅助函数
 
     /// 使用临时或现有 service 执行操作，确保临时 service 在操作完成后正确断连
@@ -21,21 +21,21 @@ extension MySQLWorkspaceView {
         operation: (MySQLService) async throws -> T
     ) async throws -> T {
         try Task.checkCancellation()
-        guard !isWorkspaceClosing else {
+        guard !isPanelClosing else {
             throw CancellationError()
         }
-        let (service, shouldDisconnect) = try await serviceForQueryConnection(connectionId)
+        let (queryService, shouldDisconnect) = try await serviceForQueryConnection(connectionId)
 
         do {
-            let result = try await operation(service)
+            let result = try await operation(queryService)
             try Task.checkCancellation()
             if shouldDisconnect {
-                await service.disconnect()
+                await queryService.disconnect()
             }
             return result
         } catch {
             if shouldDisconnect {
-                await service.disconnect()
+                await queryService.disconnect()
             }
             throw error
         }
@@ -178,9 +178,12 @@ extension MySQLWorkspaceView {
     }
 
     func fetchDatabasesForConnection(_ connectionId: UUID) async -> [String] {
-        guard !Task.isCancelled, !isWorkspaceClosing else { return [] }
+        guard !Task.isCancelled, !isPanelClosing else { return [] }
         if connectionId == connectionConfig.id {
-            return databases.map(\.name)
+            // 对于当前工作区连接，直接通过 service 获取
+            if let cached = connectionDatabaseCache[connectionId] {
+                return cached
+            }
         }
 
         if let cached = connectionDatabaseCache[connectionId] {
@@ -191,7 +194,7 @@ extension MySQLWorkspaceView {
             let databaseList = try await withQueryService(connectionId) { queryService in
                 try await queryService.fetchDatabases()
             }
-            guard !Task.isCancelled, !isWorkspaceClosing else {
+            guard !Task.isCancelled, !isPanelClosing else {
                 return []
             }
 
@@ -199,7 +202,7 @@ extension MySQLWorkspaceView {
             connectionDatabaseCache[connectionId] = databaseNames
             return databaseNames
         } catch {
-            guard !Task.isCancelled, !isWorkspaceClosing else { return [] }
+            guard !Task.isCancelled, !isPanelClosing else { return [] }
             return []
         }
     }
@@ -210,9 +213,7 @@ extension MySQLWorkspaceView {
     /// - Note: 优先使用 `withQueryService` 辅助函数，它能自动管理临时 service 的断连
     func serviceForQueryConnection(_ connectionId: UUID) async throws -> (service: MySQLService, shouldDisconnect: Bool) {
         if connectionId == connectionConfig.id {
-            guard let service else {
-                throw AppError.connectionFailed("当前工作区连接未建立")
-            }
+            // 当前工作区连接，使用传入的 service
             return (service, false)
         }
 
