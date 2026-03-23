@@ -56,21 +56,31 @@ extension MySQLRightPanelView {
             scratchQueryDatabaseName = nil
         }
 
-        // 清除新连接的数据库缓存，确保 UI 显示加载中状态
+        // Clear cache for new connection
         if connectionId != connectionConfig.id {
             connectionDatabaseCache.removeValue(forKey: connectionId)
         }
 
-        // 使用可取消的 Task 拉取数据库列表并加载元数据
+        // Load database list based on connection type
         enqueuePendingTask {
-            let databases = await fetchDatabasesForConnection(connectionId)
+            // For Redis, use fixed DB0-DB15 list; for MySQL, fetch from server
+            let databases: [String]
+            if connection.databaseKind == .redis {
+                databases = (0..<16).map { "DB\($0)" }
+            } else {
+                databases = await fetchDatabasesForConnection(connectionId)
+            }
 
-            // 检查任务是否被取消
             guard !Task.isCancelled else { return }
 
             let defaultDatabase = connection.defaultDatabase ?? databases.first
 
             await MainActor.run {
+                // Update cache for Redis connections
+                if connection.databaseKind == .redis {
+                    connectionDatabaseCache[connectionId] = databases
+                }
+
                 if let currentTabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }),
                    editorTabs[currentTabIndex].queryConnectionId == connectionId {
                     var tabToUpdate = editorTabs[currentTabIndex]
@@ -81,10 +91,8 @@ extension MySQLRightPanelView {
                 }
             }
 
-            // 检查任务是否被取消
-            guard !Task.isCancelled, let defaultDb = defaultDatabase else { return }
-
-            // 设置默认数据库后，加载元数据用于自动补全
+            // Load metadata for autocomplete (MySQL only)
+            guard !Task.isCancelled, let defaultDb = defaultDatabase, connection.databaseKind == .mysql else { return }
             await loadQueryMetadata(database: defaultDb)
         }
     }
