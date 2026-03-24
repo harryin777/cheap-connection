@@ -32,6 +32,7 @@ struct MySQLRightPanelView: View {
     @State var displayMode: WorkspaceDisplayMode = .editorOnly
 
     // State - Table Detail
+    @State var detailConnectionId: UUID?
     @State var detailDatabase: String?
     @State var detailTable: String?
     @State var columns: [MySQLColumnDefinition] = []
@@ -123,6 +124,10 @@ struct MySQLRightPanelView: View {
                 await loadInitialMetadata()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .tableDoubleClicked)) { notification in
+            guard let info = notification.object as? TableDoubleClickInfo else { return }
+            showTableDetail(database: info.database, table: info.table, connectionId: info.connectionId)
+        }
         .onChange(of: sqlText) { _, _ in syncSQLTextToActiveTab() }
         .onChange(of: editorHeight) { _, newHeight in
             var state = WindowStateRepository.shared.load()
@@ -171,7 +176,6 @@ struct MySQLRightPanelView: View {
                     await executeSQL(sql)
                 }
             },
-            onSelectHistory: { sqlText = $0 },
             isExecuting: isLoadingSQL,
             activeWorkspaceTab: nil,
             onSelectWorkspaceTab: { tab in
@@ -210,9 +214,14 @@ struct MySQLRightPanelView: View {
                             await executeSQL(sql)
                         }
                     },
-                    onSelectHistory: { sqlText = $0 },
                     isExecuting: isLoadingSQL,
-                    activeWorkspaceTab: selectedTab,
+                    // 只在查看表详情时显示 workspace tabs
+                    activeWorkspaceTab: {
+                        if case .tableDetail = displayMode {
+                            return selectedTab
+                        }
+                        return nil
+                    }(),
                     onSelectWorkspaceTab: { tab in
                         selectedTab = tab
                         displayMode = .tableDetail(tab)
@@ -250,7 +259,7 @@ struct MySQLRightPanelView: View {
 
     @ViewBuilder
     var detailView: some View {
-        if let table = detailTable, let database = detailDatabase {
+        if let table = detailTable, let database = detailDatabase, let connectionId = detailConnectionId {
             switch selectedTab {
             case .structure:
                 MySQLStructureView(columns: columns, isLoading: isLoadingStructure)
@@ -262,12 +271,12 @@ struct MySQLRightPanelView: View {
                     onLoadPage: { [self] offset in
                         enqueuePendingTask {
                             pagination.page = max(1, (offset / pagination.pageSize) + 1)
-                            await loadTableData(database: database, table: table)
+                            await loadTableData(database: database, table: table, connectionId: connectionId)
                         }
                     },
                     onRefresh: { [self] in
                         enqueuePendingTask {
-                            await loadTableData(database: database, table: table)
+                            await loadTableData(database: database, table: table, connectionId: connectionId)
                         }
                     },
                     onCellEdit: { [self] rowIndex, columnIndex, newValue in
@@ -275,6 +284,7 @@ struct MySQLRightPanelView: View {
                             await updateCell(
                                 database: database,
                                 table: table,
+                                connectionId: connectionId,
                                 rowIndex: rowIndex,
                                 columnIndex: columnIndex,
                                 newValue: newValue

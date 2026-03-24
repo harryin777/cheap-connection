@@ -11,7 +11,6 @@ import SwiftUI
 struct SQLEditorHistoryPanel: View {
     let history: [String]
     @Binding var isPresented: Bool
-    let onSelectHistory: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -78,25 +77,20 @@ struct SQLEditorHistoryPanel: View {
     }
 
     private func historyItemRow(_ sql: String) -> some View {
-        Button {
-            onSelectHistory(sql)
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sql)
-                    .font(.system(size: 10, design: .monospaced))
-                    .lineLimit(3)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(sql)
+                .font(.system(size: 10, design: .monospaced))
+                .lineLimit(3)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
 
-                Text("\(sql.components(separatedBy: .newlines).filter { !$0.isEmpty }.count) 行")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
+            Text("\(sql.components(separatedBy: .newlines).filter { !$0.isEmpty }.count) 行")
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .background(Color(.controlBackgroundColor).opacity(0.5))
     }
 }
@@ -112,8 +106,7 @@ struct SQLEditorHistoryPanel: View {
                     "SHOW DATABASES;",
                     "DESCRIBE orders;"
                 ],
-                isPresented: $showHistory,
-                onSelectHistory: { _ in }
+                isPresented: $showHistory
             )
             .frame(width: 250, height: 300)
         }

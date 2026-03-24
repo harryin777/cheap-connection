@@ -26,6 +26,10 @@ struct MySQLResultView: View {
     @State private var dragStartWidth: CGFloat = 0
     @FocusState private var isEditingFocused: Bool
 
+    // MARK: - Pagination State
+    @State private var currentPage: Int = 1
+    private let pageSize: Int = 500
+
     private let rowNumberWidth: CGFloat = 40
     private let dividerWidth: CGFloat = 1
     private let minColumnWidth: CGFloat = 60
@@ -34,6 +38,26 @@ struct MySQLResultView: View {
         self.result = result
         self.onCellEdit = onCellEdit
         _columnWidths = State(initialValue: Array(repeating: 120, count: result.columns.count))
+    }
+
+    // MARK: - Pagination Computed Properties
+
+    private var totalPages: Int {
+        let total = result.rowCount
+        return (total + pageSize - 1) / pageSize
+    }
+
+    private var startIndex: Int {
+        (currentPage - 1) * pageSize
+    }
+
+    private var endIndex: Int {
+        min(startIndex + pageSize, result.rowCount)
+    }
+
+    private var visibleRows: [[MySQLRowValue]] {
+        guard result.rowCount > 0 else { return [] }
+        return Array(result.rows[startIndex..<endIndex])
     }
 
     /// 计算渲染列宽：当列总宽不足以填满 viewport 时，将剩余宽度分配给最后一列
@@ -76,7 +100,66 @@ struct MySQLResultView: View {
                     emptyResultView
                 }
             }
+
+            // 底部分页控件
+            if result.hasResults && totalPages > 1 {
+                Divider()
+                paginationBar
+            }
         }
+        .onChange(of: result.rowCount) { _, _ in
+            // 当结果行数变化时重置页码
+            currentPage = 1
+        }
+    }
+
+    // MARK: - Pagination Bar
+
+    private var paginationBar: some View {
+        HStack(spacing: 8) {
+            // 上一页
+            Button {
+                if currentPage > 1 {
+                    currentPage -= 1
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.plain)
+            .disabled(currentPage <= 1)
+
+            // 页码显示
+            Text("\(currentPage)/\(totalPages)")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 40)
+
+            // 下一页
+            Button {
+                if currentPage < totalPages {
+                    currentPage += 1
+                }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.plain)
+            .disabled(currentPage >= totalPages)
+
+            Divider()
+                .frame(height: 16)
+
+            // 行范围显示
+            Text("\(startIndex + 1)-\(endIndex) / \(result.rowCount) 行")
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color(.windowBackgroundColor))
     }
 
     // MARK: - Status Bar
@@ -122,10 +205,10 @@ struct MySQLResultView: View {
             ScrollView([.horizontal, .vertical]) {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                     Section(header: pinnedHeaderView(renderWidths: renderWidths, viewportWidth: geometry.size.width)) {
-                        ForEach(Array(result.rows.enumerated()), id: \.offset) { index, row in
+                        ForEach(Array(visibleRows.indices), id: \.self) { localIndex in
                             ResultDataRowView(
-                                row: row,
-                                rowIndex: index,
+                                row: visibleRows[localIndex],
+                                rowIndex: startIndex + localIndex,
                                 columnWidths: columnWidths,
                                 renderWidths: renderWidths,
                                 rowNumberWidth: rowNumberWidth,
@@ -260,7 +343,8 @@ struct MySQLResultView: View {
             [.int(2), .string("test_user"), .string("test@example.com"), .string("2024-01-15 10:30:00")]
         ],
         executionInfo: MySQLExecutionInfo(executedAt: Date(), duration: 0.0234, affectedRows: nil, isQuery: true),
-        error: nil
+        error: nil,
+        totalCount: nil
     )
 
     MySQLResultView(result: previewResult)

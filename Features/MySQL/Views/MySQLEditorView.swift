@@ -23,7 +23,6 @@ struct MySQLEditorView: View {
     let onSwitchQueryConnection: (UUID) -> Void
     let onSelectQueryDatabase: (String?) -> Void
     let onExecute: (String) async -> Void
-    let onSelectHistory: (String) -> Void
 
     var isExecuting: Bool = false
     var activeWorkspaceTab: MySQLDetailTab? = nil
@@ -54,6 +53,13 @@ struct MySQLEditorView: View {
     @State var autocompleteStartPosition: Int?
 
     let sqlKeywords = SQLKeywords.all
+
+    // MARK: - Computed Properties
+
+    /// 当前查询连接是否为 Redis
+    var isCurrentConnectionRedis: Bool {
+        availableConnections.first { $0.id == queryConnectionId }?.databaseKind == .redis
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -194,8 +200,7 @@ struct MySQLEditorView: View {
     var historyPanel: some View {
         SQLEditorHistoryPanel(
             history: history,
-            isPresented: $showHistory,
-            onSelectHistory: onSelectHistory
+            isPresented: $showHistory
         )
     }
 
@@ -248,8 +253,7 @@ struct MySQLEditorView: View {
                 selectedQueryDatabase: selectedDb,
                 onSwitchQueryConnection: { _ in },
                 onSelectQueryDatabase: { db in selectedDb = db },
-                onExecute: { _ in },
-                onSelectHistory: { sql in sqlText = sql }
+                onExecute: { _ in }
             )
             .frame(width: 700, height: 400)
         }

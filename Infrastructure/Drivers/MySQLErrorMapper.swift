@@ -48,7 +48,7 @@ enum MySQLErrorMapper {
 
         // 未选择数据库
         if isNoDatabaseSelectedError(combinedMessage) {
-            return .queryError("未选择数据库，请先从左侧选择一个数据库")
+            return .queryError("未选择数据库，请先从右侧选择一个数据库")
         }
 
         // 数据库不存在

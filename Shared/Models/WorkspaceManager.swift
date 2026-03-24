@@ -14,6 +14,17 @@ extension Notification.Name {
     static let workspaceWillClose = Notification.Name("workspaceWillClose")
     /// 工作区断连完成通知（视图断连完成后发送）
     static let workspaceDidDisconnect = Notification.Name("workspaceDidDisconnect")
+    /// 双击表通知（左侧资源树双击表时发送，右侧面板监听并显示表数据）
+    static let tableDoubleClicked = Notification.Name("tableDoubleClicked")
+}
+
+// MARK: - Table Double Click Info
+
+/// 双击表通知的信息
+struct TableDoubleClickInfo {
+    let connectionId: UUID
+    let database: String
+    let table: String
 }
 
 // MARK: - WorkspaceKind

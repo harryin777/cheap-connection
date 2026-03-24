@@ -121,7 +121,6 @@ struct RedisUnifiedWorkspaceView: View {
             onExecute: { command in
                 await executeCommand(command)
             },
-            onSelectHistory: { commandText = $0 },
             isExecuting: isExecuting
         )
     }

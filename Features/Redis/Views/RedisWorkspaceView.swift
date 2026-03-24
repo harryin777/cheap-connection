@@ -136,7 +136,6 @@ struct RedisWorkspaceView: View {
                 onExecute: { command in
                     await executeCommand(command)
                 },
-                onSelectHistory: { commandText = $0 },
                 isExecuting: isLoadingCommand,
                 activeWorkspaceTab: nil,
                 onSelectWorkspaceTab: { tab in
@@ -156,7 +155,6 @@ struct RedisWorkspaceView: View {
                         onExecute: { command in
                             await executeCommand(command)
                         },
-                        onSelectHistory: { commandText = $0 },
                         isExecuting: isLoadingCommand,
                         activeWorkspaceTab: selectedTab,
                         onSelectWorkspaceTab: { tab in

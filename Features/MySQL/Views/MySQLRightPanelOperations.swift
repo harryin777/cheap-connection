@@ -10,13 +10,13 @@ import Foundation
 extension MySQLRightPanelView {
     // MARK: - Table Data Loading
 
-    func loadTableStructure(database: String, table: String) async {
+    func loadTableStructure(database: String, table: String, connectionId: UUID) async {
         guard !Task.isCancelled, !isPanelClosing else { return }
         isLoadingStructure = true
         defer { isLoadingStructure = false }
 
         do {
-            let loadedColumns = try await withQueryService(currentQueryConnectionId) { queryService in
+            let loadedColumns = try await withQueryService(connectionId) { queryService in
                 try await queryService.fetchTableStructure(database: database, table: table)
             }
             guard !Task.isCancelled, !isPanelClosing else { return }
@@ -28,13 +28,13 @@ extension MySQLRightPanelView {
         }
     }
 
-    func loadTableData(database: String, table: String) async {
+    func loadTableData(database: String, table: String, connectionId: UUID) async {
         guard !Task.isCancelled, !isPanelClosing else { return }
         isLoadingData = true
         defer { isLoadingData = false }
 
         do {
-            let result = try await withQueryService(currentQueryConnectionId) { queryService in
+            let result = try await withQueryService(connectionId) { queryService in
                 try await queryService.fetchTableData(
                     database: database,
                     table: table,
@@ -45,6 +45,16 @@ extension MySQLRightPanelView {
             }
             guard !Task.isCancelled, !isPanelClosing else { return }
             tableDataResult = result
+
+            // Update pagination state with total count and hasMore
+            if let totalCount = result.totalCount {
+                let hasMore = pagination.offset + result.rowCount < totalCount
+                pagination.update(hasMore: hasMore, totalCount: totalCount)
+            } else {
+                // If no total count, use current page size to estimate hasMore
+                let hasMore = result.rowCount >= pagination.pageSize
+                pagination.update(hasMore: hasMore, totalCount: nil)
+            }
         } catch {
             guard !Task.isCancelled, !isPanelClosing else { return }
             errorMessage = error.localizedDescription
@@ -54,7 +64,7 @@ extension MySQLRightPanelView {
 
     // MARK: - Cell Update
 
-    func updateCell(database: String, table: String, rowIndex: Int, columnIndex: Int, newValue: String) async {
+    func updateCell(database: String, table: String, connectionId: UUID, rowIndex: Int, columnIndex: Int, newValue: String) async {
         guard !Task.isCancelled, !isPanelClosing else { return }
         guard let result = tableDataResult,
               rowIndex < result.rows.count,
@@ -97,7 +107,7 @@ extension MySQLRightPanelView {
             """
 
         do {
-            let updateResult = try await withQueryService(currentQueryConnectionId) { queryService in
+            let updateResult = try await withQueryService(connectionId) { queryService in
                 try await queryService.executeSQL(sql)
             }
             guard !Task.isCancelled, !isPanelClosing else { return }
@@ -105,7 +115,7 @@ extension MySQLRightPanelView {
                 errorMessage = "Update failed: \(error.localizedDescription)"
                 showError = true
             } else {
-                await loadTableData(database: database, table: table)
+                await loadTableData(database: database, table: table, connectionId: connectionId)
             }
         } catch {
             guard !Task.isCancelled, !isPanelClosing else { return }
@@ -211,7 +221,8 @@ extension MySQLRightPanelView {
                     affectedRows: 0,
                     isQuery: true
                 ),
-                error: .queryError(redisResult.errorMessage ?? "Unknown error")
+                error: .queryError(redisResult.errorMessage ?? "Unknown error"),
+                totalCount: nil
             )
         }
 
@@ -225,7 +236,8 @@ extension MySQLRightPanelView {
                     affectedRows: redisResult.affectedKeys ?? 0,
                     isQuery: true
                 ),
-                error: nil
+                error: nil,
+                totalCount: nil
             )
         }
 
@@ -240,7 +252,8 @@ extension MySQLRightPanelView {
                 affectedRows: redisResult.affectedKeys ?? rows.count,
                 isQuery: true
             ),
-            error: nil
+            error: nil,
+            totalCount: nil
         )
     }
 
@@ -299,16 +312,17 @@ extension MySQLRightPanelView {
 
     // MARK: - Table Detail Selection
 
-    func showTableDetail(database: String, table: String) {
+    func showTableDetail(database: String, table: String, connectionId: UUID) {
+        detailConnectionId = connectionId
         detailDatabase = database
         detailTable = table
         selectedTab = .data
         displayMode = .tableDetail(.data)
 
         enqueuePendingTask {
-            await loadTableStructure(database: database, table: table)
+            await loadTableStructure(database: database, table: table, connectionId: connectionId)
             guard !Task.isCancelled else { return }
-            await loadTableData(database: database, table: table)
+            await loadTableData(database: database, table: table, connectionId: connectionId)
         }
     }
 }

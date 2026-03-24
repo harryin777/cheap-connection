@@ -24,12 +24,16 @@ extension MySQLClient {
 
     func fetchTables(database: String) async throws -> [MySQLTableSummary] {
         guard let connection else {
-            throw AppError.connectionFailed("未连接到MySQL服务器")
+            throw AppError.connectionFailed("Not connected to MySQL server")
         }
 
         do {
             let rows = try await connection.query(MySQLQueries.fetchTables(database: database)).get()
-            return rows.compactMap(makeTableSummary(from:))
+            let tables = rows.compactMap(makeTableSummary(from:))
+            if rows.count > 0 && tables.isEmpty {
+                print("[MySQLClient] Warning: database \(database) got \(rows.count) rows but empty after mapping")
+            }
+            return tables
         } catch {
             throw MySQLErrorMapper.map(error)
         }
@@ -60,6 +64,19 @@ extension MySQLClient {
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
 
+        // First, get total count
+        var totalCount: Int? = nil
+        let countSQL = "SELECT COUNT(*) AS cnt FROM `\(database)`.`\(table)`"
+        do {
+            let countRows = try await connection.query(countSQL).get()
+            if let firstRow = countRows.first {
+                totalCount = firstRow.column("cnt")?.int
+            }
+        } catch {
+            // If count fails, continue without total count
+            print("[MySQLClient] Warning: Failed to get total count: \(error)")
+        }
+
         let pageSize = pagination.pageSize
         let offset = (pagination.page - 1) * pageSize
         let sql = MySQLQueries.fetchTableData(
@@ -71,7 +88,7 @@ extension MySQLClient {
             orderDirection: orderDirection.rawValue
         )
 
-        return try await executeQueryInternal(conn: connection, sql: sql)
+        return try await executeQueryInternal(conn: connection, sql: sql, totalCount: totalCount)
     }
 
     func executeQuery(sql: String) async throws -> MySQLQueryResult {
@@ -79,10 +96,10 @@ extension MySQLClient {
             throw AppError.connectionFailed("未连接到MySQL服务器")
         }
 
-        return try await executeQueryInternal(conn: connection, sql: sql)
+        return try await executeQueryInternal(conn: connection, sql: sql, totalCount: nil)
     }
 
-    func executeQueryInternal(conn: MySQLConnection, sql: String) async throws -> MySQLQueryResult {
+    func executeQueryInternal(conn: MySQLConnection, sql: String, totalCount: Int?) async throws -> MySQLQueryResult {
         let startTime = Date()
         var affectedRows: UInt64?
         var columnNames: [String] = []
@@ -109,7 +126,8 @@ extension MySQLClient {
                     startedAt: startTime,
                     affectedRows: affectedRows
                 ),
-                error: nil
+                error: nil,
+                totalCount: totalCount
             )
         } catch {
             return MySQLQueryResult(
@@ -119,7 +137,8 @@ extension MySQLClient {
                     startedAt: startTime,
                     affectedRows: affectedRows
                 ),
-                error: MySQLErrorMapper.map(error)
+                error: MySQLErrorMapper.map(error),
+                totalCount: nil
             )
         }
     }

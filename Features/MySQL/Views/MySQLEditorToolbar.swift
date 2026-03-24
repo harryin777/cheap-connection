@@ -98,7 +98,11 @@ extension MySQLEditorView {
                 Divider()
                     .frame(height: 16)
 
-                workspaceTabsView(activeTab: activeWorkspaceTab, onSelect: onSelectWorkspaceTab)
+                workspaceTabsView(
+                    activeTab: activeWorkspaceTab,
+                    onSelect: onSelectWorkspaceTab,
+                    isRedisConnection: isCurrentConnectionRedis
+                )
             }
 
             Spacer()
@@ -133,11 +137,13 @@ extension MySQLEditorView {
 
     func workspaceTabsView(
         activeTab: MySQLDetailTab,
-        onSelect: @escaping (MySQLDetailTab) -> Void
+        onSelect: @escaping (MySQLDetailTab) -> Void,
+        isRedisConnection: Bool
     ) -> some View {
         HStack(spacing: 0) {
             ForEach(MySQLDetailTab.allCases, id: \.self) { tab in
                 Button {
+                    guard !isRedisConnection else { return }
                     onSelect(tab)
                 } label: {
                     HStack(spacing: 6) {
@@ -157,6 +163,8 @@ extension MySQLEditorView {
                     )
                 }
                 .buttonStyle(.plain)
+                .disabled(isRedisConnection)
+                .opacity(isRedisConnection ? 0.4 : 1.0)
             }
         }
     }

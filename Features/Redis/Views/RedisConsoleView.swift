@@ -218,30 +218,23 @@ struct RedisConsoleView: View {
 
     @ViewBuilder
     private func historyRow(_ command: String, index: Int) -> some View {
-        Button {
-            commandText = command
-            showHistory = false
-            isInputFocused = true
-        } label: {
-            HStack {
-                Text("\(index + 1)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .frame(width: 30, alignment: .trailing)
+        HStack {
+            Text("\(index + 1)")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .frame(width: 30, alignment: .trailing)
 
-                Text(command)
-                    .font(.system(size: 11, design: .monospaced))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundStyle(.primary)
+            Text(command)
+                .font(.system(size: 11, design: .monospaced))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
 
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(index % 2 == 0 ? Color.clear : Color(nsColor: .controlBackgroundColor).opacity(0.3))
     }
 

@@ -38,6 +38,9 @@ struct MySQLQueryResult: Sendable {
     /// 错误信息（如果有）
     let error: AppError?
 
+    /// 总行数（用于分页）
+    let totalCount: Int?
+
     // MARK: - Computed Properties
 
     /// 是否执行成功
@@ -98,7 +101,8 @@ extension MySQLQueryResult {
             columns: [],
             rows: [],
             executionInfo: executionInfo,
-            error: nil
+            error: nil,
+            totalCount: nil
         )
     }
 
@@ -114,7 +118,8 @@ extension MySQLQueryResult {
             columns: [],
             rows: [],
             executionInfo: executionInfo,
-            error: error
+            error: error,
+            totalCount: nil
         )
     }
 }
@@ -137,7 +142,8 @@ extension MySQLQueryResult {
                 MySQLRowValue.previewRowWithNull,
             ],
             executionInfo: executionInfo,
-            error: nil
+            error: nil,
+            totalCount: 1000
         )
     }()
 
@@ -152,7 +158,8 @@ extension MySQLQueryResult {
             columns: [],
             rows: [],
             executionInfo: executionInfo,
-            error: .queryError("Unknown column 'unknown_field' in 'field list'")
+            error: .queryError("Unknown column 'unknown_field' in 'field list'"),
+            totalCount: nil
         )
     }()
 }

@@ -176,6 +176,9 @@ struct ConnectionListView: View {
                 ForEach(tables) { table in
                     tableRow(table, database: database.name, in: config)
                 }
+            } else if database.tables == nil && (database.tableCount ?? 0) > 0 {
+                // Cache lost but database has tables - show loading hint instead of "无表"
+                ConnectionListLoadingRow(leading: 66)
             } else {
                 ConnectionListInfoRow(text: "无表", leading: 66)
             }
@@ -190,7 +193,20 @@ struct ConnectionListView: View {
             isSelected: isTableSelected(database: database, table: table.name, in: config),
             leading: 66
         ) {
+            // 单击：只更新左侧资源树高亮
             updateBrowserSelection(connectionId: config.id, database: database, table: table.name)
+        } onDoubleClick: {
+            // 双击：更新左侧高亮并发送通知让右侧面板显示表数据
+            updateBrowserSelection(connectionId: config.id, database: database, table: table.name)
+            let info = TableDoubleClickInfo(
+                connectionId: config.id,
+                database: database,
+                table: table.name
+            )
+            NotificationCenter.default.post(
+                name: .tableDoubleClicked,
+                object: info
+            )
         }
     }
 

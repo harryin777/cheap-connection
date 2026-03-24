@@ -16,7 +16,6 @@ struct RedisEditorView: View {
 
     // MARK: - Callbacks
     let onExecute: (String) async -> Void
-    let onSelectHistory: (String) -> Void
 
     var isExecuting: Bool = false
     var activeWorkspaceTab: RedisDetailTab? = nil
@@ -143,30 +142,23 @@ struct RedisEditorView: View {
 
     @ViewBuilder
     private func historyRow(_ command: String, index: Int) -> some View {
-        Button {
-            onSelectHistory(command)
-            showHistory = false
-            isInputFocused = true
-        } label: {
-            HStack {
-                Text("\(history.count - index)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .frame(width: 30, alignment: .trailing)
+        HStack {
+            Text("\(history.count - index)")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .frame(width: 30, alignment: .trailing)
 
-                Text(command)
-                    .font(.system(size: 11, design: .monospaced))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundStyle(.primary)
+            Text(command)
+                .font(.system(size: 11, design: .monospaced))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
 
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(index % 2 == 0 ? Color.clear : Color(nsColor: .controlBackgroundColor).opacity(0.3))
     }
 
@@ -346,8 +338,7 @@ extension RedisEditorView {
                 ],
                 serverVersion: "7.0.0",
                 selectedDatabase: 0,
-                onExecute: { _ in },
-                onSelectHistory: { commandText = $0 }
+                onExecute: { _ in }
             )
             .frame(width: 700, height: 300)
         }

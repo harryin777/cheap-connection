@@ -197,7 +197,10 @@ struct ConnectionListDatabaseNodeView: View {
             .padding(.leading, leading)
             .background(isSelected ? Color.accentColor.opacity(0.16) : .clear)
             .contentShape(Rectangle())
-            .onTapGesture {
+            .onTapGesture(count: 2) {
+                onToggle()
+            }
+            .onTapGesture(count: 1) {
                 onSelect()
             }
         }
@@ -245,7 +248,10 @@ struct ConnectionListTablesFolderView: View {
             .padding(.vertical, 3)
             .padding(.leading, leading)
             .contentShape(Rectangle())
-            .onTapGesture {
+            .onTapGesture(count: 2) {
+                onToggle()
+            }
+            .onTapGesture(count: 1) {
                 onToggle()
             }
         }
@@ -260,6 +266,7 @@ struct ConnectionListTableRowView: View {
     let leading: CGFloat
 
     let onSelect: () -> Void
+    let onDoubleClick: () -> Void
 
     var body: some View {
         HStack(spacing: 6) {
@@ -285,7 +292,10 @@ struct ConnectionListTableRowView: View {
         .padding(.leading, leading)
         .background(isSelected ? Color.accentColor.opacity(0.16) : .clear)
         .contentShape(Rectangle())
-        .onTapGesture {
+        .onTapGesture(count: 2) {
+            onDoubleClick()
+        }
+        .onTapGesture(count: 1) {
             onSelect()
         }
     }

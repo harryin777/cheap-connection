@@ -16,7 +16,7 @@ struct PaginationState: Equatable, Sendable {
 
     init(
         page: Int = 1,
-        pageSize: Int = 100,
+        pageSize: Int = 500,
         totalCount: Int? = nil,
         hasMore: Bool = false
     ) {

@@ -51,14 +51,31 @@ final class ConnectionListDataLoader: ObservableObject {
 
         do {
             let service = try await mysqlService(for: config, connectionManager: connectionManager)
-            let databases = try await service.fetchDatabases()
+            let newDatabases = try await service.fetchDatabases()
                 .sorted {
                     if $0.isSystemDatabase != $1.isSystemDatabase {
                         return !$0.isSystemDatabase
                     }
                     return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
                 }
-            databasesByConnection[config.id] = databases
+
+            // Merge with existing data to preserve tables cache
+            let oldDatabases = databasesByConnection[config.id]
+            var mergedDatabases: [MySQLDatabaseSummary] = []
+
+            for newDB in newDatabases {
+                if let oldDB = oldDatabases?.first(where: { $0.name == newDB.name }),
+                   oldDB.tables != nil {
+                    // Preserve existing tables cache
+                    var merged = newDB
+                    merged.tables = oldDB.tables
+                    mergedDatabases.append(merged)
+                } else {
+                    mergedDatabases.append(newDB)
+                }
+            }
+
+            databasesByConnection[config.id] = mergedDatabases
         } catch {
             connectionManager.errorMessage = "加载数据库失败: \(error.localizedDescription)"
         }
@@ -92,7 +109,7 @@ final class ConnectionListDataLoader: ObservableObject {
                 .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
             updateTables(tables, for: databaseName, connectionId: config.id)
         } catch {
-            connectionManager.errorMessage = "加载表失败: \(error.localizedDescription)"
+            connectionManager.errorMessage = "Failed to load tables: \(error.localizedDescription)"
         }
     }
 
@@ -119,6 +136,14 @@ final class ConnectionListDataLoader: ObservableObject {
     func updateTables(_ tables: [MySQLTableSummary], for databaseName: String, connectionId: UUID) {
         guard var databases = databasesByConnection[connectionId],
               let index = databases.firstIndex(where: { $0.name == databaseName }) else {
+            return
+        }
+
+        // 保护机制：当 tableCount > 0 但 tables 为空时，不覆盖缓存
+        // 避免"拉取表列表失败/异常返回空"被误认为是真实空库
+        let existingTableCount = databases[index].tableCount ?? 0
+        if existingTableCount > 0 && tables.isEmpty {
+            print("[DataLoader] Warning: database \(databaseName) expected \(existingTableCount) tables but got empty, keeping original state")
             return
         }
 
