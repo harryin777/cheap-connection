@@ -11,6 +11,8 @@ import SwiftUI
 struct RedisConsoleView: View {
     let service: RedisService
 
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
+
     // State - Input
     @State var commandText: String = ""
     @State var isExecuting: Bool = false

@@ -23,17 +23,17 @@ extension MySQLEditorView {
     }
 
     func queryTabItem(_ tab: EditorQueryTab) -> some View {
-        HStack(spacing: 0) {
+        return HStack(spacing: 0) {
             Button {
                 onSelectEditorTab?(tab.id)
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "doc.text")
-                        .font(.system(size: 10))
+                        .font(.system(size: tabBarFontSize - 1))
                         .foregroundStyle(.secondary)
 
                     Text(tab.title)
-                        .font(.system(size: 11))
+                        .font(.system(size: tabBarFontSize))
                         .lineLimit(1)
                         .foregroundStyle(.primary)
 
@@ -55,7 +55,7 @@ extension MySQLEditorView {
                 onCloseEditorTab?(tab.id)
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: tabBarFontSize + 1))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(activeEditorTabId == tab.id ? .secondary : .tertiary)
                     .frame(width: 20, height: 20)

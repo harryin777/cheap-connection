@@ -12,20 +12,21 @@ struct SQLEditorContextSelectorLabel: View {
     let icon: String
     let iconColor: Color
     let title: String
+    let fontSize: CGFloat
 
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: max(9, fontSize - 1), weight: .medium))
                 .foregroundStyle(iconColor)
 
             Text(title)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: fontSize, weight: .medium))
                 .lineLimit(1)
                 .truncationMode(.tail)
 
             Image(systemName: "chevron.down")
-                .font(.system(size: 8, weight: .semibold))
+                .font(.system(size: max(7, fontSize - 3), weight: .semibold))
                 .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 10)
@@ -46,8 +47,11 @@ struct SQLEditorSchemaMenu: View {
     let databases: [String]
     let selectedDatabase: String?
     let onSelect: (String?) -> Void
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
 
     var body: some View {
+        let fontSize = CGFloat(settingsRepo.settings.tabBarFontSize)
+
         Menu {
             Button {
                 onSelect(nil)
@@ -82,7 +86,8 @@ struct SQLEditorSchemaMenu: View {
             SQLEditorContextSelectorLabel(
                 icon: "square.grid.2x2",
                 iconColor: .secondary,
-                title: selectedDatabase ?? "未指定"
+                title: selectedDatabase ?? "未指定",
+                fontSize: fontSize
             )
         }
         .menuStyle(.borderlessButton)
@@ -99,6 +104,7 @@ struct SQLEditorConnectionMenu: View {
     let selectedConnectionId: UUID
     let selectedConnectionName: String
     let onSelect: (UUID) -> Void
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
 
     // 按类型分组的连接
     private var mysqlConnections: [ConnectionConfig] {
@@ -129,6 +135,8 @@ struct SQLEditorConnectionMenu: View {
     }
 
     var body: some View {
+        let fontSize = CGFloat(settingsRepo.settings.tabBarFontSize)
+
         Menu {
             // MySQL group
             if !mysqlConnections.isEmpty {
@@ -182,7 +190,8 @@ struct SQLEditorConnectionMenu: View {
             SQLEditorContextSelectorLabel(
                 icon: selectedConnectionIcon,
                 iconColor: selectedConnectionIconColor,
-                title: selectedConnectionName
+                title: selectedConnectionName,
+                fontSize: fontSize
             )
         }
         .menuStyle(.borderlessButton)

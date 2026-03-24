@@ -9,7 +9,7 @@ import SwiftUI
 
 extension MySQLEditorView {
     var toolbarView: some View {
-        HStack(spacing: 8) {
+        return HStack(spacing: 8) {
             Button {
                 executeSQL()
             } label: {
@@ -21,7 +21,7 @@ extension MySQLEditorView {
                         .cornerRadius(4)
                 } else {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: tabBarFontSize + 1, weight: .medium))
                         .foregroundStyle(.white)
                         .frame(width: 28, height: 24)
                         .background(
@@ -42,7 +42,7 @@ extension MySQLEditorView {
                 }
             } label: {
                 Image(systemName: showHistory ? "sidebar.right" : "clock.arrow.circlepath")
-                    .font(.system(size: 12))
+                    .font(.system(size: tabBarFontSize + 1))
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
@@ -50,7 +50,7 @@ extension MySQLEditorView {
 
             if !history.isEmpty {
                 Text("\(history.count)")
-                    .font(.system(size: 10))
+                    .font(.system(size: max(9, tabBarFontSize - 1)))
                     .foregroundStyle(.tertiary)
                     .monospacedDigit()
             }
@@ -62,7 +62,7 @@ extension MySQLEditorView {
                 sqlText = ""
             } label: {
                 Image(systemName: "xmark.circle")
-                    .font(.system(size: 11))
+                    .font(.system(size: tabBarFontSize))
                     .foregroundStyle(.secondary)
                     .frame(width: 20, height: 20)
             }
@@ -75,7 +75,7 @@ extension MySQLEditorView {
                     Task { await onOpenFile() }
                 } label: {
                     Image(systemName: "doc.text")
-                        .font(.system(size: 11))
+                        .font(.system(size: tabBarFontSize))
                         .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
@@ -87,7 +87,7 @@ extension MySQLEditorView {
                     Task { await onImport() }
                 } label: {
                     Image(systemName: "play.rectangle")
-                        .font(.system(size: 11))
+                        .font(.system(size: tabBarFontSize))
                         .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
@@ -140,7 +140,7 @@ extension MySQLEditorView {
         onSelect: @escaping (MySQLDetailTab) -> Void,
         isRedisConnection: Bool
     ) -> some View {
-        HStack(spacing: 0) {
+        return HStack(spacing: 0) {
             ForEach(MySQLDetailTab.allCases, id: \.self) { tab in
                 Button {
                     guard !isRedisConnection else { return }
@@ -148,9 +148,9 @@ extension MySQLEditorView {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 11))
+                            .font(.system(size: tabBarFontSize))
                         Text(tab.rawValue)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: tabBarFontSize, weight: .medium))
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)

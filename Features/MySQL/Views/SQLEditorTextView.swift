@@ -19,6 +19,7 @@ struct CursorRectInfo {
 /// SQL 编辑器 TextView - 支持选中范围和光标位置追踪
 struct SQLEditorTextView: NSViewRepresentable {
     @Binding var text: String
+    let editorFontSize: CGFloat
     /// 外部请求设置的光标位置（用于自动补全后同步光标）
     var requestedCursorPosition: Int?
     var onSelectionChange: ((NSRange, String) -> Void)?
@@ -37,7 +38,7 @@ struct SQLEditorTextView: NSViewRepresentable {
         textView.isAutomaticTextReplacementEnabled = false
         textView.isContinuousSpellCheckingEnabled = false
         textView.isGrammarCheckingEnabled = false
-        textView.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        textView.font = NSFont.monospacedSystemFont(ofSize: editorFontSize, weight: .regular)
         textView.textColor = NSColor.labelColor
         textView.backgroundColor = NSColor.textBackgroundColor
         textView.insertionPointColor = NSColor.labelColor
@@ -58,6 +59,11 @@ struct SQLEditorTextView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
+
+        // 更新字体（响应设置变化）
+        if textView.font?.pointSize != editorFontSize {
+            textView.font = NSFont.monospacedSystemFont(ofSize: editorFontSize, weight: .regular)
+        }
 
         // 优先处理外部请求的光标位置（自动补全后同步光标）
         if let requestedPosition = requestedCursorPosition,

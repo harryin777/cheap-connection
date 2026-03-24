@@ -9,7 +9,9 @@ import SwiftUI
 
 extension RedisEditorView {
     var toolbarView: some View {
-        HStack(spacing: 8) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return HStack(spacing: 8) {
             Button {
                 Task { await executeCommand() }
             } label: {
@@ -21,7 +23,7 @@ extension RedisEditorView {
                         .cornerRadius(4)
                 } else {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: fontSize + 1, weight: .medium))
                         .foregroundStyle(.white)
                         .frame(width: 28, height: 24)
                         .background(
@@ -42,7 +44,7 @@ extension RedisEditorView {
                 }
             } label: {
                 Image(systemName: showHistory ? "sidebar.right" : "clock.arrow.circlepath")
-                    .font(.system(size: 12))
+                    .font(.system(size: fontSize + 1))
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
@@ -50,7 +52,7 @@ extension RedisEditorView {
 
             if !history.isEmpty {
                 Text("\(history.count)")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.tertiary)
                     .monospacedDigit()
             }
@@ -62,7 +64,7 @@ extension RedisEditorView {
                 commandText = ""
             } label: {
                 Image(systemName: "xmark.circle")
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
                     .foregroundStyle(.secondary)
                     .frame(width: 20, height: 20)
             }
@@ -86,10 +88,12 @@ extension RedisEditorView {
     }
 
     var contextInfoView: some View {
-        HStack(spacing: 8) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return HStack(spacing: 8) {
             if let db = selectedDatabase {
                 Text("DB \(db)")
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: fontSize, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
@@ -99,7 +103,7 @@ extension RedisEditorView {
 
             if let version = serverVersion {
                 Text("Redis \(version)")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.tertiary)
             }
         }
@@ -109,16 +113,18 @@ extension RedisEditorView {
         activeTab: RedisDetailTab,
         onSelect: @escaping (RedisDetailTab) -> Void
     ) -> some View {
-        HStack(spacing: 0) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return HStack(spacing: 0) {
             ForEach(RedisDetailTab.allCases, id: \.self) { tab in
                 Button {
                     onSelect(tab)
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 11))
+                            .font(.system(size: fontSize))
                         Text(tab.rawValue)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: fontSize, weight: .medium))
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)

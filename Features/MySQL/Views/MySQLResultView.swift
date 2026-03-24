@@ -18,6 +18,8 @@ struct MySQLResultView: View {
     let result: MySQLQueryResult
     var onCellEdit: ((Int, Int, String) async -> Void)? = nil
 
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
+
     @State var selectedCell: CellPosition?
     @State var editingCell: CellPosition?
     @State var editingText: String = ""

@@ -9,20 +9,22 @@ import SwiftUI
 
 extension MySQLResultView {
     var paginationBar: some View {
-        HStack(spacing: 8) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return HStack(spacing: 8) {
             Button {
                 if currentPage > 1 {
                     currentPage -= 1
                 }
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
             }
             .buttonStyle(.plain)
             .disabled(currentPage <= 1)
 
             Text("\(currentPage)/\(totalPages)")
-                .font(.system(size: 10, design: .monospaced))
+                .font(.system(size: fontSize - 1, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 40)
 
@@ -32,7 +34,7 @@ extension MySQLResultView {
                 }
             } label: {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
             }
             .buttonStyle(.plain)
             .disabled(currentPage >= totalPages)
@@ -41,7 +43,7 @@ extension MySQLResultView {
                 .frame(height: 16)
 
             Text("\(startIndex + 1)-\(endIndex) / \(result.rowCount) 行")
-                .font(.system(size: 10))
+                .font(.system(size: fontSize - 1))
                 .foregroundStyle(.tertiary)
 
             Spacer()
@@ -52,26 +54,28 @@ extension MySQLResultView {
     }
 
     var statusBarView: some View {
-        HStack(spacing: 12) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return HStack(spacing: 12) {
             if let rows = result.executionInfo.affectedRows {
                 Label("\(rows) 行受影响", systemImage: "checkmark.circle")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.secondary)
             } else if result.rowCount > 0 {
                 Label("\(result.rowCount) 行", systemImage: "list.bullet")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.secondary)
             }
 
             Text(result.formattedDuration)
-                .font(.system(size: 10, design: .monospaced))
+                .font(.system(size: fontSize - 1, design: .monospaced))
                 .foregroundStyle(.tertiary)
 
             Spacer()
 
             if result.isSuccess {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.green)
             }
         }

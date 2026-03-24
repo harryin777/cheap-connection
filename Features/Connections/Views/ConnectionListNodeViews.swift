@@ -10,6 +10,7 @@ import SwiftUI
 // MARK: - Connection Node
 
 struct ConnectionListNodeView: View {
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
     let config: ConnectionConfig
     let isExpanded: Bool
     let isLoading: Bool
@@ -40,7 +41,7 @@ struct ConnectionListNodeView: View {
                     .frame(width: 14)
 
                 Text(config.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: CGFloat(settingsRepo.settings.connectionTreeFontSize), weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
@@ -86,6 +87,7 @@ struct ConnectionListNodeView: View {
 // MARK: - Database Node
 
 struct ConnectionListDatabaseNodeView: View {
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
     let database: MySQLDatabaseSummary
     let databaseKey: String
     let isExpanded: Bool
@@ -113,7 +115,7 @@ struct ConnectionListDatabaseNodeView: View {
                     .frame(width: 14)
 
                 Text(database.name)
-                    .font(.system(size: 13))
+                    .font(.system(size: CGFloat(settingsRepo.settings.connectionTreeFontSize)))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
@@ -145,6 +147,7 @@ struct ConnectionListDatabaseNodeView: View {
 // MARK: - Tables Folder Node
 
 struct ConnectionListTablesFolderView: View {
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
     let database: MySQLDatabaseSummary
     let isExpanded: Bool
     let isLoading: Bool
@@ -170,7 +173,7 @@ struct ConnectionListTablesFolderView: View {
                     .frame(width: 14)
 
                 Text("tables")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: CGFloat(settingsRepo.settings.connectionTreeFontSize), weight: .medium))
                     .foregroundStyle(.primary)
 
                 Spacer(minLength: 8)
@@ -196,6 +199,7 @@ struct ConnectionListTablesFolderView: View {
 // MARK: - Table Row
 
 struct ConnectionListTableRowView: View {
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
     let table: MySQLTableSummary
     let isSelected: Bool
     let leading: CGFloat
@@ -216,7 +220,7 @@ struct ConnectionListTableRowView: View {
                 .frame(width: 14)
 
             Text(table.name)
-                .font(.system(size: 13))
+                .font(.system(size: CGFloat(settingsRepo.settings.connectionTreeFontSize)))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
 

@@ -14,6 +14,8 @@ struct RedisEditorView: View {
     let serverVersion: String?
     let selectedDatabase: Int?
 
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
+
     // MARK: - Callbacks
     let onExecute: (String) async -> Void
 
@@ -77,9 +79,11 @@ struct RedisEditorView: View {
     // MARK: - Editor View
 
     var editorView: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return VStack(alignment: .leading, spacing: 0) {
             TextEditor(text: $commandText)
-                .font(.system(size: 12, design: .monospaced))
+                .font(.system(size: CGFloat(SettingsRepository.shared.settings.redisConsoleFontSize), design: .monospaced))
                 .padding(8)
                 .focused($isInputFocused)
                 .background(Color(nsColor: .textBackgroundColor))
@@ -87,13 +91,13 @@ struct RedisEditorView: View {
 
             HStack {
                 Text("Cmd+Enter 执行 | 输入 Redis 命令如 GET key, SET key value")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.tertiary)
 
                 Spacer()
 
                 Text("\(commandText.components(separatedBy: .newlines).filter { !$0.isEmpty }.count) 行")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 8)

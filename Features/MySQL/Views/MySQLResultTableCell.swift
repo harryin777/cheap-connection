@@ -11,6 +11,7 @@ import SwiftUI
 
 /// 数据单元格视图
 struct ResultDataCellView: View {
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
     let value: MySQLRowValue
     let rowIndex: Int
     let columnIndex: Int
@@ -35,7 +36,7 @@ struct ResultDataCellView: View {
                     get: { editingText },
                     set: { _ in }
                 ))
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: CGFloat(settingsRepo.settings.dataViewFontSize), design: .monospaced))
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 6)
                     .focused(isEditingFocused)
@@ -47,11 +48,11 @@ struct ResultDataCellView: View {
                     }
             } else if value.isNull {
                 Text("NULL")
-                    .font(.system(size: 11, design: .monospaced).italic())
+                    .font(.system(size: CGFloat(settingsRepo.settings.dataViewFontSize), design: .monospaced).italic())
                     .foregroundStyle(.tertiary)
             } else {
                 Text(displayText)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: CGFloat(settingsRepo.settings.dataViewFontSize), design: .monospaced))
                     .foregroundStyle(.primary)
             }
         }

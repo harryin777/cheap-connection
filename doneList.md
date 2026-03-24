@@ -463,6 +463,17 @@
   - MySQL: 蓝色 cylinder 图标
   - Redis: 红色 memorybox 图标
 
+### 4.7 标签栏/状态栏字体大小可调整
+- [x] 2026-03-24: 新增 `tabBarFontSize` 设置项（默认 11pt）
+- [x] 2026-03-24: 设置 > 外观中添加"标签栏/状态栏"字体大小调整控件
+- [x] 2026-03-24: 为多个视图添加 `@ObservedObject` 监听设置变化
+  - WorkspaceTabBar, MySQLResultView, MySQLEditorView
+  - RedisConsoleView, RedisEditorView
+- [x] 2026-03-24: 修复表格表头和行号字体响应设置变化
+  - ResultPinnedHeaderView: 表头字体使用 tabBarFontSize
+  - ResultDataRowView: 行号字体使用 tabBarFontSize
+  - 分页控件、状态栏、工具栏等均已支持响应式更新
+
 ---
 
 ## 格式说明

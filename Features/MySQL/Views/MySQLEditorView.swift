@@ -11,6 +11,7 @@ import SwiftUI
 struct MySQLEditorView: View {
     @Binding var sqlText: String
     let history: [String]
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
 
     // MARK: - Query Context
     let queryConnectionId: UUID
@@ -56,13 +57,21 @@ struct MySQLEditorView: View {
 
     // MARK: - Computed Properties
 
+    var editorFontSize: CGFloat {
+        CGFloat(settingsRepo.settings.editorFontSize)
+    }
+
+    var tabBarFontSize: CGFloat {
+        CGFloat(settingsRepo.settings.tabBarFontSize)
+    }
+
     /// 当前查询连接是否为 Redis
     var isCurrentConnectionRedis: Bool {
         availableConnections.first { $0.id == queryConnectionId }?.databaseKind == .redis
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        return VStack(spacing: 0) {
             toolbarView
 
             if !editorTabs.isEmpty {
@@ -120,9 +129,10 @@ struct MySQLEditorView: View {
     }
 
     var editorView: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        return VStack(alignment: .leading, spacing: 0) {
             SQLEditorTextView(
                 text: $sqlText,
+                editorFontSize: editorFontSize,
                 requestedCursorPosition: requestedCursorPosition,
                 onSelectionChange: { range, _ in
                     selectedTextRange = range
@@ -142,13 +152,13 @@ struct MySQLEditorView: View {
 
             HStack {
                 Text("Cmd+Enter execute | Tab complete")
-                    .font(.system(size: 10))
+                    .font(.system(size: max(9, tabBarFontSize - 1)))
                     .foregroundStyle(.tertiary)
 
                 Spacer()
 
                 Text("\(sqlText.components(separatedBy: .newlines).filter { !$0.isEmpty }.count) lines")
-                    .font(.system(size: 10))
+                    .font(.system(size: max(9, tabBarFontSize - 1)))
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 8)

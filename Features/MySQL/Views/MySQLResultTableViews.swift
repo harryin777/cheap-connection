@@ -11,6 +11,7 @@ import SwiftUI
 
 /// 固定表头行
 struct ResultPinnedHeaderView: View {
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
     let columns: [String]
     @Binding var columnWidths: [CGFloat]
     let renderWidths: [CGFloat]
@@ -23,10 +24,12 @@ struct ResultPinnedHeaderView: View {
     private let dividerWidth: CGFloat = 1
 
     var body: some View {
-        HStack(spacing: 0) {
+        let fontSize = CGFloat(settingsRepo.settings.dataViewFontSize)
+
+        return HStack(spacing: 0) {
             // 行号列
             Text("#")
-                .font(.system(size: 10, design: .monospaced))
+                .font(.system(size: fontSize - 1, design: .monospaced))
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
                 .frame(width: rowNumberWidth, alignment: .center)
@@ -38,7 +41,7 @@ struct ResultPinnedHeaderView: View {
             // 数据列
             ForEach(Array(columns.indices), id: \.self) { columnIndex in
                 Text(columns[columnIndex])
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.system(size: fontSize - 1, design: .monospaced))
                     .fontWeight(.semibold)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -82,6 +85,7 @@ struct ResultPinnedHeaderView: View {
 
 /// 数据行视图
 struct ResultDataRowView: View {
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
     let row: [MySQLRowValue]
     let rowIndex: Int
     let columnWidths: [CGFloat]
@@ -100,10 +104,12 @@ struct ResultDataRowView: View {
     private let dividerWidth: CGFloat = 1
 
     var body: some View {
-        HStack(spacing: 0) {
+        let fontSize = CGFloat(settingsRepo.settings.dataViewFontSize)
+
+        return HStack(spacing: 0) {
             // 行号
             Text("\(rowIndex + 1)")
-                .font(.system(size: 10, design: .monospaced))
+                .font(.system(size: fontSize - 1, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .frame(width: rowNumberWidth, alignment: .center)
                 .background(rowBackgroundColor(rowIndex))

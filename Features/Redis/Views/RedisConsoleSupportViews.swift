@@ -10,9 +10,11 @@ import SwiftUI
 extension RedisConsoleView {
     @ViewBuilder
     var toolbarView: some View {
-        HStack(spacing: 12) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return HStack(spacing: 12) {
             Label("命令控制台", systemImage: "terminal")
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: fontSize + 1, weight: .medium))
 
             Spacer()
 
@@ -21,9 +23,9 @@ extension RedisConsoleView {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 10))
+                        .font(.system(size: fontSize - 1))
                     Text("执行")
-                        .font(.system(size: 11))
+                        .font(.system(size: fontSize))
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -35,7 +37,7 @@ extension RedisConsoleView {
                 showHistory.toggle()
             } label: {
                 Image(systemName: showHistory ? "clock.fill" : "clock")
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
             }
             .buttonStyle(.plain)
             .help("命令历史")
@@ -44,7 +46,7 @@ extension RedisConsoleView {
                 clearAll()
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
             }
             .buttonStyle(.plain)
             .help("清空")
@@ -56,22 +58,24 @@ extension RedisConsoleView {
 
     @ViewBuilder
     var inputView: some View {
-        VStack(spacing: 0) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return VStack(spacing: 0) {
             TextEditor(text: $commandText)
-                .font(.system(size: 12, design: .monospaced))
+                .font(.system(size: CGFloat(SettingsRepository.shared.settings.redisConsoleFontSize), design: .monospaced))
                 .padding(8)
                 .focused($isInputFocused)
                 .background(Color(nsColor: .textBackgroundColor))
 
             HStack {
                 Text("提示: 输入 Redis 命令，如 GET key, SET key value")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.tertiary)
 
                 Spacer()
 
                 Text("⌘↵ 执行")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 8)
@@ -87,15 +91,17 @@ extension RedisConsoleView {
 
     @ViewBuilder
     var historyOverlay: some View {
-        VStack(spacing: 0) {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return VStack(spacing: 0) {
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 10))
+                    .font(.system(size: fontSize - 1))
                     .foregroundStyle(.secondary)
 
                 TextField("搜索历史...", text: $historyFilter)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
             }
             .padding(8)
             .background(Color(nsColor: .controlBackgroundColor))
@@ -110,7 +116,7 @@ extension RedisConsoleView {
                         .foregroundStyle(.tertiary)
 
                     Text("暂无历史命令")
-                        .font(.system(size: 11))
+                        .font(.system(size: fontSize))
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -132,14 +138,16 @@ extension RedisConsoleView {
 
     @ViewBuilder
     func historyRow(_ command: String, index: Int) -> some View {
-        HStack {
+        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+
+        return HStack {
             Text("\(index + 1)")
-                .font(.system(size: 10, design: .monospaced))
+                .font(.system(size: fontSize - 1, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .frame(width: 30, alignment: .trailing)
 
             Text(command)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: fontSize, design: .monospaced))
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .foregroundStyle(.primary)
@@ -168,7 +176,7 @@ extension RedisConsoleView {
                 ProgressView()
                     .controlSize(.regular)
                 Text("执行中...")
-                    .font(.system(size: 12))
+                    .font(.system(size: CGFloat(SettingsRepository.shared.settings.tabBarFontSize) + 1))
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

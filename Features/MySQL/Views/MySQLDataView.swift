@@ -15,6 +15,7 @@ struct MySQLDataView: View {
     let onLoadPage: (Int) async -> Void
     let onRefresh: () async -> Void
     var onCellEdit: ((Int, Int, String) async -> Void)? = nil  // rowIndex, columnIndex, newValue
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,7 +54,7 @@ struct MySQLDataView: View {
                 }
             } label: {
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 12))
+                    .font(.system(size: CGFloat(settingsRepo.settings.tabBarFontSize)))
             }
             .buttonStyle(.plain)
             .help("刷新数据")
@@ -82,6 +83,8 @@ struct MySQLDataView: View {
 
     @ViewBuilder
     private func paginationControls(result: MySQLQueryResult) -> some View {
+        let fontSize = CGFloat(settingsRepo.settings.tabBarFontSize)
+
         HStack(spacing: 4) {
             // 上一页
             Button {
@@ -91,7 +94,7 @@ struct MySQLDataView: View {
                 }
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
             }
@@ -100,7 +103,7 @@ struct MySQLDataView: View {
 
             // 行范围显示
             Text("\(pagination.startRow)-\(pagination.startRow + result.rowCount - 1)")
-                .font(.system(size: 10, design: .monospaced))
+                .font(.system(size: max(9, fontSize - 1), design: .monospaced))
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 50)
 
@@ -112,7 +115,7 @@ struct MySQLDataView: View {
                 }
             } label: {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                    .font(.system(size: fontSize))
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
             }
@@ -121,7 +124,7 @@ struct MySQLDataView: View {
 
             // 行数信息
             Text("共 \(pagination.totalCount ?? result.rowCount) 行")
-                .font(.system(size: 10))
+                .font(.system(size: max(9, fontSize - 1)))
                 .foregroundStyle(.tertiary)
         }
     }

@@ -10,6 +10,7 @@ import SwiftUI
 /// 工作区标签栏
 struct WorkspaceTabBar: View {
     @Environment(ConnectionManager.self) private var connectionManager
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
 
     var body: some View {
         // WorkspaceSession 标签栏，只显示用户显式打开（双击）的工作区
@@ -41,6 +42,7 @@ struct WorkspaceTabBar: View {
     @ViewBuilder
     private func tabItem(session: WorkspaceSession, config: ConnectionConfig) -> some View {
         let isActive = session.id == connectionManager.workspaceManager.activeWorkspaceId
+        let fontSize = CGFloat(settingsRepo.settings.tabBarFontSize)
 
         HStack(spacing: 0) {
             Button {
@@ -49,11 +51,11 @@ struct WorkspaceTabBar: View {
                 HStack(spacing: 6) {
                     // 数据库类型图标
                     Image(systemName: iconForKind(session.kind))
-                        .font(.system(size: 10))
+                        .font(.system(size: fontSize - 1))
                         .foregroundStyle(isActive ? Color.accentColor : .secondary)
 
                     Text(config.name)
-                        .font(.system(size: 11))
+                        .font(.system(size: fontSize))
                         .lineLimit(1)
                         .foregroundStyle(.primary)
                 }
@@ -68,7 +70,7 @@ struct WorkspaceTabBar: View {
                 connectionManager.workspaceManager.closeWorkspace(session.id)
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: fontSize + 1))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(isActive ? .secondary : .tertiary)
                     .frame(width: 20, height: 20)
