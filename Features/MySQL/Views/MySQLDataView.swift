@@ -92,16 +92,11 @@ struct MySQLDataView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 11))
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
             }
-            // GPT TODO: 这里左右翻页按钮“很难按中”的直接原因不是分页逻辑，而是交互热区太小。
-            // 当前 plain button 的 label 只有一个 11pt 的 chevron，没有额外 padding、min frame 或 contentShape，
-            // 实际可点击区域几乎就贴着图标本身。glm5 修这个问题时不能只把图标字号从 11 改到 12/13，
-            // 那样命中率提升非常有限；应该显式给按钮增加最小点击尺寸（例如 20~24pt 高宽）和稳定 hit area。
             .buttonStyle(.plain)
             .disabled(!pagination.hasPrevious)
-            // GPT NOTE: 这里还要注意保持视觉紧凑和交互热区分离：
-            // 可以让图标看起来仍然小，但外层 frame/contentShape 更大。否则会在密集工具栏里继续出现
-            // “视觉上像按钮、实际上很难点中”的问题。
 
             // 行范围显示
             Text("\(pagination.startRow)-\(pagination.startRow + result.rowCount - 1)")
@@ -118,10 +113,9 @@ struct MySQLDataView: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11))
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
             }
-            // GPT TODO: 右翻页按钮和左翻页按钮是同一类问题，不能只修左边。
-            // 这里同样缺少 padding / min frame / contentShape，导致用户必须非常精准地点到小 chevron 图标。
-            // glm5 需要把左右两个翻页按钮抽成同一套 hit area 规则，避免一边修了另一边继续难点。
             .buttonStyle(.plain)
             .disabled(!pagination.hasNext)
 
