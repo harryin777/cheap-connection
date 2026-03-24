@@ -26,7 +26,6 @@
 		4A915A5D2F690E6E00D0780D /* RedisValueConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A915A5B2F690E6E00D0780D /* RedisValueConverter.swift */; };
 		4A915A5E2F690E6E00D0780D /* RedisErrorMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A915A592F690E6E00D0780D /* RedisErrorMapper.swift */; };
 		4A915A5F2F690E6E00D0780D /* RedisClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A915A562F690E6E00D0780D /* RedisClient.swift */; };
-		4A915A602F690E6E00D0780D /* RedisClientCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A915A572F690E6E00D0780D /* RedisClientCommands.swift */; };
 		4A915A612F690E6E00D0780D /* RedisRiskDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A915A5A2F690E6E00D0780D /* RedisRiskDetector.swift */; };
 		4A915A6A2F690E9200D0780D /* RedisCommandResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A915A622F690E9200D0780D /* RedisCommandResult.swift */; };
 		4A915A6B2F690E9200D0780D /* RedisKeyDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A915A642F690E9200D0780D /* RedisKeyDetail.swift */; };
@@ -82,6 +81,7 @@
 		5A3B8C9D1E2F4A5678901234 /* ConnectionListDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4C9DAE2F3A5B6789012345 /* ConnectionListDataLoader.swift */; };
 		5D6E7F8A9B0C1234567890AB /* ConnectionStateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E7F8A9B0C1D23456789012C /* ConnectionStateViews.swift */; };
 		6E7F8A9B0C123456789012CD /* SQLFileOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8A9B0C1D234567890123D /* SQLFileOperations.swift */; };
+		CONNLISTSUPPORT001 /* ConnectionListSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CONNLISTSUPPORT002 /* ConnectionListSupportViews.swift */; };
 		76BD3BE1028F4E7EB20084AC /* MySQLSidebarNodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9F3CB20F454108A3438F22 /* MySQLSidebarNodeViews.swift */; };
 		7C5DAEBF304B6C7890123456 /* ConnectionListRowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D6EBFC0415C7D8901234567 /* ConnectionListRowViews.swift */; };
 		7D3A8B9C2E7F4A1582C1D0B /* ConnectionListNodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E4B9CD3F6A25B2693E2C1F /* ConnectionListNodeViews.swift */; };
@@ -95,8 +95,26 @@
 		AA11AA11AA11AA11AA11AA07 /* MySQLWorkspaceConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */; };
 		AA11AA11AA11AA11AA11AA0B /* MySQLWorkspaceFileTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */; };
 		AA11AA11AA11AA11AA11AA0D /* MySQLWorkspaceQueryContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */; };
+		MYSQLRESULTSUPPORT001 /* MySQLResultViewSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = MYSQLRESULTSUPPORT002 /* MySQLResultViewSupport.swift */; };
+		RIGHTPANELCONTENT001 /* MySQLRightPanelContentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = RIGHTPANELCONTENT002 /* MySQLRightPanelContentViews.swift */; };
+		RIGHTPANELREDIS001 /* MySQLRightPanelRedisBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = RIGHTPANELREDIS002 /* MySQLRightPanelRedisBridge.swift */; };
 		RIGHTPANEL001 /* MySQLRightPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = RIGHTPANEL002 /* MySQLRightPanelView.swift */; };
 		RIGHTPANEL003 /* MySQLRightPanelOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = RIGHTPANEL004 /* MySQLRightPanelOperations.swift */; };
+		REDISCLIENTEXEC001 /* RedisClientExecution.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCLIENTEXEC002 /* RedisClientExecution.swift */; };
+		REDISCLIENTKEY001 /* RedisClientKeyCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCLIENTKEY002 /* RedisClientKeyCommands.swift */; };
+		REDISCLIENTSERVER001 /* RedisClientServerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCLIENTSERVER002 /* RedisClientServerInfo.swift */; };
+		REDISCLIENTVALUE001 /* RedisClientValueCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCLIENTVALUE002 /* RedisClientValueCommands.swift */; };
+		REDISCOLLECTION001 /* RedisCollectionValueViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCOLLECTION002 /* RedisCollectionValueViews.swift */; };
+		REDISCOMMANDRESULT001 /* RedisCommandResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCOMMANDRESULT002 /* RedisCommandResultView.swift */; };
+		REDISCOMMANDSUPPORT001 /* RedisCommandSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCOMMANDSUPPORT002 /* RedisCommandSupport.swift */; };
+		REDISCONSOLESUPPORT001 /* RedisConsoleSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISCONSOLESUPPORT002 /* RedisConsoleSupportViews.swift */; };
+		REDISEDITORHISTORY001 /* RedisEditorHistoryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISEDITORHISTORY002 /* RedisEditorHistoryPanel.swift */; };
+		REDISEDITORTOOLBAR001 /* RedisEditorToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISEDITORTOOLBAR002 /* RedisEditorToolbar.swift */; };
+		REDISHASHVALUE001 /* RedisHashValueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISHASHVALUE002 /* RedisHashValueView.swift */; };
+		REDISSTRINGVALUE001 /* RedisStringValueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISSTRINGVALUE002 /* RedisStringValueView.swift */; };
+		REDISWORKSPACEACTIONS001 /* RedisWorkspaceActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISWORKSPACEACTIONS002 /* RedisWorkspaceActions.swift */; };
+		REDISWORKSPACECONTENT001 /* RedisWorkspaceContentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISWORKSPACECONTENT002 /* RedisWorkspaceContentViews.swift */; };
+		REDISWORKSPACEENUMS001 /* RedisWorkspaceEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = REDISWORKSPACEENUMS002 /* RedisWorkspaceEnums.swift */; };
 		ACB26D133F5941E298D83B9A /* MySQLValueConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B27C3676CC4B41B57E548B /* MySQLValueConverter.swift */; };
 		B51AEA4A88A14C53885F4D73 /* MySQLResultTableCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDD099183F745F8B682188D /* MySQLResultTableCell.swift */; };
 		BB22BB22BB22BB22BB22BB01 /* MySQLClientQueries.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22BB22BB22BB22BB22BB02 /* MySQLClientQueries.swift */; };
@@ -122,7 +140,6 @@
 		3dd67efc70734c8db37616a5 /* SQLPreprocessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLPreprocessor.swift; sourceTree = "<group>"; };
 		4A2E660B2F60294300E9C832 /* cheap-connection.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "cheap-connection.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A915A562F690E6E00D0780D /* RedisClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClient.swift; sourceTree = "<group>"; };
-		4A915A572F690E6E00D0780D /* RedisClientCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClientCommands.swift; sourceTree = "<group>"; };
 		4A915A582F690E6E00D0780D /* RedisClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClientProtocol.swift; sourceTree = "<group>"; };
 		4A915A592F690E6E00D0780D /* RedisErrorMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisErrorMapper.swift; sourceTree = "<group>"; };
 		4A915A5A2F690E6E00D0780D /* RedisRiskDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisRiskDetector.swift; sourceTree = "<group>"; };
@@ -201,15 +218,34 @@
 		AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceConnection.swift; sourceTree = "<group>"; };
 		AA11AA11AA11AA11AA11AA0C /* MySQLWorkspaceFileTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceFileTabs.swift; sourceTree = "<group>"; };
 		AA11AA11AA11AA11AA11AA0E /* MySQLWorkspaceQueryContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLWorkspaceQueryContext.swift; sourceTree = "<group>"; };
+		CONNLISTSUPPORT002 /* ConnectionListSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListSupportViews.swift; sourceTree = "<group>"; };
+		MYSQLRESULTSUPPORT002 /* MySQLResultViewSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLResultViewSupport.swift; sourceTree = "<group>"; };
 		RIGHTPANEL002 /* MySQLRightPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLRightPanelView.swift; sourceTree = "<group>"; };
 		RIGHTPANEL004 /* MySQLRightPanelOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLRightPanelOperations.swift; sourceTree = "<group>"; };
+		RIGHTPANELCONTENT002 /* MySQLRightPanelContentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLRightPanelContentViews.swift; sourceTree = "<group>"; };
+		RIGHTPANELREDIS002 /* MySQLRightPanelRedisBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLRightPanelRedisBridge.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6A78901234567 /* MySQLQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLQueries.swift; sourceTree = "<group>"; };
 		BB22BB22BB22BB22BB22BB02 /* MySQLClientQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLClientQueries.swift; sourceTree = "<group>"; };
 		BB22BB22BB22BB22BB22BB04 /* ConnectionListInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionListInteractions.swift; sourceTree = "<group>"; };
 		CD9F3CB20F454108A3438F22 /* MySQLSidebarNodeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLSidebarNodeViews.swift; sourceTree = "<group>"; };
 		F3569CB1ABD94510843C6E04 /* MySQLResultTableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLResultTableViews.swift; sourceTree = "<group>"; };
 		a0cd5009bfe64ad9bbc42f55 /* SQLEditorContextSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLEditorContextSelector.swift; sourceTree = "<group>"; };
-72B43748E258FAF957499699 /* RedisConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisConsoleView.swift; sourceTree = "<group>"; };
+		72B43748E258FAF957499699 /* RedisConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisConsoleView.swift; sourceTree = "<group>"; };
+		REDISCLIENTEXEC002 /* RedisClientExecution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClientExecution.swift; sourceTree = "<group>"; };
+		REDISCLIENTKEY002 /* RedisClientKeyCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClientKeyCommands.swift; sourceTree = "<group>"; };
+		REDISCLIENTSERVER002 /* RedisClientServerInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClientServerInfo.swift; sourceTree = "<group>"; };
+		REDISCLIENTVALUE002 /* RedisClientValueCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClientValueCommands.swift; sourceTree = "<group>"; };
+		REDISCOLLECTION002 /* RedisCollectionValueViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisCollectionValueViews.swift; sourceTree = "<group>"; };
+		REDISCOMMANDRESULT002 /* RedisCommandResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisCommandResultView.swift; sourceTree = "<group>"; };
+		REDISCOMMANDSUPPORT002 /* RedisCommandSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisCommandSupport.swift; sourceTree = "<group>"; };
+		REDISCONSOLESUPPORT002 /* RedisConsoleSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisConsoleSupportViews.swift; sourceTree = "<group>"; };
+		REDISEDITORHISTORY002 /* RedisEditorHistoryPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisEditorHistoryPanel.swift; sourceTree = "<group>"; };
+		REDISEDITORTOOLBAR002 /* RedisEditorToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisEditorToolbar.swift; sourceTree = "<group>"; };
+		REDISHASHVALUE002 /* RedisHashValueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisHashValueView.swift; sourceTree = "<group>"; };
+		REDISSTRINGVALUE002 /* RedisStringValueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisStringValueView.swift; sourceTree = "<group>"; };
+		REDISWORKSPACEACTIONS002 /* RedisWorkspaceActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisWorkspaceActions.swift; sourceTree = "<group>"; };
+		REDISWORKSPACECONTENT002 /* RedisWorkspaceContentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisWorkspaceContentViews.swift; sourceTree = "<group>"; };
+		REDISWORKSPACEENUMS002 /* RedisWorkspaceEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisWorkspaceEnums.swift; sourceTree = "<group>"; };
 		SPLITVIEW001 /* SplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitView.swift; sourceTree = "<group>"; };
 		REDISEDITOR001 /* RedisEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisEditorView.swift; sourceTree = "<group>"; };
 		UNIFIED001 /* UnifiedWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedWorkspaceView.swift; sourceTree = "<group>"; };
@@ -318,6 +354,7 @@
 				55dbd64c862446daaef4c3dc /* SQLEditorAutocompleteOverlay.swift */,
 				a0cd5009bfe64ad9bbc42f55 /* SQLEditorContextSelector.swift */,
 				4AB0F82A2F61135A0027A24E /* MySQLResultView.swift */,
+				MYSQLRESULTSUPPORT002 /* MySQLResultViewSupport.swift */,
 				F3569CB1ABD94510843C6E04 /* MySQLResultTableViews.swift */,
 				0DDD099183F745F8B682188D /* MySQLResultTableCell.swift */,
 				4AB0F82B2F61135A0027A24E /* MySQLSidebarView.swift */,
@@ -326,6 +363,8 @@
 				4AB0F82D2F61135A0027A24E /* MySQLWorkspaceView.swift */,
 				RIGHTPANEL002 /* MySQLRightPanelView.swift */,
 				RIGHTPANEL004 /* MySQLRightPanelOperations.swift */,
+				RIGHTPANELCONTENT002 /* MySQLRightPanelContentViews.swift */,
+				RIGHTPANELREDIS002 /* MySQLRightPanelRedisBridge.swift */,
 				4D5E6F7A8B9C012345678901 /* WorkspaceEnums.swift */,
 				6E7F8A9B0C1D23456789012C /* ConnectionStateViews.swift */,
 				AA11AA11AA11AA11AA11AA08 /* MySQLWorkspaceConnection.swift */,
@@ -341,12 +380,23 @@
 			isa = PBXGroup;
 			children = (
 				4AB0F83E2F6113760027A24E /* RedisWorkspaceView.swift */,
+				REDISWORKSPACEENUMS002 /* RedisWorkspaceEnums.swift */,
+				REDISWORKSPACECONTENT002 /* RedisWorkspaceContentViews.swift */,
+				REDISWORKSPACEACTIONS002 /* RedisWorkspaceActions.swift */,
 				0F77FBE9F85E4B82A68EC55F /* RedisKeyListView.swift */,
 				D9FCB9D74FEE4842A06DF689 /* RedisKeyDetailHeaderView.swift */,
 				CDA117B7222344B588A0A657 /* RedisValueViews.swift */,
+				REDISSTRINGVALUE002 /* RedisStringValueView.swift */,
+				REDISHASHVALUE002 /* RedisHashValueView.swift */,
+				REDISCOLLECTION002 /* RedisCollectionValueViews.swift */,
+				REDISCOMMANDSUPPORT002 /* RedisCommandSupport.swift */,
+				REDISCOMMANDRESULT002 /* RedisCommandResultView.swift */,
 				72B43748E258FAF957499699 /* RedisConsoleView.swift */,
+				REDISCONSOLESUPPORT002 /* RedisConsoleSupportViews.swift */,
 				REDISEDITOR001 /* RedisEditorView.swift */,
-);
+				REDISEDITORTOOLBAR002 /* RedisEditorToolbar.swift */,
+				REDISEDITORHISTORY002 /* RedisEditorHistoryPanel.swift */,
+			);
 			path = Views;
 			sourceTree = "<group>";
 		};
@@ -414,7 +464,10 @@
 			isa = PBXGroup;
 			children = (
 				4A915A562F690E6E00D0780D /* RedisClient.swift */,
-				4A915A572F690E6E00D0780D /* RedisClientCommands.swift */,
+				REDISCLIENTKEY002 /* RedisClientKeyCommands.swift */,
+				REDISCLIENTVALUE002 /* RedisClientValueCommands.swift */,
+				REDISCLIENTEXEC002 /* RedisClientExecution.swift */,
+				REDISCLIENTSERVER002 /* RedisClientServerInfo.swift */,
 				4A915A582F690E6E00D0780D /* RedisClientProtocol.swift */,
 				4A915A592F690E6E00D0780D /* RedisErrorMapper.swift */,
 				4A915A5A2F690E6E00D0780D /* RedisRiskDetector.swift */,
@@ -562,6 +615,7 @@
 				4AB8270E2F60300000BC4BE6 /* ConnectionListView.swift */,
 				BB22BB22BB22BB22BB22BB04 /* ConnectionListInteractions.swift */,
 				8E4B9CD3F6A25B2693E2C1F /* ConnectionListNodeViews.swift */,
+				CONNLISTSUPPORT002 /* ConnectionListSupportViews.swift */,
 				6B4C9DAE2F3A5B6789012345 /* ConnectionListDataLoader.swift */,
 				8D6EBFC0415C7D8901234567 /* ConnectionListRowViews.swift */,
 				4AB827102F60300000BC4BE6 /* ConnectionRowView.swift */,
@@ -693,7 +747,10 @@
 				4A915A5D2F690E6E00D0780D /* RedisValueConverter.swift in Sources */,
 				4A915A5E2F690E6E00D0780D /* RedisErrorMapper.swift in Sources */,
 				4A915A5F2F690E6E00D0780D /* RedisClient.swift in Sources */,
-				4A915A602F690E6E00D0780D /* RedisClientCommands.swift in Sources */,
+				REDISCLIENTKEY001 /* RedisClientKeyCommands.swift in Sources */,
+				REDISCLIENTVALUE001 /* RedisClientValueCommands.swift in Sources */,
+				REDISCLIENTEXEC001 /* RedisClientExecution.swift in Sources */,
+				REDISCLIENTSERVER001 /* RedisClientServerInfo.swift in Sources */,
 				4A915A612F690E6E00D0780D /* RedisRiskDetector.swift in Sources */,
 				4AB0F8422F6113930027A24E /* OrderDirection.swift in Sources */,
 				4AB0F80B2F6111D70027A24E /* MySQLClientProtocol.swift in Sources */,
@@ -707,14 +764,23 @@
 				4AB0F8312F61135A0027A24E /* MySQLQueryResult.swift in Sources */,
 				4AB0F8322F61135A0027A24E /* MySQLStructureView.swift in Sources */,
 				4AB0F8402F6113760027A24E /* RedisWorkspaceView.swift in Sources */,
+				REDISWORKSPACEENUMS001 /* RedisWorkspaceEnums.swift in Sources */,
+				REDISWORKSPACECONTENT001 /* RedisWorkspaceContentViews.swift in Sources */,
+				REDISWORKSPACEACTIONS001 /* RedisWorkspaceActions.swift in Sources */,
 				CE7FDC6A75DD446BAF8F15A5 /* RedisKeyListView.swift in Sources */,
 				93570AC33AEC4DE8A5240F24 /* RedisKeyDetailHeaderView.swift in Sources */,
 				EFC886148E764D49B9C06892 /* RedisValueViews.swift in Sources */,
+				REDISSTRINGVALUE001 /* RedisStringValueView.swift in Sources */,
+				REDISHASHVALUE001 /* RedisHashValueView.swift in Sources */,
+				REDISCOLLECTION001 /* RedisCollectionValueViews.swift in Sources */,
+				REDISCOMMANDSUPPORT001 /* RedisCommandSupport.swift in Sources */,
+				REDISCOMMANDRESULT001 /* RedisCommandResultView.swift in Sources */,
 
 				4AB0F8332F61135A0027A24E /* MySQLDataView.swift in Sources */,
 				4AB0F8342F61135A0027A24E /* MySQLColumnDefinition.swift in Sources */,
 				4AB0F8352F61135A0027A24E /* SQLRiskLevel.swift in Sources */,
 				4AB0F8362F61135A0027A24E /* MySQLResultView.swift in Sources */,
+				MYSQLRESULTSUPPORT001 /* MySQLResultViewSupport.swift in Sources */,
 				29BCEECE3C0942CFA63F74D7 /* MySQLResultTableViews.swift in Sources */,
 				B51AEA4A88A14C53885F4D73 /* MySQLResultTableCell.swift in Sources */,
 				4AB0F8372F61135A0027A24E /* MySQLSession.swift in Sources */,
@@ -737,19 +803,25 @@
 				AA11AA11AA11AA11AA11AA0D /* MySQLWorkspaceQueryContext.swift in Sources */,
 				RIGHTPANEL001 /* MySQLRightPanelView.swift in Sources */,
 				RIGHTPANEL003 /* MySQLRightPanelOperations.swift in Sources */,
+				RIGHTPANELCONTENT001 /* MySQLRightPanelContentViews.swift in Sources */,
+				RIGHTPANELREDIS001 /* MySQLRightPanelRedisBridge.swift in Sources */,
 				4AB0F83D2F61135A0027A24E /* MySQLTableSummary.swift in Sources */,
 				4AB8270F2F60300000BC4BE6 /* ConnectionListView.swift in Sources */,
 				BB22BB22BB22BB22BB22BB03 /* ConnectionListInteractions.swift in Sources */,
 				4A915A732F690EB200D0780D /* RedisService.swift in Sources */,
 				7D3A8B9C2E7F4A1582C1D0B /* ConnectionListNodeViews.swift in Sources */,
+				CONNLISTSUPPORT001 /* ConnectionListSupportViews.swift in Sources */,
 				5A3B8C9D1E2F4A5678901234 /* ConnectionListDataLoader.swift in Sources */,
 				7C5DAEBF304B6C7890123456 /* ConnectionListRowViews.swift in Sources */,
 				4AB827112F60300000BC4BE6 /* ConnectionRowView.swift in Sources */,
 				4AB827132F60300000BC4BE6 /* ConnectionFormView.swift in Sources */,
 				4AB827152F60300000BC4BE6 /* MainView.swift in Sources */,
 				D526A6F1BD1947F81AACBA29 /* RedisConsoleView.swift in Sources */,
+				REDISCONSOLESUPPORT001 /* RedisConsoleSupportViews.swift in Sources */,
 				SPLITVIEW002 /* SplitView.swift in Sources */,
 				REDISEDITOR002 /* RedisEditorView.swift in Sources */,
+				REDISEDITORTOOLBAR001 /* RedisEditorToolbar.swift in Sources */,
+				REDISEDITORHISTORY001 /* RedisEditorHistoryPanel.swift in Sources */,
 				UNIFIED002 /* UnifiedWorkspaceView.swift in Sources */,
 				WORKSPACETABBAR002 /* WorkspaceTabBar.swift in Sources */,
 );

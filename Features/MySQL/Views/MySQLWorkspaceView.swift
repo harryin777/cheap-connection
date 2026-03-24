@@ -83,7 +83,7 @@ struct MySQLWorkspaceView: View {
         let task = Task {
             await operation()
             await MainActor.run {
-                pendingTasks.removeValue(forKey: taskId)
+                pendingTasks[taskId] = nil
             }
         }
         pendingTasks[taskId] = task

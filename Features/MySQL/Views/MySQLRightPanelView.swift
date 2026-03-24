@@ -157,106 +157,6 @@ struct MySQLRightPanelView: View {
         }
     }
 
-    // MARK: - View Components
-
-    @ViewBuilder
-    private var editorOnlyView: some View {
-        MySQLEditorView(
-            sqlText: $sqlText,
-            history: sqlHistory,
-            queryConnectionId: currentQueryConnectionId,
-            queryConnectionName: currentQueryConnectionName,
-            availableConnections: availableConnections,
-            queryDatabases: queryDatabaseOptions,
-            selectedQueryDatabase: currentQueryDatabase,
-            onSwitchQueryConnection: { switchQueryConnection($0) },
-            onSelectQueryDatabase: { updateQueryDatabase($0) },
-            onExecute: { sql in
-                enqueuePendingTask {
-                    await executeSQL(sql)
-                }
-            },
-            isExecuting: isLoadingSQL,
-            activeWorkspaceTab: nil,
-            onSelectWorkspaceTab: { tab in
-                selectedTab = tab
-                displayMode = .tableDetail(tab)
-            },
-            onImport: { await importSQLFile() },
-            onOpenFile: { await openSQLFile() },
-            onCloseTab: { closeActiveEditorTab() },
-            onSaveFile: { saveSQLFile() },
-            tables: autocompleteTables,
-            columns: autocompleteColumns,
-            editorTabs: editorTabs,
-            activeEditorTabId: activeEditorTabId,
-            onSelectEditorTab: { selectEditorTab($0) },
-            onCloseEditorTab: { closeEditorTab($0) }
-        )
-    }
-
-    @ViewBuilder
-    private var splitView: some View {
-        SplitView(
-            topView: AnyView(
-                MySQLEditorView(
-                    sqlText: $sqlText,
-                    history: sqlHistory,
-                    queryConnectionId: currentQueryConnectionId,
-                    queryConnectionName: currentQueryConnectionName,
-                    availableConnections: availableConnections,
-                    queryDatabases: queryDatabaseOptions,
-                    selectedQueryDatabase: currentQueryDatabase,
-                    onSwitchQueryConnection: { switchQueryConnection($0) },
-                    onSelectQueryDatabase: { updateQueryDatabase($0) },
-                    onExecute: { sql in
-                        enqueuePendingTask {
-                            await executeSQL(sql)
-                        }
-                    },
-                    isExecuting: isLoadingSQL,
-                    // 只在查看表详情时显示 workspace tabs
-                    activeWorkspaceTab: {
-                        if case .tableDetail = displayMode {
-                            return selectedTab
-                        }
-                        return nil
-                    }(),
-                    onSelectWorkspaceTab: { tab in
-                        selectedTab = tab
-                        displayMode = .tableDetail(tab)
-                    },
-                    onImport: { await importSQLFile() },
-                    onOpenFile: { await openSQLFile() },
-                    onCloseTab: { closeActiveEditorTab() },
-                    onSaveFile: { saveSQLFile() },
-                    tables: autocompleteTables,
-                    columns: autocompleteColumns,
-                    editorTabs: editorTabs,
-                    activeEditorTabId: activeEditorTabId,
-                    onSelectEditorTab: { selectEditorTab($0) },
-                    onCloseEditorTab: { closeEditorTab($0) }
-                )
-            ),
-            bottomView: AnyView(bottomContentView),
-            topHeight: $editorHeight,
-            minTopHeight: 120,
-            minBottomHeight: 100
-        )
-    }
-
-    @ViewBuilder
-    private var bottomContentView: some View {
-        switch displayMode {
-        case .editorOnly:
-            EmptyView()
-        case .sqlResult:
-            sqlResultArea
-        case .tableDetail:
-            detailView
-        }
-    }
-
     @ViewBuilder
     var detailView: some View {
         if let table = detailTable, let database = detailDatabase, let connectionId = detailConnectionId {
@@ -269,8 +169,12 @@ struct MySQLRightPanelView: View {
                     pagination: $pagination,
                     isLoading: isLoadingData,
                     onLoadPage: { [self] offset in
+                        let pageSize = pagination.pageSize
+                        let newPage = max(1, (offset / pageSize) + 1)
                         enqueuePendingTask {
-                            pagination.page = max(1, (offset / pagination.pageSize) + 1)
+                            await MainActor.run {
+                                pagination.page = newPage
+                            }
                             await loadTableData(database: database, table: table, connectionId: connectionId)
                         }
                     },
@@ -337,7 +241,7 @@ struct MySQLRightPanelView: View {
         let task = Task {
             await operation()
             await MainActor.run {
-                pendingTasks.removeValue(forKey: taskId)
+                pendingTasks[taskId] = nil
             }
         }
         pendingTasks[taskId] = task
