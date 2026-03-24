@@ -89,3 +89,4 @@ logs/
 *.dSYM.zip
 *.dSYM
 *.app
+*.dmg
