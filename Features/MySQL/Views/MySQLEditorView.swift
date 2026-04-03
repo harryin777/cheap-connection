@@ -50,8 +50,8 @@ struct MySQLEditorView: View {
     @State var cursorRect: CursorRectInfo? = nil
     /// 外部请求的光标位置（用于自动补全后同步）
     @State var requestedCursorPosition: Int?
-    /// 触发补全时的光标位置（用于判断光标是否移出补全词）
-    @State var autocompleteStartPosition: Int?
+    /// 当前补全词的范围（用于判断光标是否仍在当前词内）
+    @State var autocompleteWordRange: NSRange?
 
     let sqlKeywords = SQLKeywords.all
 

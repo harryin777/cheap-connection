@@ -9,7 +9,9 @@ import SwiftUI
 
 extension MySQLEditorView {
     var queryTabBar: some View {
-        HStack(spacing: 0) {
+        let verticalPadding = max(2, tabBarFontSize * 0.25)
+
+        return HStack(spacing: 0) {
             ForEach(editorTabs) { tab in
                 queryTabItem(tab)
             }
@@ -18,11 +20,15 @@ extension MySQLEditorView {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 8)
-        .padding(.vertical, 2)
+        .padding(.vertical, verticalPadding)
         .background(Color(.controlBackgroundColor).opacity(0.5))
     }
 
     func queryTabItem(_ tab: EditorQueryTab) -> some View {
+        let tabMinWidth = max(80, tabBarFontSize * 7)
+        let itemVerticalPadding = max(4, tabBarFontSize * 0.4)
+        let closeButtonSide = max(20, tabBarFontSize + 8)
+
         return HStack(spacing: 0) {
             Button {
                 onSelectEditorTab?(tab.id)
@@ -46,7 +52,7 @@ extension MySQLEditorView {
                 }
                 .padding(.leading, 10)
                 .padding(.trailing, 4)
-                .padding(.vertical, 4)
+                .padding(.vertical, itemVerticalPadding)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -58,12 +64,12 @@ extension MySQLEditorView {
                     .font(.system(size: tabBarFontSize + 1))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(activeEditorTabId == tab.id ? .secondary : .tertiary)
-                    .frame(width: 20, height: 20)
+                    .frame(width: closeButtonSide, height: closeButtonSide)
             }
             .buttonStyle(.plain)
             .padding(.trailing, 6)
         }
-        .frame(minWidth: 80)
+        .frame(minWidth: tabMinWidth)
         .background(activeEditorTabId == tab.id ? Color.accentColor.opacity(0.12) : Color.clear)
         .overlay(
             Rectangle()

@@ -9,6 +9,10 @@ import SwiftUI
 
 extension MySQLEditorView {
     var toolbarView: some View {
+        let primaryButtonSide = max(24, tabBarFontSize + 13)
+        let iconButtonSide = max(20, tabBarFontSize + 9)
+        let toolbarVerticalPadding = max(6, tabBarFontSize * 0.45)
+
         return HStack(spacing: 8) {
             Button {
                 executeSQL()
@@ -16,14 +20,14 @@ extension MySQLEditorView {
                 if isExecuting {
                     ProgressView()
                         .controlSize(.small)
-                        .frame(width: 28, height: 24)
+                        .frame(width: primaryButtonSide, height: primaryButtonSide)
                         .background(Color.gray)
                         .cornerRadius(4)
                 } else {
                     Image(systemName: "play.fill")
                         .font(.system(size: tabBarFontSize + 1, weight: .medium))
                         .foregroundStyle(.white)
-                        .frame(width: 28, height: 24)
+                        .frame(width: primaryButtonSide, height: primaryButtonSide)
                         .background(
                             sqlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                                 ? Color.gray
@@ -43,7 +47,7 @@ extension MySQLEditorView {
             } label: {
                 Image(systemName: showHistory ? "sidebar.right" : "clock.arrow.circlepath")
                     .font(.system(size: tabBarFontSize + 1))
-                    .frame(width: 24, height: 24)
+                    .frame(width: iconButtonSide, height: iconButtonSide)
             }
             .buttonStyle(.plain)
             .help(showHistory ? "隐藏历史" : "显示历史")
@@ -64,7 +68,7 @@ extension MySQLEditorView {
                 Image(systemName: "xmark.circle")
                     .font(.system(size: tabBarFontSize))
                     .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 20)
+                    .frame(width: iconButtonSide, height: iconButtonSide)
             }
             .buttonStyle(.plain)
             .disabled(sqlText.isEmpty)
@@ -76,7 +80,7 @@ extension MySQLEditorView {
                 } label: {
                     Image(systemName: "doc.text")
                         .font(.system(size: tabBarFontSize))
-                        .frame(width: 20, height: 20)
+                        .frame(width: iconButtonSide, height: iconButtonSide)
                 }
                 .buttonStyle(.plain)
                 .help("Open .sql file (import to editor only, no execute)")
@@ -88,7 +92,7 @@ extension MySQLEditorView {
                 } label: {
                     Image(systemName: "play.rectangle")
                         .font(.system(size: tabBarFontSize))
-                        .frame(width: 20, height: 20)
+                        .frame(width: iconButtonSide, height: iconButtonSide)
                 }
                 .buttonStyle(.plain)
                 .help("Import and execute .sql file")
@@ -111,8 +115,9 @@ extension MySQLEditorView {
             contextSelectorsView
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, toolbarVerticalPadding)
         .background(Color(.windowBackgroundColor))
+        .id("mysql-toolbar-\(Int(tabBarFontSize))-\(showHistory)")
     }
 
     var contextSelectorsView: some View {
@@ -152,8 +157,8 @@ extension MySQLEditorView {
                         Text(tab.rawValue)
                             .font(.system(size: tabBarFontSize, weight: .medium))
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, max(12, tabBarFontSize))
+                    .padding(.vertical, max(5, tabBarFontSize * 0.45))
                     .background(activeTab == tab ? Color.accentColor.opacity(0.14) : Color.clear)
                     .overlay(
                         Rectangle()

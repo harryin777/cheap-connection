@@ -38,6 +38,7 @@ struct MySQLRightPanelView: View {
     @State var columns: [MySQLColumnDefinition] = []
     @State var tableDataResult: MySQLQueryResult?
     @State var sqlResult: MySQLQueryResult?
+    @State var formattedSQLResult: String?
     @State var sqlResultConnectionId: UUID?
     @State var sqlResultDatabase: String?
     @State var sqlResultTable: String?
@@ -223,6 +224,8 @@ struct MySQLRightPanelView: View {
     var sqlResultArea: some View {
         if isLoadingSQL {
             LoadingSQLView()
+        } else if let formattedSQLResult {
+            FormattedSQLResultView(sql: formattedSQLResult)
         } else if let sqlResult {
             MySQLResultView(
                 result: sqlResult,
@@ -307,4 +310,53 @@ struct MySQLRightPanelView: View {
         workspaceId: UUID(),
         service: service
     ).frame(width: 900, height: 600)
+}
+
+struct FormattedSQLResultView: View {
+    let sql: String
+    @ObservedObject private var settingsRepo = SettingsRepository.shared
+
+    var body: some View {
+        ScrollView([.horizontal, .vertical]) {
+            Text(highlightedSQL)
+                .font(.system(size: CGFloat(settingsRepo.settings.dataViewFontSize), design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(.textBackgroundColor))
+    }
+
+    private var highlightedSQL: AttributedString {
+        let baseFont = Font.system(size: CGFloat(settingsRepo.settings.dataViewFontSize), design: .monospaced)
+        let defaultColor = Color.primary
+        let keywordColor = Color(red: 0.93, green: 0.62, blue: 0.32)
+        let commentColor = Color(red: 0.42, green: 0.62, blue: 0.46)
+        let stringColor = Color(red: 0.47, green: 0.72, blue: 0.80)
+
+        var attributed = AttributedString(sql)
+        attributed.font = baseFont
+        attributed.foregroundColor = defaultColor
+
+        let nsString = sql as NSString
+        let fullRange = NSRange(location: 0, length: nsString.length)
+
+        func apply(pattern: String, color: Color) {
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { return }
+            regex.enumerateMatches(in: sql, options: [], range: fullRange) { match, _, _ in
+                guard let match, let range = Range(match.range, in: sql),
+                      let attributedRange = Range(range, in: attributed) else { return }
+                attributed[attributedRange].foregroundColor = color
+                attributed[attributedRange].font = baseFont
+            }
+        }
+
+        apply(pattern: #"(?i)\b(create|table|primary|key|unique|constraint|default|not|null|engine|charset|collate|comment|auto_increment|on|update|current_timestamp|int|bigint|varchar|datetime|text|json|decimal|unsigned)\b"#, color: keywordColor)
+        apply(pattern: #"'(?:''|[^'])*'"#, color: stringColor)
+        apply(pattern: #"(?m)(--|#).*$"#, color: commentColor)
+        apply(pattern: #"(?s)/\*.*?\*/"#, color: commentColor)
+
+        return attributed
+    }
 }

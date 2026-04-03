@@ -9,7 +9,8 @@ import SwiftUI
 
 extension MySQLResultView {
     var paginationBar: some View {
-        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+        let fontSize = CGFloat(settingsRepo.settings.tabBarFontSize)
+        let buttonSide = max(22, fontSize + 10)
 
         return HStack(spacing: 8) {
             Button {
@@ -19,6 +20,8 @@ extension MySQLResultView {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: fontSize))
+                    .frame(width: buttonSide, height: buttonSide)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(currentPage <= 1)
@@ -35,6 +38,8 @@ extension MySQLResultView {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: fontSize))
+                    .frame(width: buttonSide, height: buttonSide)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(currentPage >= totalPages)
@@ -54,7 +59,7 @@ extension MySQLResultView {
     }
 
     var statusBarView: some View {
-        let fontSize = CGFloat(SettingsRepository.shared.settings.tabBarFontSize)
+        let fontSize = CGFloat(settingsRepo.settings.tabBarFontSize)
 
         return HStack(spacing: 12) {
             if let rows = result.executionInfo.affectedRows {

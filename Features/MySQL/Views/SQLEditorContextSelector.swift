@@ -15,9 +15,14 @@ struct SQLEditorContextSelectorLabel: View {
     let fontSize: CGFloat
 
     var body: some View {
+        let iconSize = max(10, fontSize)
+        let chevronSize = max(8, fontSize - 2)
+        let horizontalPadding = max(10, fontSize * 0.85)
+        let verticalPadding = max(6, fontSize * 0.45)
+
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: max(9, fontSize - 1), weight: .medium))
+                .font(.system(size: iconSize, weight: .medium))
                 .foregroundStyle(iconColor)
 
             Text(title)
@@ -26,11 +31,11 @@ struct SQLEditorContextSelectorLabel: View {
                 .truncationMode(.tail)
 
             Image(systemName: "chevron.down")
-                .font(.system(size: max(7, fontSize - 3), weight: .semibold))
+                .font(.system(size: chevronSize, weight: .semibold))
                 .foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, horizontalPadding)
+        .padding(.vertical, verticalPadding)
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(Color(.controlBackgroundColor).opacity(0.72))
@@ -92,7 +97,7 @@ struct SQLEditorSchemaMenu: View {
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .id(databases)  // Force refresh when databases change
+        .id("schema-\(fontSize)-\(selectedDatabase ?? "none")-\(databases.joined(separator: ","))")
         .fixedSize()
         .help("当前 Query 执行数据库")
     }
@@ -196,7 +201,7 @@ struct SQLEditorConnectionMenu: View {
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .id("\(selectedConnectionId.uuidString)-\(selectedConnectionName)")  // Force rebuild on any connection change
+        .id("connection-\(fontSize)-\(selectedConnectionId.uuidString)-\(selectedConnectionName)")
         .fixedSize()
         .help("Current query connection")
     }

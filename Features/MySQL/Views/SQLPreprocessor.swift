@@ -81,7 +81,64 @@ enum SQLPreprocessor {
             return "DELETE FROM \(escapedDB).\(quote)\(tableName)\(quote)"
         }
 
+        // 匹配 SHOW CREATE TABLE table_name 模式
+        let showCreatePattern = #/(?i)\bSHOW\s+CREATE\s+TABLE\s+(`?)(\w+)\1(?!\s*\.)/#
+        result = result.replacing(showCreatePattern) { match in
+            let quote = match.output.1
+            let tableName = match.output.2
+            return "SHOW CREATE TABLE \(escapedDB).\(quote)\(tableName)\(quote)"
+        }
+
+        // 匹配 DESC/DESCRIBE table_name 模式
+        let describePattern = #/(?i)\b(DESC|DESCRIBE)\s+(`?)(\w+)\2(?!\s*\.)/#
+        result = result.replacing(describePattern) { match in
+            let keyword = match.output.1
+            let quote = match.output.2
+            let tableName = match.output.3
+            return "\(keyword) \(escapedDB).\(quote)\(tableName)\(quote)"
+        }
+
+        // 匹配 SHOW COLUMNS FROM table_name 模式
+        let showColumnsPattern = #/(?i)\bSHOW\s+COLUMNS\s+FROM\s+(`?)(\w+)\1(?!\s*\.)/#
+        result = result.replacing(showColumnsPattern) { match in
+            let quote = match.output.1
+            let tableName = match.output.2
+            return "SHOW COLUMNS FROM \(escapedDB).\(quote)\(tableName)\(quote)"
+        }
+
         return result
+    }
+
+    static func isShowCreateTable(_ sql: String) -> Bool {
+        let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.range(
+            of: #"(?i)^show\s+create\s+table\b"#,
+            options: .regularExpression
+        ) != nil
+    }
+
+    static func formatCreateTableSQL(_ sql: String) -> String {
+        var result = sql
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
+        result = result.replacingOccurrences(
+            of: #"(?i)(CREATE\s+TABLE\s+.+?)\s*\("#,
+            with: "$1 (\n  ",
+            options: .regularExpression
+        )
+        result = result.replacingOccurrences(of: ",`", with: ",\n  `")
+        result = result.replacingOccurrences(of: ", `", with: ",\n  `")
+        result = result.replacingOccurrences(of: "),\n", with: ")\n")
+        result = result.replacingOccurrences(of: ", PRIMARY KEY", with: ",\n  PRIMARY KEY")
+        result = result.replacingOccurrences(of: ", UNIQUE KEY", with: ",\n  UNIQUE KEY")
+        result = result.replacingOccurrences(of: ", KEY", with: ",\n  KEY")
+        result = result.replacingOccurrences(of: ", CONSTRAINT", with: ",\n  CONSTRAINT")
+        result = result.replacingOccurrences(of: ") ENGINE=", with: "\n) ENGINE=")
+        result = result.replacingOccurrences(of: " DEFAULT CHARSET=", with: "\nDEFAULT CHARSET=")
+        result = result.replacingOccurrences(of: " COLLATE=", with: "\nCOLLATE=")
+
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// 解析可直接编辑的单表 SELECT 目标。

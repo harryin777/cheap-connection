@@ -16,22 +16,25 @@ extension MySQLEditorView {
     func handleTextChange(_ text: String) {
         guard !text.isEmpty else {
             showAutocomplete = false
+            autocompleteWordRange = nil
             return
         }
 
         // 基于当前光标位置提取词，而不是全文末尾
-        let currentWord = extractWordAtCursor(text: text, position: cursorPosition)
+        let extracted = extractWordAtCursor(text: text, position: cursorPosition)
+        let currentWord = extracted.word
         guard currentWord.count >= 1 else {
             showAutocomplete = false
+            autocompleteWordRange = nil
             return
         }
 
-        generateSuggestions(for: currentWord)
+        generateSuggestions(for: currentWord, wordRange: extracted.range)
     }
 
     /// 提取光标位置的词（用于补全）
-    private func extractWordAtCursor(text: String, position: Int) -> String {
-        guard position >= 0 && position <= text.count else { return "" }
+    private func extractWordAtCursor(text: String, position: Int) -> (word: String, range: NSRange) {
+        guard position >= 0 && position <= text.count else { return ("", NSRange(location: 0, length: 0)) }
 
         let string = text
         let cursorIndex = string.index(string.startIndex, offsetBy: min(position, string.count))
@@ -55,21 +58,17 @@ extension MySQLEditorView {
 
         // 提取当前词
         if wordStartIndex <= wordEndIndex {
-            return String(string[wordStartIndex..<wordEndIndex])
+            let word = String(string[wordStartIndex..<wordEndIndex])
+            let startOffset = string.distance(from: string.startIndex, to: wordStartIndex)
+            let length = string.distance(from: wordStartIndex, to: wordEndIndex)
+            return (word, NSRange(location: startOffset, length: length))
         }
-        return ""
+        return ("", NSRange(location: position, length: 0))
     }
 
-    func generateSuggestions(for word: String) {
+    func generateSuggestions(for word: String, wordRange: NSRange) {
         var suggestions: [SQLCompletionSuggestion] = []
         let lowercasedWord = word.lowercased()
-
-        // Debug: 检查候选源是否为空
-        print("[Autocomplete] 生成建议 for word: '\(word)'")
-        print("[Autocomplete] tables.count: \(tables.count), columns.count: \(columns.count)")
-        if !tables.isEmpty {
-            print("[Autocomplete] 表名: \(tables.map { $0.name })")
-        }
 
         for table in tables where table.name.lowercased().hasPrefix(lowercasedWord) {
             suggestions.append(SQLCompletionSuggestion(text: table.name, type: .table))
@@ -82,15 +81,14 @@ extension MySQLEditorView {
         for keyword in sqlKeywords where keyword.lowercased().hasPrefix(lowercasedWord) {
             suggestions.append(SQLCompletionSuggestion(text: keyword, type: .keyword))
         }
-
-        print("[Autocomplete] 匹配到 \(suggestions.count) 个建议: \(suggestions.map { $0.text })")
         autocompleteSuggestions = Array(suggestions.prefix(10))
         selectedSuggestionIndex = 0
         showAutocomplete = !autocompleteSuggestions.isEmpty
 
-        // 记录触发补全时的光标位置，用于后续判断光标是否移出补全词
         if showAutocomplete {
-            autocompleteStartPosition = cursorPosition
+            autocompleteWordRange = wordRange
+        } else {
+            autocompleteWordRange = nil
         }
     }
 
@@ -108,6 +106,7 @@ extension MySQLEditorView {
 
         guard cursorPos >= 0 && cursorPos <= text.count else {
             showAutocomplete = false
+            autocompleteWordRange = nil
             return
         }
 
@@ -138,7 +137,7 @@ extension MySQLEditorView {
         requestedCursorPosition = newCursorPos
 
         showAutocomplete = false
-        autocompleteStartPosition = nil
+        autocompleteWordRange = nil
     }
 
     func navigateSuggestion(direction: MySQLEditorSuggestionNavigationDirection) {
@@ -154,13 +153,12 @@ extension MySQLEditorView {
 
     /// 检查光标是否移出当前补全词范围，如果是则关闭补全浮层
     func checkAndDismissAutocompleteIfCursorMoved(newPosition: Int) {
-        guard showAutocomplete, let startPosition = autocompleteStartPosition else { return }
+        guard showAutocomplete, let wordRange = autocompleteWordRange else { return }
 
-        // 光标位置变化时，关闭补全浮层
-        // 简单策略：如果光标移动了，就关闭补全
-        if newPosition != startPosition {
+        let validRange = wordRange.location...(wordRange.location + wordRange.length)
+        if !validRange.contains(newPosition) {
             showAutocomplete = false
-            autocompleteStartPosition = nil
+            autocompleteWordRange = nil
         }
     }
 }

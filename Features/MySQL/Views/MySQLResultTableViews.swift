@@ -22,6 +22,7 @@ struct ResultPinnedHeaderView: View {
     let onColumnDragEnd: () -> Void
 
     private let dividerWidth: CGFloat = 1
+    private let headerTextColor = Color(red: 0.42, green: 0.74, blue: 0.95)
 
     var body: some View {
         let fontSize = CGFloat(settingsRepo.settings.dataViewFontSize)
@@ -43,6 +44,7 @@ struct ResultPinnedHeaderView: View {
                 Text(columns[columnIndex])
                     .font(.system(size: fontSize - 1, design: .monospaced))
                     .fontWeight(.semibold)
+                    .foregroundStyle(headerTextColor)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.horizontal, 8)

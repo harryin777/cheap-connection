@@ -175,6 +175,7 @@ extension MySQLRightPanelView {
             guard !Task.isCancelled, !isPanelClosing else { return }
 
             sqlResult = result
+            formattedSQLResult = formatSpecialSQLResult(for: sql, result: result)
             lastExecutedSQL = sql
 
             if let editContext = try await resolveSQLResultEditContext(for: sql, result: result) {
@@ -187,6 +188,7 @@ extension MySQLRightPanelView {
             }
         } catch {
             guard !Task.isCancelled, !isPanelClosing else { return }
+            formattedSQLResult = nil
             clearSQLResultEditContext()
             errorMessage = error.localizedDescription
             showError = true
@@ -199,6 +201,19 @@ extension MySQLRightPanelView {
         sqlResultDatabase = nil
         sqlResultTable = nil
         sqlResultColumns = []
+    }
+
+    private func formatSpecialSQLResult(for sql: String, result: MySQLQueryResult) -> String? {
+        guard result.isSuccess, result.rowCount > 0 else { return nil }
+        guard SQLPreprocessor.isShowCreateTable(sql) else { return nil }
+        guard let createTableColumnIndex = result.columns.firstIndex(where: { $0.caseInsensitiveCompare("Create Table") == .orderedSame }),
+              let createTableRow = result.rows.first,
+              createTableColumnIndex < createTableRow.count else {
+            return nil
+        }
+
+        let rawSQL = createTableRow[createTableColumnIndex].displayValue
+        return SQLPreprocessor.formatCreateTableSQL(rawSQL)
     }
 
     private func resolveSQLResultEditContext(for sql: String, result: MySQLQueryResult) async throws -> SQLResultEditContext? {
