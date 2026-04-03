@@ -8,6 +8,13 @@
 import Foundation
 
 extension MySQLRightPanelView {
+    struct SQLResultEditContext {
+        let connectionId: UUID
+        let database: String
+        let table: String
+        let columns: [MySQLColumnDefinition]
+    }
+
     // MARK: - Table Data Loading
 
     func loadTableStructure(database: String, table: String, connectionId: UUID) async {
@@ -158,16 +165,133 @@ extension MySQLRightPanelView {
 
     private func executeMySQLCommand(_ sql: String) async {
         do {
-            sqlResult = try await withQueryService(currentQueryConnectionId) { queryService in
+            let result = try await withQueryService(currentQueryConnectionId) { queryService in
                 var processedSQL = sql
                 if let currentQueryDatabase {
                     processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
                 }
                 return try await queryService.executeSQL(processedSQL)
             }
+            guard !Task.isCancelled, !isPanelClosing else { return }
+
+            sqlResult = result
+            lastExecutedSQL = sql
+
+            if let editContext = try await resolveSQLResultEditContext(for: sql, result: result) {
+                sqlResultConnectionId = editContext.connectionId
+                sqlResultDatabase = editContext.database
+                sqlResultTable = editContext.table
+                sqlResultColumns = editContext.columns
+            } else {
+                clearSQLResultEditContext()
+            }
         } catch {
             guard !Task.isCancelled, !isPanelClosing else { return }
+            clearSQLResultEditContext()
             errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    @MainActor
+    private func clearSQLResultEditContext() {
+        sqlResultConnectionId = nil
+        sqlResultDatabase = nil
+        sqlResultTable = nil
+        sqlResultColumns = []
+    }
+
+    private func resolveSQLResultEditContext(for sql: String, result: MySQLQueryResult) async throws -> SQLResultEditContext? {
+        guard result.isSuccess, result.hasResults else { return nil }
+        guard let target = SQLPreprocessor.extractSingleTableSelectTarget(sql, defaultDatabase: currentQueryDatabase) else {
+            return nil
+        }
+
+        let structure = try await withQueryService(currentQueryConnectionId) { queryService in
+            try await queryService.fetchTableStructure(database: target.database, table: target.table)
+        }
+
+        guard structure.contains(where: \.isPrimaryKey) else {
+            return nil
+        }
+
+        let resultColumns = Set(result.columns)
+        let structureColumns = Set(structure.map(\.name))
+        guard resultColumns.isSubset(of: structureColumns) else {
+            return nil
+        }
+
+        return SQLResultEditContext(
+            connectionId: currentQueryConnectionId,
+            database: target.database,
+            table: target.table,
+            columns: structure
+        )
+    }
+
+    func updateSQLResultCell(rowIndex: Int, columnIndex: Int, newValue: String) async {
+        guard !Task.isCancelled, !isPanelClosing else { return }
+        guard let sqlResultConnectionId,
+              let sqlResultDatabase,
+              let sqlResultTable,
+              let sqlResult,
+              rowIndex < sqlResult.rows.count,
+              columnIndex < sqlResult.columns.count else { return }
+
+        let columnName = sqlResult.columns[columnIndex]
+        let primaryKeyColumns = sqlResultColumns.filter(\.isPrimaryKey)
+
+        guard !primaryKeyColumns.isEmpty else {
+            errorMessage = "No primary key"
+            showError = true
+            return
+        }
+
+        let row = sqlResult.rows[rowIndex]
+        var whereClauses: [String] = []
+
+        for primaryKeyColumn in primaryKeyColumns {
+            guard let pkIndex = sqlResult.columns.firstIndex(of: primaryKeyColumn.name) else {
+                errorMessage = "Primary key column not found in SQL result: \(primaryKeyColumn.name)"
+                showError = true
+                return
+            }
+
+            let pkValue = row[pkIndex]
+            let escapedValue = SQLPreprocessor.escapeValueForSQL(pkValue)
+            whereClauses.append("`\(primaryKeyColumn.name)` = \(escapedValue)")
+        }
+
+        let escapedDatabase = "`" + sqlResultDatabase.replacingOccurrences(of: "`", with: "``") + "`"
+        let escapedTable = "`" + sqlResultTable.replacingOccurrences(of: "`", with: "``") + "`"
+        let escapedColumn = "`" + columnName.replacingOccurrences(of: "`", with: "``") + "`"
+        let escapedNewValue = SQLPreprocessor.escapeStringValue(newValue)
+
+        let updateSQL = """
+            UPDATE \(escapedDatabase).\(escapedTable)
+            SET \(escapedColumn) = \(escapedNewValue)
+            WHERE \(whereClauses.joined(separator: " AND "))
+            LIMIT 1
+            """
+
+        do {
+            let updateResult = try await withQueryService(sqlResultConnectionId) { queryService in
+                try await queryService.executeSQL(updateSQL)
+            }
+            guard !Task.isCancelled, !isPanelClosing else { return }
+
+            if let error = updateResult.error {
+                errorMessage = "Update failed: \(error.localizedDescription)"
+                showError = true
+                return
+            }
+
+            if let lastExecutedSQL {
+                await executeMySQLCommand(lastExecutedSQL)
+            }
+        } catch {
+            guard !Task.isCancelled, !isPanelClosing else { return }
+            errorMessage = "Update failed: \(error.localizedDescription)"
             showError = true
         }
     }

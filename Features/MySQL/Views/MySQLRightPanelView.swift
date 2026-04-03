@@ -38,6 +38,11 @@ struct MySQLRightPanelView: View {
     @State var columns: [MySQLColumnDefinition] = []
     @State var tableDataResult: MySQLQueryResult?
     @State var sqlResult: MySQLQueryResult?
+    @State var sqlResultConnectionId: UUID?
+    @State var sqlResultDatabase: String?
+    @State var sqlResultTable: String?
+    @State var sqlResultColumns: [MySQLColumnDefinition] = []
+    @State var lastExecutedSQL: String?
     @State var pagination = PaginationState()
 
     // State - Loading
@@ -108,6 +113,13 @@ struct MySQLRightPanelView: View {
         return queryAllColumns
     }
 
+    var canEditSQLResult: Bool {
+        sqlResultConnectionId != nil &&
+        sqlResultDatabase != nil &&
+        sqlResultTable != nil &&
+        !sqlResultColumns.filter(\.isPrimaryKey).isEmpty
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -122,6 +134,13 @@ struct MySQLRightPanelView: View {
             initializeQueryContext()
             enqueuePendingTask {
                 await loadInitialMetadata()
+            }
+        }
+        .onDisappear {
+            guard !isPanelClosing else { return }
+            isPanelClosing = true
+            Task {
+                await cancelPendingTasksAndWait()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .tableDoubleClicked)) { notification in
@@ -205,7 +224,18 @@ struct MySQLRightPanelView: View {
         if isLoadingSQL {
             LoadingSQLView()
         } else if let sqlResult {
-            MySQLResultView(result: sqlResult)
+            MySQLResultView(
+                result: sqlResult,
+                onCellEdit: canEditSQLResult ? { [self] rowIndex, columnIndex, newValue in
+                    enqueuePendingTask {
+                        await updateSQLResultCell(
+                            rowIndex: rowIndex,
+                            columnIndex: columnIndex,
+                            newValue: newValue
+                        )
+                    }
+                } : nil
+            )
         }
     }
 

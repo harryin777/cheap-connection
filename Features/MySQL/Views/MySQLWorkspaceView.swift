@@ -54,6 +54,14 @@ struct MySQLWorkspaceView: View {
                 await connectIfNeeded()
             }
         }
+        .onDisappear {
+            guard !isWorkspaceClosing else { return }
+            isWorkspaceClosing = true
+            Task {
+                await cancelPendingTasksAndWait()
+                await disconnect()
+            }
+        }
         // 监听工作区关闭通知
         .onReceive(NotificationCenter.default.publisher(for: .workspaceWillClose)) { notification in
             guard let closingWorkspaceId = notification.object as? UUID,

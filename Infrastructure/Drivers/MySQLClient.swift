@@ -57,11 +57,24 @@ actor MySQLClient: MySQLClientProtocol {
             if resolvedAddresses.isEmpty {
                 throw AppError.connectionFailed("未解析到可用地址: \(config.host)")
             }
+
+            // 输出解析结果
+            logConnectionInfo("MySQL 地址解析成功", config: config, extra: [
+                "resolvedCount": "\(resolvedAddresses.count)",
+                "addresses": resolvedAddresses.map { "\($0.socketAddress.description)" }.joined(separator: ", ")
+            ])
         } catch let error as AppError {
             await cleanupEventLoopGroupAfterFailedConnect()
             throw error
         } catch {
             await cleanupEventLoopGroupAfterFailedConnect()
+
+            // 输出详细错误日志
+            logConnectionError("MySQL 地址解析失败", config: config, error: error, extra: [
+                "rawErrorType": String(describing: type(of: error)),
+                "rawErrorDescription": error.localizedDescription
+            ])
+
             throw AppError.connectionFailed("地址解析失败: \(config.host):\(config.port) - \(error.localizedDescription)")
         }
 
@@ -71,8 +84,13 @@ actor MySQLClient: MySQLClientProtocol {
 
             var attemptErrors: [Error] = []
 
-            for resolved in resolvedAddresses {
+            for (index, resolved) in resolvedAddresses.enumerated() {
                 do {
+                    logConnectionInfo("MySQL 尝试连接地址 #\(index + 1)", config: config, extra: [
+                        "address": resolved.socketAddress.description,
+                        "family": resolved.socketAddress.description.contains(":") ? "IPv6" : "IPv4"
+                    ])
+
                     let conn = try await MySQLConnection.connect(
                         to: resolved.socketAddress,
                         username: config.username,
@@ -85,11 +103,24 @@ actor MySQLClient: MySQLClientProtocol {
                     ).get()
 
                     self.connection = conn
+
+                    logConnectionInfo("MySQL 连接成功", config: config, extra: [
+                        "address": resolved.socketAddress.description
+                    ])
                     return
                 } catch {
                     attemptErrors.append(error)
+                    logConnectionError("MySQL 地址 #\(index + 1) 连接失败", config: config, error: error, extra: [
+                        "address": resolved.socketAddress.description,
+                        "rawErrorType": String(describing: type(of: error))
+                    ])
                 }
             }
+
+            // 所有地址都失败
+            logConnectionError("MySQL 所有地址尝试失败", config: config, errors: attemptErrors, extra: [
+                "attemptedCount": "\(resolvedAddresses.count)"
+            ])
 
             throw MySQLConnectionErrorHandler.buildFinalError(
                 errors: attemptErrors,
@@ -102,6 +133,12 @@ actor MySQLClient: MySQLClientProtocol {
             throw error
         } catch {
             await cleanupEventLoopGroupAfterFailedConnect()
+
+            logConnectionError("MySQL 连接最终失败", config: config, error: error, extra: [
+                "rawErrorType": String(describing: type(of: error)),
+                "rawErrorDescription": error.localizedDescription
+            ])
+
             throw MySQLErrorMapper.map(error)
         }
     }
@@ -143,5 +180,41 @@ actor MySQLClient: MySQLClientProtocol {
         if let group = group {
             try? await group.shutdownGracefully()
         }
+    }
+
+    // MARK: - 日志辅助方法
+
+    private nonisolated func logConnectionInfo(_ message: String, config: MySQLConnectionConfig, extra: [String: String] = [:]) {
+        var metadata: [String: String] = [
+            "host": config.host,
+            "port": "\(config.port)",
+            "username": config.username,
+            "bundleIdentifier": Bundle.main.bundleIdentifier ?? "nil",
+            "executablePath": Bundle.main.executablePath ?? "nil"
+        ]
+        metadata.merge(extra) { (_, new) in new }
+        let metaStr = metadata.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+        appLogInfo("\(message) | \(metaStr)", category: .connection)
+    }
+
+    private nonisolated func logConnectionError(_ message: String, config: MySQLConnectionConfig, error: Error? = nil, errors: [Error]? = nil, extra: [String: String] = [:]) {
+        var metadata: [String: String] = [
+            "host": config.host,
+            "port": "\(config.port)",
+            "username": config.username,
+            "bundleIdentifier": Bundle.main.bundleIdentifier ?? "nil",
+            "executablePath": Bundle.main.executablePath ?? "nil"
+        ]
+        if let error = error {
+            metadata["error"] = error.localizedDescription
+            metadata["errorType"] = String(describing: type(of: error))
+        }
+        if let errors = errors, !errors.isEmpty {
+            metadata["errorsCount"] = "\(errors.count)"
+            metadata["errorTypes"] = errors.map { String(describing: type(of: $0)) }.joined(separator: ", ")
+        }
+        metadata.merge(extra) { (_, new) in new }
+        let metaStr = metadata.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+        appLogError("\(message) | \(metaStr)", category: .connection)
     }
 }

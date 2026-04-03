@@ -96,6 +96,7 @@ struct ResultDataRowView: View {
     let editingCell: CellPosition?
     let editingText: String
     let isEditingFocused: FocusState<Bool>.Binding
+    let onEditingTextChange: (String) -> Void
     let onCellSelect: (CellPosition) -> Void
     let onStartEditing: (CellPosition, MySQLRowValue) -> Void
     let onFinishEditing: () -> Void
@@ -127,6 +128,7 @@ struct ResultDataRowView: View {
                     isEditing: editingCell == CellPosition(row: rowIndex, column: columnIndex),
                     editingText: editingText,
                     isEditingFocused: isEditingFocused,
+                    onEditingTextChange: onEditingTextChange,
                     onSelect: { onCellSelect(CellPosition(row: rowIndex, column: columnIndex)) },
                     onStartEditing: { onStartEditing(CellPosition(row: rowIndex, column: columnIndex), row[columnIndex]) },
                     onFinishEditing: onFinishEditing,

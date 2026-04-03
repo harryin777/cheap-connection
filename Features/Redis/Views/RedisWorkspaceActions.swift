@@ -18,14 +18,52 @@ extension RedisWorkspaceView {
         isConnecting = true
         defer { isConnecting = false }
 
+        // 记录连接开始阶段
+        let metadata = [
+            "connectionId": connectionConfig.id.uuidString,
+            "name": connectionConfig.name,
+            "host": connectionConfig.host,
+            "port": "\(connectionConfig.port)",
+            "defaultDatabase": connectionConfig.defaultDatabase ?? "nil",
+            "bundleIdentifier": Bundle.main.bundleIdentifier ?? "nil",
+            "executablePath": Bundle.main.executablePath ?? "nil"
+        ]
+        let metaStr = metadata.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+        appLogDebug("Redis 连接开始 | \(metaStr)", category: .connection)
+
         let newService = RedisService(connectionConfig: connectionConfig)
         service = newService
 
         do {
+            // 阶段1: 获取密码（如果有）
+            appLogDebug("Redis 连接阶段1: 获取密码 | connectionId=\(connectionConfig.id.uuidString)", category: .connection)
+
             let password = try? ConnectionManager.shared.getPassword(for: connectionConfig.id)
+
+            appLogDebug("Redis 连接阶段1完成: 密码获取完成 | connectionId=\(connectionConfig.id.uuidString), hasPassword=\(password != nil ? "true" : "false")", category: .connection)
+
+            // 阶段2: 驱动层连接
+            let phase2Meta = [
+                "connectionId": connectionConfig.id.uuidString,
+                "host": connectionConfig.host,
+                "port": "\(connectionConfig.port)"
+            ]
+            appLogDebug("Redis 连接阶段2: 开始驱动层连接 | \(phase2Meta.map { "\($0.key)=\($0.value)" }.joined(separator: ", "))", category: .connection)
+
             try await newService.connect(config: connectionConfig, password: password)
+
+            appLogDebug("Redis 连接阶段2完成: 驱动层连接成功 | connectionId=\(connectionConfig.id.uuidString)", category: .connection)
+
             await loadInitialKeys()
+
+            appLogInfo("Redis 连接成功 | connectionId=\(connectionConfig.id.uuidString), name=\(connectionConfig.name)", category: .connection)
         } catch {
+            let errorMeta = [
+                "connectionId": connectionConfig.id.uuidString,
+                "error": error.localizedDescription,
+                "errorType": String(describing: type(of: error))
+            ]
+            appLogError("Redis 连接失败 | \(errorMeta.map { "\($0.key)=\($0.value)" }.joined(separator: ", "))", category: .connection)
             showError(message: error.localizedDescription)
         }
     }

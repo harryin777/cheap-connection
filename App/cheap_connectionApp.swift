@@ -360,7 +360,7 @@ struct SettingsView: View {
             LoggingSettingsTab(settings: $settings)
                 .tabItem { Label("日志", systemImage: "doc.text") }
         }
-        .frame(width: 480, height: 400)
+        .frame(width: 750, height: 500)
         .onChange(of: settings) { _, newSettings in
             repository.update(newSettings)
         }
@@ -450,26 +450,339 @@ struct LoggingSettingsTab: View {
     @Binding var settings: AppSettings
 
     var body: some View {
-        Form {
-            Section("日志设置") {
+        VStack(spacing: 0) {
+            // 日志设置区域
+            HStack(spacing: 16) {
                 Toggle("启用日志", isOn: $settings.loggingEnabled)
 
-                Picker("日志级别", selection: $settings.minimumLogLevel) {
+                Picker("最小日志级别", selection: $settings.minimumLogLevel) {
                     Text("Debug").tag(0)
                     Text("Info").tag(1)
                     Text("Warning").tag(2)
                     Text("Error").tag(3)
                 }
+                .frame(width: 100)
                 .disabled(!settings.loggingEnabled)
-            }
 
-            Section {
-                Text("Debug 模式下会输出详细日志，包括文件名和行号。\n生产环境建议使用 Info 或以上级别。")
+                Spacer()
+
+                Text("Debug 模式下会输出详细日志，包括文件名和行号")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(NSColor.controlBackgroundColor))
+
+            Divider()
+
+            // 日志面板
+            LogPanelView()
         }
-        .formStyle(.grouped)
-        .padding()
+    }
+}
+
+// MARK: - Log Panel View
+
+/// 日志面板视图 - 显示运行时日志，支持过滤和搜索
+struct LogPanelView: View {
+    @State private var entries: [LogEntry] = []
+    @State private var searchText = ""
+    @State private var selectedLevel: LogLevel?
+    @State private var selectedCategory: LogCategory?
+    @State private var isAutoRefresh = true
+    @State private var refreshTimer: Timer?
+
+    private var filteredEntries: [LogEntry] {
+        var result = entries
+
+        // 按级别过滤
+        if let level = selectedLevel {
+            result = result.filter { $0.level == level }
+        }
+
+        // 按分类过滤
+        if let category = selectedCategory {
+            result = result.filter { $0.category == category }
+        }
+
+        // 按搜索文本过滤
+        if !searchText.isEmpty {
+            result = result.filter { entry in
+                entry.message.localizedCaseInsensitiveContains(searchText) ||
+                (entry.metadata?.values.contains { $0.localizedCaseInsensitiveContains(searchText) } ?? false)
+            }
+        }
+
+        return result
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 工具栏
+            toolbarView
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(NSColor.controlBackgroundColor))
+
+            Divider()
+
+            // 日志列表
+            if filteredEntries.isEmpty {
+                emptyStateView
+            } else {
+                logListView
+            }
+        }
+        .onAppear {
+            refreshLogs()
+            startAutoRefresh()
+        }
+        .onDisappear {
+            stopAutoRefresh()
+        }
+    }
+
+    // MARK: - Toolbar
+
+    private var toolbarView: some View {
+        HStack(spacing: 12) {
+            // 搜索框
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField("搜索日志...", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .frame(width: 150)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color(NSColor.textBackgroundColor))
+            .cornerRadius(4)
+
+            // 级别过滤
+            Picker("级别", selection: $selectedLevel) {
+                Text("全部").tag(nil as LogLevel?)
+                Text("Debug").tag(LogLevel?.some(.debug))
+                Text("Info").tag(LogLevel?.some(.info))
+                Text("Warning").tag(LogLevel?.some(.warning))
+                Text("Error").tag(LogLevel?.some(.error))
+            }
+            .frame(width: 100)
+            .labelsHidden()
+
+            // 分类过滤
+            Picker("分类", selection: $selectedCategory) {
+                Text("全部").tag(nil as LogCategory?)
+                Text("连接").tag(LogCategory?.some(.connection))
+                Text("查询").tag(LogCategory?.some(.query))
+                Text("命令").tag(LogCategory?.some(.command))
+                Text("缓存").tag(LogCategory?.some(.cache))
+                Text("存储").tag(LogCategory?.some(.storage))
+                Text("UI").tag(LogCategory?.some(.ui))
+                Text("通用").tag(LogCategory?.some(.general))
+            }
+            .frame(width: 90)
+            .labelsHidden()
+
+            Spacer()
+
+            // 自动刷新开关
+            Toggle("自动刷新", isOn: $isAutoRefresh)
+                .toggleStyle(.checkbox)
+                .onChange(of: isAutoRefresh) { _, newValue in
+                    if newValue {
+                        startAutoRefresh()
+                    } else {
+                        stopAutoRefresh()
+                    }
+                }
+
+            // 刷新按钮
+            Button(action: refreshLogs) {
+                Image(systemName: "arrow.clockwise")
+            }
+            .help("刷新日志")
+
+            // 清空按钮
+            Button(action: clearLogs) {
+                Image(systemName: "trash")
+            }
+            .help("清空日志")
+        }
+    }
+
+    // MARK: - Log List
+
+    private var logListView: some View {
+        Table(filteredEntries) {
+            TableColumn("时间") { entry in
+                Text(formatTimestamp(entry.timestamp))
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            .width(min: 85, max: 100)
+
+            TableColumn("级别") { entry in
+                levelBadge(entry.level)
+            }
+            .width(min: 60, max: 70)
+
+            TableColumn("分类") { entry in
+                Text(entry.category.rawValue)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            .width(min: 80, max: 90)
+
+            TableColumn("消息") { entry in
+                LogMessageCell(entry: entry)
+            }
+        }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundStyle(.tertiary)
+
+            Text(entries.isEmpty ? "暂无日志" : "没有匹配的日志")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            if !entries.isEmpty {
+                Button("清除过滤条件") {
+                    searchText = ""
+                    selectedLevel = nil
+                    selectedCategory = nil
+                }
+                .buttonStyle(.link)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Level Badge
+
+    @ViewBuilder
+    private func levelBadge(_ level: LogLevel) -> some View {
+        Text(level.rawValue)
+            .font(.system(size: 10, weight: .medium, design: .monospaced))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(levelColor(level))
+            .foregroundColor(.white)
+            .cornerRadius(3)
+    }
+
+    private func levelColor(_ level: LogLevel) -> Color {
+        switch level {
+        case .debug:
+            return .gray
+        case .info:
+            return .blue
+        case .warning:
+            return .orange
+        case .error:
+            return .red
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func formatTimestamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        return formatter.string(from: date)
+    }
+
+    private func refreshLogs() {
+        entries = SimpleLogCollector.shared.getAll()
+    }
+
+    private func clearLogs() {
+        SimpleLogCollector.shared.clear()
+        entries = []
+    }
+
+    private func startAutoRefresh() {
+        stopAutoRefresh()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            DispatchQueue.main.async {
+                refreshLogs()
+            }
+        }
+    }
+
+    private func stopAutoRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+}
+
+// MARK: - Log Message Cell
+
+struct LogMessageCell: View {
+    let entry: LogEntry
+    @State private var isExpanded = false
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // 主消息
+            Text(entry.message)
+                .font(.system(.caption, design: .monospaced))
+                .lineLimit(isExpanded ? nil : 2)
+                .textSelection(.enabled)
+
+            // 元数据
+            if let metadata = entry.metadata, !metadata.isEmpty {
+                if isExpanded || isHovered {
+                    metadataView(metadata)
+                }
+            }
+
+            // 源文件信息 (仅 Debug 模式)
+            #if DEBUG
+            if isExpanded {
+                if let file = entry.file, let line = entry.line {
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 9))
+                        Text("\(URL(fileURLWithPath: file).lastPathComponent):\(line)")
+                            .font(.system(size: 9, design: .monospaced))
+                    }
+                    .foregroundStyle(.tertiary)
+                }
+            }
+            #endif
+        }
+        .padding(.vertical, 2)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .onTapGesture(count: 2) {
+            isExpanded.toggle()
+        }
+    }
+
+    private func metadataView(_ metadata: [String: String]) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(metadata.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                HStack(spacing: 4) {
+                    Text(key + ":")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Text(value)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.top, 2)
     }
 }

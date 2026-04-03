@@ -141,6 +141,7 @@ struct MySQLResultView: View {
                                 editingCell: editingCell,
                                 editingText: editingText,
                                 isEditingFocused: $isEditingFocused,
+                                onEditingTextChange: { editingText = $0 },
                                 onCellSelect: { pos in selectedCell = pos },
                                 onStartEditing: startEditing,
                                 onFinishEditing: finishEditing,

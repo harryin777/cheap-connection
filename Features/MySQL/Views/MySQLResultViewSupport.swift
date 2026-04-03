@@ -97,10 +97,11 @@ extension MySQLResultView {
     func finishEditing() {
         guard let cell = editingCell else { return }
         let originalValue = result.rows[cell.row][cell.column].displayValue
+        let newValue = editingText
 
-        if editingText != originalValue {
+        if newValue != originalValue {
             Task {
-                await onCellEdit?(cell.row, cell.column, editingText)
+                await onCellEdit?(cell.row, cell.column, newValue)
             }
         }
 

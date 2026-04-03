@@ -474,6 +474,22 @@
   - ResultDataRowView: 行号字体使用 tabBarFontSize
   - 分页控件、状态栏、工具栏等均已支持响应式更新
 
+### 4.8 运行诊断与 SQL 结果编辑
+- [x] 2026-04-03: 增强安装版连接失败诊断
+  - `KeychainService` 增加原始 `OSStatus` 日志
+  - `ConnectionRepository` 输出实际存储路径
+  - `MySQLWorkspaceConnection` / `RedisWorkspaceActions` 记录连接阶段日志
+  - `MySQLClient` / `RedisClient` 保留 raw error 到日志
+- [x] 2026-04-03: 支持 SQL 执行结果区直接编辑
+  - 简单单表 `SELECT` 结果现在可双击单元格直接修改
+  - 编辑提交后自动执行 `UPDATE` 并刷新原查询结果
+  - 复杂查询（如 `JOIN / GROUP BY / UNION`）继续保持只读
+- [x] 2026-04-03: 修复结果区编辑提交与连接释放问题
+  - 修复回车提交时输入值被清空的问题
+  - 避免编辑结束时在视图更新阶段直接修改状态
+  - 加强右侧面板和 MySQL 工作区的任务取消与断连收口
+  - 修复 `MySQLService.connect()` 失败时可能遗留底层连接的问题
+
 ---
 
 ## 格式说明

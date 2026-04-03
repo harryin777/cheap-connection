@@ -19,6 +19,7 @@ struct ResultDataCellView: View {
     let isEditing: Bool
     let editingText: String
     let isEditingFocused: FocusState<Bool>.Binding
+    let onEditingTextChange: (String) -> Void
     let onSelect: () -> Void
     let onStartEditing: () -> Void
     let onFinishEditing: () -> Void
@@ -34,7 +35,7 @@ struct ResultDataCellView: View {
                 // 编辑模式
                 TextField("", text: Binding(
                     get: { editingText },
-                    set: { _ in }
+                    set: onEditingTextChange
                 ))
                     .font(.system(size: CGFloat(settingsRepo.settings.dataViewFontSize), design: .monospaced))
                     .textFieldStyle(.plain)

@@ -46,6 +46,15 @@ final class ConnectionRepository: ConnectionRepositoryProtocol, @unchecked Senda
 
     private init() {
         ensureDirectoryExists()
+        // 输出实际存储路径，便于排查打包态 vs Xcode 运行态差异
+        let metadata = [
+            "storageDirectory": storageDirectory.path,
+            "storageFile": storageFile.path,
+            "bundleIdentifier": Bundle.main.bundleIdentifier ?? "nil",
+            "executablePath": Bundle.main.executablePath ?? "nil"
+        ]
+        let metaStr = metadata.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+        appLogDebug("初始化 | \(metaStr)", category: .storage)
     }
 
     static let shared = ConnectionRepository()

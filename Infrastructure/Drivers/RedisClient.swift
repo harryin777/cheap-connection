@@ -57,19 +57,37 @@ actor RedisClient: RedisClientProtocol {
             if resolvedAddresses.isEmpty {
                 throw AppError.connectionFailed("未解析到可用地址: \(config.host)")
             }
+
+            // 输出解析结果
+            logConnectionInfo("Redis 地址解析成功", config: config, extra: [
+                "resolvedCount": "\(resolvedAddresses.count)",
+                "addresses": resolvedAddresses.map { "\($0.socketAddress.description)" }.joined(separator: ", ")
+            ])
         } catch let error as AppError {
             await cleanupAfterFailedConnect()
             throw error
         } catch {
             await cleanupAfterFailedConnect()
+
+            // 输出详细错误日志
+            logConnectionError("Redis 地址解析失败", config: config, error: error, extra: [
+                "rawErrorType": String(describing: type(of: error)),
+                "rawErrorDescription": error.localizedDescription
+            ])
+
             throw AppError.connectionFailed("地址解析失败: \(config.host):\(config.port) - \(error.localizedDescription)")
         }
 
         do {
             var attemptErrors: [Error] = []
 
-            for resolved in resolvedAddresses {
+            for (index, resolved) in resolvedAddresses.enumerated() {
                 do {
+                    logConnectionInfo("Redis 尝试连接地址 #\(index + 1)", config: config, extra: [
+                        "address": resolved.socketAddress.description,
+                        "family": resolved.socketAddress.description.contains(":") ? "IPv6" : "IPv4"
+                    ])
+
                     let conn = try await makeConnection(
                         to: resolved.socketAddress,
                         config: config,
@@ -84,11 +102,23 @@ actor RedisClient: RedisClientProtocol {
                         try await selectDatabase(db)
                     }
 
+                    logConnectionInfo("Redis 连接成功", config: config, extra: [
+                        "address": resolved.socketAddress.description
+                    ])
                     return
                 } catch {
                     attemptErrors.append(error)
+                    logConnectionError("Redis 地址 #\(index + 1) 连接失败", config: config, error: error, extra: [
+                        "address": resolved.socketAddress.description,
+                        "rawErrorType": String(describing: type(of: error))
+                    ])
                 }
             }
+
+            // 所有地址都失败
+            logConnectionError("Redis 所有地址尝试失败", config: config, errors: attemptErrors, extra: [
+                "attemptedCount": "\(resolvedAddresses.count)"
+            ])
 
             throw RedisConnectionErrorHandler.buildFinalError(
                 errors: attemptErrors,
@@ -101,6 +131,12 @@ actor RedisClient: RedisClientProtocol {
             throw error
         } catch {
             await cleanupAfterFailedConnect()
+
+            logConnectionError("Redis 连接最终失败", config: config, error: error, extra: [
+                "rawErrorType": String(describing: type(of: error)),
+                "rawErrorDescription": error.localizedDescription
+            ])
+
             throw RedisErrorMapper.map(error)
         }
     }
@@ -172,6 +208,42 @@ actor RedisClient: RedisClientProtocol {
         if let group = group {
             try? await group.shutdownGracefully()
         }
+    }
+
+    // MARK: - 日志辅助方法
+
+    private nonisolated func logConnectionInfo(_ message: String, config: RedisConnectionConfig, extra: [String: String] = [:]) {
+        var metadata: [String: String] = [
+            "host": config.host,
+            "port": "\(config.port)",
+            "database": "\(config.database ?? 0)",
+            "bundleIdentifier": Bundle.main.bundleIdentifier ?? "nil",
+            "executablePath": Bundle.main.executablePath ?? "nil"
+        ]
+        metadata.merge(extra) { (_, new) in new }
+        let metaStr = metadata.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+        appLogInfo("\(message) | \(metaStr)", category: .connection)
+    }
+
+    private nonisolated func logConnectionError(_ message: String, config: RedisConnectionConfig, error: Error? = nil, errors: [Error]? = nil, extra: [String: String] = [:]) {
+        var metadata: [String: String] = [
+            "host": config.host,
+            "port": "\(config.port)",
+            "database": "\(config.database ?? 0)",
+            "bundleIdentifier": Bundle.main.bundleIdentifier ?? "nil",
+            "executablePath": Bundle.main.executablePath ?? "nil"
+        ]
+        if let error = error {
+            metadata["error"] = error.localizedDescription
+            metadata["errorType"] = String(describing: type(of: error))
+        }
+        if let errors = errors, !errors.isEmpty {
+            metadata["errorsCount"] = "\(errors.count)"
+            metadata["errorTypes"] = errors.map { String(describing: type(of: $0)) }.joined(separator: ", ")
+        }
+        metadata.merge(extra) { (_, new) in new }
+        let metaStr = metadata.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+        appLogError("\(message) | \(metaStr)", category: .connection)
     }
 }
 

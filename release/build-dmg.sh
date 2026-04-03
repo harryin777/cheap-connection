@@ -27,6 +27,16 @@ cd "$PROJECT_DIR"
 # 构建 Release 版本
 echo ""
 echo "📦 构建 Release 版本..."
+# GPT TODO: 这里产出的安装包运行的是 Release + 独立 .app 进程，
+# 不能把“Xcode 里 Debug 直跑正常”当成“安装包也一定正常”。
+# 当前项目里连接配置走 Application Support，密码走 Keychain，打包后还叠加了 App Sandbox。
+# 如果用户反馈“Xcode 运行能连数据库，DMG 安装后的 app 不能连”，
+# glm5 需要优先验证这 4 个维度：
+# 1. Release app 实际 bundle id / team id / entitlements；
+# 2. Release app 实际读取的 Application Support 容器路径；
+# 3. Release app 是否能读到与 connections.json 同 UUID 的 Keychain 条目；
+# 4. 驱动层地址解析 / socket connect 的 raw error。
+# 当前脚本只是 build + copy + create-dmg，没有任何打包后自检步骤，所以这类问题很难第一时间定位。
 xcodebuild -scheme cheap-connection \
     -configuration Release \
     -derivedDataPath build \
