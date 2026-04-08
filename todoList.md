@@ -158,7 +158,12 @@
 - [x] Tab 补全后光标精确停在补全文本最后一个字符后面，且不再自动追加空格
 
 ### 2.B MySQL 当前待修 Bug
-- （暂无）
+- [x] 右侧固定工作区容器不再绑定具体 MySQL 连接；App 启动后右侧默认显示统一工作区壳，不默认连接任何数据库
+- [x] `MainView.detailView` 无条件渲染统一工作区壳；连接上下文是壳内可选执行上下文
+- [x] 移除 `MySQLWorkspaceView.onAppear -> connectIfNeeded()` 自动连接；改为懒连接
+- [x] 打开外部 `.sql` 文件后编辑区正常显示；修复 `SQLEditorTextView.updateNSView` 中 `hasMarkedText()` 的提前返回逻辑
+- [x] `SQLEditorTextView.updateNSView` 不再因 `hasMarkedText()` 拦截 programmatic load；IME 合成态下仍允许文本更新
+- [x] `SQLEditorTextView.applyEditorAppearance(to:)` 语法高亮正常工作，不破坏已加载文本
 
 ---
 

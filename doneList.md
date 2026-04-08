@@ -490,6 +490,25 @@
   - 加强右侧面板和 MySQL 工作区的任务取消与断连收口
   - 修复 `MySQLService.connect()` 失败时可能遗留底层连接的问题
 
+### 4.9 右侧工作区壳独立化与编辑器渲染修复
+- [x] 2026-04-08: 右侧工作区壳始终存在，不再绑定具体 MySQL 连接
+  - `MainView.detailView` 无条件渲染统一工作区壳
+  - 移除 `fixedWorkspaceConnectionId` 自动绑定逻辑
+  - 移除 `emptyStateView`，不再有"没有连接就空白"的状态
+- [x] 2026-04-08: 移除 App 启动后自动连接数据库
+  - `MySQLWorkspaceView` 不再调用 `connectIfNeeded()`
+  - 改为用户在编辑器中选择连接后才懒连接（`withQueryService`）
+- [x] 2026-04-08: 连接上下文改为可选，编辑器不依赖连接
+  - `MySQLRightPanelView` 的 `connectionConfig` 和 `service` 改为可选
+  - `currentQueryConnectionId` 改为 `UUID?`，操作时 guard unwrap
+  - `EditorQueryTab.queryConnectionId` 改为 `UUID?`
+  - `MySQLEditorView.queryConnectionId` 改为 `UUID?`
+  - `SQLEditorConnectionMenu.selectedConnectionId` 改为 `UUID?`
+- [x] 2026-04-08: 修复外部 SQL 文件打开后编辑区空白
+  - `SQLEditorTextView.updateNSView` 不再因 `hasMarkedText()` 拦截 programmatic 文本更新
+  - IME 合成态下仍允许 `textView.string = text`，只跳过选区/光标回调
+- [x] 2026-04-08: 清理所有相关 GPT TODO 注释（14 个文件）
+
 ---
 
 ## 格式说明

@@ -12,7 +12,6 @@ import AppKit
 struct MainView: View {
     @Environment(ConnectionManager.self) private var connectionManager
     @State private var sidebarWidth: CGFloat
-    @State private var fixedWorkspaceConnectionId: UUID?
     @State private var fixedWorkspaceId = UUID()
 
     init() {
@@ -43,12 +42,6 @@ struct MainView: View {
         .onChange(of: sidebarWidth) { _, newWidth in
             saveSidebarWidth(newWidth)
         }
-        .task {
-            syncFixedWorkspaceConnection()
-        }
-        .onChange(of: connectionManager.connections.map(\.id)) { _, _ in
-            syncFixedWorkspaceConnection()
-        }
         .background(SidebarWidthObserver(width: $sidebarWidth))
     }
 
@@ -62,55 +55,12 @@ struct MainView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        if let connectionConfig = fixedMySQLWorkspaceConnection {
-            MySQLWorkspaceView(
-                connectionConfig: connectionConfig,
-                workspaceId: fixedWorkspaceId
-            )
+        // 右侧工作区壳始终存在，连接上下文是壳内可选执行上下文
+        MySQLWorkspaceView(workspaceId: fixedWorkspaceId)
             .id(fixedWorkspaceId)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            emptyStateView
-        }
     }
 
-    private var fixedMySQLWorkspaceConnection: ConnectionConfig? {
-        guard let fixedWorkspaceConnectionId else { return nil }
-        return connectionManager.connections.first {
-            $0.id == fixedWorkspaceConnectionId && $0.databaseKind == .mysql
-        }
-    }
-
-    private func syncFixedWorkspaceConnection() {
-        if let fixedWorkspaceConnectionId,
-           connectionManager.connections.contains(where: {
-               $0.id == fixedWorkspaceConnectionId && $0.databaseKind == .mysql
-           }) {
-            return
-        }
-
-        fixedWorkspaceConnectionId = connectionManager.connections
-            .first(where: { $0.databaseKind == .mysql })?
-            .id
-    }
-
-    private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "externaldrive.connected.to.line.below")
-                .font(.system(size: 64))
-                .foregroundStyle(.secondary)
-
-            Text("暂无 MySQL 工作区")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-
-            Text("请先创建至少一个 MySQL 连接。右侧固定工作区只使用 MySQL 面板。")
-                .font(.body)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
 }
 
 // MARK: - Sidebar Width Observer

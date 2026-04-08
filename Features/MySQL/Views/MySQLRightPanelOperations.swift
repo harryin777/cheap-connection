@@ -147,9 +147,9 @@ extension MySQLRightPanelView {
 
         displayMode = .sqlResult
 
-        // Check if current connection is Redis
-        guard let connection = connectionManager.connections.first(where: { $0.id == currentQueryConnectionId }) else {
-            errorMessage = "Connection not found"
+        guard let connectionId = currentQueryConnectionId,
+              let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else {
+            errorMessage = "请先选择一个连接"
             showError = true
             return
         }
@@ -164,8 +164,13 @@ extension MySQLRightPanelView {
     }
 
     private func executeMySQLCommand(_ sql: String) async {
+        guard let connectionId = currentQueryConnectionId else {
+            errorMessage = "请先选择一个连接"
+            showError = true
+            return
+        }
         do {
-            let result = try await withQueryService(currentQueryConnectionId) { queryService in
+            let result = try await withQueryService(connectionId) { queryService in
                 var processedSQL = sql
                 if let currentQueryDatabase {
                     processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
@@ -217,12 +222,13 @@ extension MySQLRightPanelView {
     }
 
     private func resolveSQLResultEditContext(for sql: String, result: MySQLQueryResult) async throws -> SQLResultEditContext? {
-        guard result.isSuccess, result.hasResults else { return nil }
+        guard let connectionId = currentQueryConnectionId,
+              result.isSuccess, result.hasResults else { return nil }
         guard let target = SQLPreprocessor.extractSingleTableSelectTarget(sql, defaultDatabase: currentQueryDatabase) else {
             return nil
         }
 
-        let structure = try await withQueryService(currentQueryConnectionId) { queryService in
+        let structure = try await withQueryService(connectionId) { queryService in
             try await queryService.fetchTableStructure(database: target.database, table: target.table)
         }
 
@@ -237,7 +243,7 @@ extension MySQLRightPanelView {
         }
 
         return SQLResultEditContext(
-            connectionId: currentQueryConnectionId,
+            connectionId: connectionId,
             database: target.database,
             table: target.table,
             columns: structure

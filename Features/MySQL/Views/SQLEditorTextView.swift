@@ -128,9 +128,8 @@ struct SQLEditorTextView: NSViewRepresentable {
             }
         }
 
-        if textView.hasMarkedText() {
-            return
-        }
+        // IME 合成态下仍然允许 programmatic 文本更新，只是跳过选区/光标回调
+        let hasMarked = textView.hasMarkedText()
 
         // 优先处理外部请求的光标位置（自动补全后同步光标）
         if let requestedPosition = requestedCursorPosition,
@@ -158,10 +157,13 @@ struct SQLEditorTextView: NSViewRepresentable {
             applyEditorAppearance(to: textView)
 
             // 尝试恢复选中范围（如果有效）
-            if selectedRange.location + selectedRange.length <= text.count {
+            if !hasMarked, selectedRange.location + selectedRange.length <= text.count {
                 textView.setSelectedRange(selectedRange)
             }
         }
+
+        // IME 合成态下不回调选区/光标变化，避免干扰输入法
+        guard !hasMarked else { return }
 
         // 只在选区/光标真正变化时才回调，避免 resize 期间重复触发 SwiftUI setState
         let selectedRange = textView.selectedRange()

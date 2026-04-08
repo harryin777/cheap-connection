@@ -128,7 +128,7 @@ extension MySQLEditorView {
                 selectedDatabase: selectedQueryDatabase,
                 onSelect: onSelectQueryDatabase
             )
-            .id("\(queryConnectionId.uuidString)-\(queryDatabases.joined(separator: ","))")
+            .id("\(queryConnectionId?.uuidString ?? "none")-\(queryDatabases.joined(separator: ","))")
 
             // Connection menu
             SQLEditorConnectionMenu(

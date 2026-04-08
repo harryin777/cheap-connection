@@ -106,7 +106,7 @@ struct SQLEditorSchemaMenu: View {
 /// Connection 选择器菜单
 struct SQLEditorConnectionMenu: View {
     let connections: [ConnectionConfig]
-    let selectedConnectionId: UUID
+    let selectedConnectionId: UUID?
     let selectedConnectionName: String
     let onSelect: (UUID) -> Void
     @ObservedObject private var settingsRepo = SettingsRepository.shared
@@ -201,7 +201,7 @@ struct SQLEditorConnectionMenu: View {
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .id("connection-\(fontSize)-\(selectedConnectionId.uuidString)-\(selectedConnectionName)")
+        .id("connection-\(fontSize)-\(selectedConnectionId?.uuidString ?? "none")-\(selectedConnectionName)")
         .fixedSize()
         .help("Current query connection")
     }

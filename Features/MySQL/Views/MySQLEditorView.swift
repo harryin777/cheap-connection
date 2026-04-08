@@ -14,7 +14,7 @@ struct MySQLEditorView: View {
     @ObservedObject private var settingsRepo = SettingsRepository.shared
 
     // MARK: - Query Context
-    let queryConnectionId: UUID
+    let queryConnectionId: UUID?
     let queryConnectionName: String
     let availableConnections: [ConnectionConfig]
     let queryDatabases: [String]

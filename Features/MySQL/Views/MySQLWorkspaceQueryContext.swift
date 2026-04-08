@@ -57,7 +57,7 @@ extension MySQLRightPanelView {
         }
 
         // Clear cache for new connection
-        if connectionId != connectionConfig.id {
+        if connectionId != connectionConfig?.id {
             connectionDatabaseCache.removeValue(forKey: connectionId)
         }
 
@@ -119,25 +119,27 @@ extension MySQLRightPanelView {
             print("[Autocomplete] 清空元数据：数据库为 nil")
             return
         }
+        guard let connectionId = currentQueryConnectionId else {
+            queryTables = []
+            queryAllColumns = []
+            return
+        }
 
         print("[Autocomplete] 开始加载元数据，数据库: \(database)")
         isLoadingQueryMetadata = true
         defer { isLoadingQueryMetadata = false }
 
         do {
-            // 检查任务是否被取消
             guard !Task.isCancelled else {
                 print("[Autocomplete] 任务已取消")
                 return
             }
 
-            // 使用 withQueryService 确保 disconnect 被正确等待
-            let tables = try await withQueryService(currentQueryConnectionId) { queryService in
+            let tables = try await withQueryService(connectionId) { queryService in
                 try await queryService.fetchTables(database: database)
             }
             print("[Autocomplete] 获取到 \(tables.count) 个表")
 
-            // 检查任务是否被取消
             guard !Task.isCancelled else {
                 print("[Autocomplete] 任务已取消")
                 return
@@ -150,19 +152,17 @@ extension MySQLRightPanelView {
             // 第二步：获取所有表的列信息（单独处理，失败不影响表名候选）
             var allColumns: [MySQLColumnDefinition] = []
             for table in tables {
-                // 检查任务是否被取消
                 guard !Task.isCancelled else {
                     print("[Autocomplete] 任务已取消")
                     return
                 }
 
                 do {
-                    let tableColumns = try await withQueryService(currentQueryConnectionId) { queryService in
+                    let tableColumns = try await withQueryService(connectionId) { queryService in
                         try await queryService.fetchTableStructure(database: database, table: table.name)
                     }
                     allColumns.append(contentsOf: tableColumns)
                 } catch {
-                    // 单张表列结构失败只打印日志，不影响其他表
                     print("[Autocomplete] 获取表 \(table.name) 列信息失败: \(error.localizedDescription)")
                 }
             }
@@ -187,8 +187,7 @@ extension MySQLRightPanelView {
 
     func fetchDatabasesForConnection(_ connectionId: UUID) async -> [String] {
         guard !Task.isCancelled, !isPanelClosing else { return [] }
-        if connectionId == connectionConfig.id {
-            // 对于当前工作区连接，直接通过 service 获取
+        if connectionId == connectionConfig?.id {
             if let cached = connectionDatabaseCache[connectionId] {
                 return cached
             }
@@ -220,7 +219,7 @@ extension MySQLRightPanelView {
     /// - Returns: (service, shouldDisconnect) 元组
     /// - Note: 优先使用 `withQueryService` 辅助函数，它能自动管理临时 service 的断连
     func serviceForQueryConnection(_ connectionId: UUID) async throws -> (service: MySQLService, shouldDisconnect: Bool) {
-        if connectionId == connectionConfig.id {
+        if let config = connectionConfig, connectionId == config.id, let service {
             // 当前工作区连接，使用传入的 service
             return (service, false)
         }

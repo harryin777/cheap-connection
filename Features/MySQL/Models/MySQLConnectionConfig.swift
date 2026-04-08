@@ -71,7 +71,7 @@ struct EditorQueryTab: Identifiable, Equatable {
     // MARK: - Query Context (独立于左侧资源树选择)
 
     /// Query 执行连接 ID
-    var queryConnectionId: UUID
+    var queryConnectionId: UUID?
 
     /// Query 执行连接名称（用于显示）
     var queryConnectionName: String
@@ -82,7 +82,7 @@ struct EditorQueryTab: Identifiable, Equatable {
     init(
         fileURL: URL,
         content: String,
-        defaultConnectionId: UUID,
+        defaultConnectionId: UUID?,
         defaultConnectionName: String,
         defaultDatabase: String? = nil
     ) {

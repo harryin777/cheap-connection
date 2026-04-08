@@ -76,7 +76,6 @@ extension MySQLRightPanelView {
             activeEditorTabId = newTab.id
             sqlText = content
         }
-
         displayMode = .editorOnly
 
         // 清除所有执行结果和导入状态，确保打开文件后界面只显示编辑器内容
@@ -102,8 +101,11 @@ extension MySQLRightPanelView {
     }
 
     func executeSQLStatements(_ statements: [String]) async {
-        // Note: This function is only called by importSQLFile() (import-and-execute)
-        // openSQLFile() must NOT call this function
+        guard let connectionId = currentQueryConnectionId else {
+            errorMessage = "请先选择一个连接"
+            showError = true
+            return
+        }
         showImportProgress = true
         importProgress = 0
         importStatus = "Preparing..."
@@ -114,8 +116,7 @@ extension MySQLRightPanelView {
         var errors: [String] = []
 
         do {
-            // 使用 withQueryService 确保 disconnect 被正确等待
-            try await withQueryService(currentQueryConnectionId) { queryService in
+            try await withQueryService(connectionId) { queryService in
                 for (index, sql) in statements.enumerated() {
                     importProgress = Double(index + 1) / Double(statements.count)
                     importStatus = "执行中... (\(index + 1)/\(statements.count))"

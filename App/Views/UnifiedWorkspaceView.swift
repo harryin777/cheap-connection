@@ -19,8 +19,8 @@ struct UnifiedWorkspaceView: View {
     var body: some View {
         switch connectionConfig.databaseKind {
         case .mysql:
-            // MySQL 使用现有的工作区视图
-            MySQLWorkspaceView(connectionConfig: connectionConfig, workspaceId: workspaceId)
+            // MySQL 使用统一工作区壳（不绑定特定连接）
+            MySQLWorkspaceView(workspaceId: workspaceId)
         case .redis:
             // Redis 使用统一的上下分割布局
             RedisUnifiedWorkspaceView(connectionConfig: connectionConfig, workspaceId: workspaceId)

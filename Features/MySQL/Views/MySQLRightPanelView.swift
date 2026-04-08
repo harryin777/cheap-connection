@@ -12,9 +12,9 @@ import SwiftUI
 /// MySQL 右侧面板视图
 /// 完全独立于左侧资源树，不监听 ConnectionManager.selectedXxx 变化
 struct MySQLRightPanelView: View {
-    let connectionConfig: ConnectionConfig
+    let connectionConfig: ConnectionConfig? = nil
     let workspaceId: UUID
-    let service: MySQLService
+    let service: MySQLService? = nil
     @Environment(ConnectionManager.self) var connectionManager
 
     // State - Query Context
@@ -85,12 +85,12 @@ struct MySQLRightPanelView: View {
         return editorTabs.first(where: { $0.id == tabId })
     }
 
-    var currentQueryConnectionId: UUID {
-        activeQueryTab?.queryConnectionId ?? scratchQueryConnectionId ?? connectionConfig.id
+    var currentQueryConnectionId: UUID? {
+        activeQueryTab?.queryConnectionId ?? scratchQueryConnectionId ?? connectionConfig?.id
     }
 
     var currentQueryConnectionName: String {
-        activeQueryTab?.queryConnectionName ?? scratchQueryConnectionName ?? connectionConfig.name
+        activeQueryTab?.queryConnectionName ?? scratchQueryConnectionName ?? connectionConfig?.name ?? "未选择连接"
     }
 
     var currentQueryDatabase: String? {
@@ -98,7 +98,8 @@ struct MySQLRightPanelView: View {
     }
 
     var queryDatabaseOptions: [String] {
-        return connectionDatabaseCache[currentQueryConnectionId]?.sorted() ?? []
+        guard let connectionId = currentQueryConnectionId else { return [] }
+        return connectionDatabaseCache[connectionId]?.sorted() ?? []
     }
 
     var availableConnections: [ConnectionConfig] {
@@ -133,8 +134,10 @@ struct MySQLRightPanelView: View {
         }
         .onAppear {
             initializeQueryContext()
-            enqueuePendingTask {
-                await loadInitialMetadata()
+            if currentQueryConnectionId != nil {
+                enqueuePendingTask {
+                    await loadInitialMetadata()
+                }
             }
         }
         .onDisappear {
@@ -245,21 +248,20 @@ struct MySQLRightPanelView: View {
     // MARK: - Initialization
 
     private func initializeQueryContext() {
-        if scratchQueryConnectionId == nil {
-            scratchQueryConnectionId = connectionConfig.id
-            scratchQueryConnectionName = connectionConfig.name
-            scratchQueryDatabaseName = connectionConfig.defaultDatabase
+        if scratchQueryConnectionId == nil, let config = connectionConfig {
+            scratchQueryConnectionId = config.id
+            scratchQueryConnectionName = config.name
+            scratchQueryDatabaseName = config.defaultDatabase
         }
     }
 
     private func loadInitialMetadata() async {
-        // 加载当前 Query Context 连接的数据库列表
-        let databases = await fetchDatabasesForConnection(currentQueryConnectionId)
-        if connectionDatabaseCache[currentQueryConnectionId] == nil {
-            connectionDatabaseCache[currentQueryConnectionId] = databases
+        guard let connectionId = currentQueryConnectionId else { return }
+        let databases = await fetchDatabasesForConnection(connectionId)
+        if connectionDatabaseCache[connectionId] == nil {
+            connectionDatabaseCache[connectionId] = databases
         }
 
-        // 如果有默认数据库，加载元数据
         if let defaultDb = currentQueryDatabase {
             await loadQueryMetadata(database: defaultDb)
         }
@@ -296,19 +298,8 @@ struct MySQLRightPanelView: View {
 }
 
 #Preview {
-    let config = ConnectionConfig(
-        name: "Test MySQL",
-        databaseKind: .mysql,
-        host: "localhost",
-        port: 3306,
-        username: "root",
-        defaultDatabase: nil
-    )
-    let service = MySQLService(connectionConfig: config)
     MySQLRightPanelView(
-        connectionConfig: config,
-        workspaceId: UUID(),
-        service: service
+        workspaceId: UUID()
     ).frame(width: 900, height: 600)
 }
 

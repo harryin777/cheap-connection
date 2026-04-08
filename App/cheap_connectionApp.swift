@@ -339,6 +339,28 @@ final class SettingsRepository: ObservableObject, @unchecked Sendable {
     }
 }
 
+// MARK: - Theme Palette
+
+/// 统一主题调色板。
+/// 当前先提供一套接近 DataGrip Dark 的配色，后续如需支持多主题，只需要在这里新增 palette 并切换 current。
+struct AppThemePalette {
+    let sqlKeywordNSColor: NSColor
+    let sqlCommentNSColor: NSColor
+    let sqlStringNSColor: NSColor
+    let resultHeaderColor: Color
+
+    static let dataGripDark = AppThemePalette(
+        sqlKeywordNSColor: NSColor(calibratedRed: 0.93, green: 0.62, blue: 0.32, alpha: 1.0),
+        sqlCommentNSColor: NSColor(calibratedRed: 0.42, green: 0.62, blue: 0.46, alpha: 1.0),
+        sqlStringNSColor: NSColor(calibratedRed: 0.47, green: 0.72, blue: 0.80, alpha: 1.0),
+        resultHeaderColor: Color(red: 0.42, green: 0.74, blue: 0.95)
+    )
+}
+
+enum AppTheme {
+    static var current: AppThemePalette { .dataGripDark }
+}
+
 // MARK: - Settings View
 
 struct SettingsView: View {
