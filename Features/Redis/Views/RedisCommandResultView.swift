@@ -10,9 +10,6 @@ import SwiftUI
 struct RedisCommandResultView: View {
     let result: RedisCommandResult
 
-    @State private var showFullValue: Bool = false
-    private let previewLimit: Int = 10000
-
     var body: some View {
         VStack(spacing: 0) {
             resultHeader
@@ -103,25 +100,7 @@ struct RedisCommandResultView: View {
     @ViewBuilder
     private func stringView(_ string: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            if showFullValue || string.count <= previewLimit {
-                textPreview(string)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    textPreview(String(string.prefix(previewLimit)))
-
-                    HStack {
-                        Text("已截断显示，共 \(string.count) 字符")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-
-                        Button("显示完整内容") {
-                            showFullValue = true
-                        }
-                        .buttonStyle(.link)
-                        .font(.system(size: 11))
-                    }
-                }
-            }
+            textPreview(string)
 
             HStack(spacing: 16) {
                 Label("\(string.count) 字符", systemImage: "textformat")
@@ -175,7 +154,7 @@ struct RedisCommandResultView: View {
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.secondary)
         case .string(let string):
-            Text(string.count > 200 ? String(string.prefix(200)) + "..." : string)
+            Text(string)
                 .font(.system(size: 12, design: .monospaced))
                 .textSelection(.enabled)
         case .int(let integer):
@@ -208,11 +187,9 @@ struct RedisCommandResultView: View {
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.secondary)
 
-            if data.count <= 1024 {
-                let hex = data.map { String(format: "%02x", $0) }.joined(separator: " ")
-                textPreview(hex)
-                    .font(.system(size: 10, design: .monospaced))
-            }
+            let hex = data.map { String(format: "%02x", $0) }.joined(separator: " ")
+            textPreview(hex)
+                .font(.system(size: 10, design: .monospaced))
         }
     }
 

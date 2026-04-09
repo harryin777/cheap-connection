@@ -89,9 +89,6 @@ struct RedisCommandResult: Sendable, Equatable {
         case .null:
             return "(nil)"
         case .string(let s):
-            if s.count > 100 {
-                return String(s.prefix(100)) + "..."
-            }
             return s
         case .int(let i):
             return "\(i)"
