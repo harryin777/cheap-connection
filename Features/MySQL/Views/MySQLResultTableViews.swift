@@ -151,7 +151,7 @@ struct ResultDataRowView: View {
             }
         }
         // 根容器至少铺满 viewport 宽度
-        .frame(minWidth: viewportWidth, maxHeight: 22)
+        .frame(minWidth: viewportWidth)
         .background(rowBackgroundColor(rowIndex))
     }
 

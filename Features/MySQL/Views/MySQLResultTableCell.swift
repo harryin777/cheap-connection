@@ -58,9 +58,8 @@ struct ResultDataCellView: View {
             }
         }
         .padding(.horizontal, isEditing ? 0 : 8)
-        .lineLimit(1)
-        .truncationMode(.tail)
-        .frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
         .background(
             isSelected ? Color.accentColor.opacity(0.2) :
             isEditing ? Color.accentColor.opacity(0.1) : Color.clear
