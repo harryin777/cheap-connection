@@ -139,6 +139,7 @@ struct RedisKeyListView: View {
                 .font(.system(size: 11))
                 .lineLimit(1)
                 .truncationMode(.middle)
+                .textSelection(.enabled)
 
             Spacer()
 

@@ -55,6 +55,7 @@ struct ResultDataCellView: View {
                 Text(displayText)
                     .font(.system(size: CGFloat(settingsRepo.settings.dataViewFontSize), design: .monospaced))
                     .foregroundStyle(.primary)
+                    .textSelection(.enabled)
             }
         }
         .padding(.horizontal, isEditing ? 0 : 8)

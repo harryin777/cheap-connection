@@ -75,6 +75,7 @@ struct RedisHashValueView: View {
         HStack(alignment: .top, spacing: 0) {
             Text(key)
                 .font(.system(size: 11, design: .monospaced))
+                .textSelection(.enabled)
                 .foregroundStyle(.primary)
                 .frame(width: 200, alignment: .leading)
                 .padding(.horizontal, 12)
