@@ -164,6 +164,8 @@
 - [x] 打开外部 `.sql` 文件后编辑区正常显示；修复 `SQLEditorTextView.updateNSView` 中 `hasMarkedText()` 的提前返回逻辑
 - [x] `SQLEditorTextView.updateNSView` 不再因 `hasMarkedText()` 拦截 programmatic load；IME 合成态下仍允许文本更新
 - [x] `SQLEditorTextView.applyEditorAppearance(to:)` 语法高亮正常工作，不破坏已加载文本
+- [ ] 右上数据库 selector 已显示选中库，但执行 `select * from users;` 仍触发 MySQL 1046：除了继续检查 `SQLEditorSchemaMenu -> updateQueryDatabase -> currentQueryDatabase` 状态链，还必须修复 `executeMySQLCommand()` 当前对前置 `USE db` 不检查 `MySQLQueryResult.error` 的问题；`MySQLService.executeSQL()` / `MySQLClient.executeQuery()` 对 SQL 级错误采用“返回 result.error 而不是 throw”，导致 `USE` 失败后主 SQL 仍继续执行，最终复现相同的“未选择数据库”现象
+- [ ] 现在普通测试场景里又直接报“SQL语法错误”：需要优先确认报错对象是不是前置 `USE db`，不是主 `select * from users;`；当前 `executeMySQLCommand()` 已改成对 `USE` 的 `result.error` 直接 throw，因此一旦数据库名被异步清空、被错误污染，或 `currentQueryConnectionId/currentQueryDatabase` 不属于同一上下文，用户看到的就会是 `USE` 的语法错误而不是主 SQL 的错误
 
 ---
 

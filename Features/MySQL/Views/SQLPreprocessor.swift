@@ -41,8 +41,8 @@ enum SQLPreprocessor {
 
         var result = sql
 
-        // 匹配 FROM table_name 模式
-        let fromPattern = #/(?i)\bFROM\s+(`?)(\w+)\1(?!\s*\.)/#
+        // 匹配 FROM table_name 模式（\w* 防止回溯误匹配 db.table 形式的已限定表名）
+        let fromPattern = #/(?i)\bFROM\s+(`?)(\w+)\1(?!\w*\s*\.)/#
         result = result.replacing(fromPattern) { match in
             let quote = match.output.1
             let tableName = match.output.2
@@ -50,7 +50,7 @@ enum SQLPreprocessor {
         }
 
         // 匹配 JOIN table_name 模式
-        let joinPattern = #/(?i)\bJOIN\s+(`?)(\w+)\1(?!\s*\.)/#
+        let joinPattern = #/(?i)\bJOIN\s+(`?)(\w+)\1(?!\w*\s*\.)/#
         result = result.replacing(joinPattern) { match in
             let quote = match.output.1
             let tableName = match.output.2
@@ -58,7 +58,7 @@ enum SQLPreprocessor {
         }
 
         // 匹配 UPDATE table_name 模式
-        let updatePattern = #/(?i)\bUPDATE\s+(`?)(\w+)\1(?!\s*\.)/#
+        let updatePattern = #/(?i)\bUPDATE\s+(`?)(\w+)\1(?!\w*\s*\.)/#
         result = result.replacing(updatePattern) { match in
             let quote = match.output.1
             let tableName = match.output.2
@@ -66,7 +66,7 @@ enum SQLPreprocessor {
         }
 
         // 匹配 INSERT INTO table_name 模式
-        let insertPattern = #/(?i)\bINSERT\s+INTO\s+(`?)(\w+)\1(?!\s*\.)/#
+        let insertPattern = #/(?i)\bINSERT\s+INTO\s+(`?)(\w+)\1(?!\w*\s*\.)/#
         result = result.replacing(insertPattern) { match in
             let quote = match.output.1
             let tableName = match.output.2
@@ -74,7 +74,7 @@ enum SQLPreprocessor {
         }
 
         // 匹配 DELETE FROM table_name 模式
-        let deletePattern = #/(?i)\bDELETE\s+FROM\s+(`?)(\w+)\1(?!\s*\.)/#
+        let deletePattern = #/(?i)\bDELETE\s+FROM\s+(`?)(\w+)\1(?!\w*\s*\.)/#
         result = result.replacing(deletePattern) { match in
             let quote = match.output.1
             let tableName = match.output.2
@@ -82,15 +82,15 @@ enum SQLPreprocessor {
         }
 
         // 匹配 SHOW CREATE TABLE table_name 模式
-        let showCreatePattern = #/(?i)\bSHOW\s+CREATE\s+TABLE\s+(`?)(\w+)\1(?!\s*\.)/#
+        let showCreatePattern = #/(?i)\bSHOW\s+CREATE\s+TABLE\s+(`?)(\w+)\1(?!\w*\s*\.)/#
         result = result.replacing(showCreatePattern) { match in
             let quote = match.output.1
             let tableName = match.output.2
             return "SHOW CREATE TABLE \(escapedDB).\(quote)\(tableName)\(quote)"
         }
 
-        // 匹配 DESC/DESCRIBE table_name 模式
-        let describePattern = #/(?i)\b(DESC|DESCRIBE)\s+(`?)(\w+)\2(?!\s*\.)/#
+        // 匹配 DESC/DESCRIBE table_name 模式（仅在语句开头，避免误匹配 ORDER BY ... DESC）
+        let describePattern = #/(?i)^\s*(DESC|DESCRIBE)\s+(`?)(\w+)\2(?!\w*\s*\.)/#
         result = result.replacing(describePattern) { match in
             let keyword = match.output.1
             let quote = match.output.2
@@ -99,7 +99,7 @@ enum SQLPreprocessor {
         }
 
         // 匹配 SHOW COLUMNS FROM table_name 模式
-        let showColumnsPattern = #/(?i)\bSHOW\s+COLUMNS\s+FROM\s+(`?)(\w+)\1(?!\s*\.)/#
+        let showColumnsPattern = #/(?i)\bSHOW\s+COLUMNS\s+FROM\s+(`?)(\w+)\1(?!\w*\s*\.)/#
         result = result.replacing(showColumnsPattern) { match in
             let quote = match.output.1
             let tableName = match.output.2

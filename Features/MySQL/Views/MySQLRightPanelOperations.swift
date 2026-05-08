@@ -170,11 +170,15 @@ extension MySQLRightPanelView {
             return
         }
         do {
+            let database = currentQueryDatabase
+                ?? connectionManager.connections.first(where: { $0.id == connectionId })?.defaultDatabase
+            let processedSQL: String
+            if let database {
+                processedSQL = SQLPreprocessor.preprocessSQL(sql, database: database)
+            } else {
+                processedSQL = sql
+            }
             let result = try await withQueryService(connectionId) { queryService in
-                var processedSQL = sql
-                if let currentQueryDatabase {
-                    processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
-                }
                 return try await queryService.executeSQL(processedSQL)
             }
             guard !Task.isCancelled, !isPanelClosing else { return }

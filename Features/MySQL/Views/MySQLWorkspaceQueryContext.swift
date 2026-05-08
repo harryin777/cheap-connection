@@ -44,16 +44,17 @@ extension MySQLRightPanelView {
     func switchQueryConnection(_ connectionId: UUID) {
         guard let connection = connectionManager.connections.first(where: { $0.id == connectionId }) else { return }
 
+        // 同步设置连接信息和默认数据库，消除异步窗口中 database 为 nil 的竞态
         if let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) {
             var updatedTab = editorTabs[tabIndex]
             updatedTab.queryConnectionId = connectionId
             updatedTab.queryConnectionName = connection.name
-            updatedTab.queryDatabaseName = nil
+            updatedTab.queryDatabaseName = connection.defaultDatabase
             editorTabs[tabIndex] = updatedTab
         } else {
             scratchQueryConnectionId = connectionId
             scratchQueryConnectionName = connection.name
-            scratchQueryDatabaseName = nil
+            scratchQueryDatabaseName = connection.defaultDatabase
         }
 
         // Clear cache for new connection
@@ -99,7 +100,9 @@ extension MySQLRightPanelView {
 
     func updateQueryDatabase(_ database: String?) {
         if let tabIndex = editorTabs.firstIndex(where: { $0.id == activeEditorTabId }) {
-            editorTabs[tabIndex].queryDatabaseName = database
+            var tab = editorTabs[tabIndex]
+            tab.queryDatabaseName = database
+            editorTabs[tabIndex] = tab
         } else {
             scratchQueryDatabaseName = database
         }

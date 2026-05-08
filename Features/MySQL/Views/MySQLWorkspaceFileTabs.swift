@@ -116,17 +116,20 @@ extension MySQLRightPanelView {
         var errors: [String] = []
 
         do {
+            let database = currentQueryDatabase
+                ?? connectionManager.connections.first(where: { $0.id == connectionId })?.defaultDatabase
             try await withQueryService(connectionId) { queryService in
                 for (index, sql) in statements.enumerated() {
                     importProgress = Double(index + 1) / Double(statements.count)
                     importStatus = "执行中... (\(index + 1)/\(statements.count))"
 
                     do {
-                        var processedSQL = sql
-                        if let currentQueryDatabase {
-                            processedSQL = SQLPreprocessor.preprocessSQL(sql, database: currentQueryDatabase)
+                        let processedSQL: String
+                        if let database {
+                            processedSQL = SQLPreprocessor.preprocessSQL(sql, database: database)
+                        } else {
+                            processedSQL = sql
                         }
-
                         let result = try await queryService.executeSQL(processedSQL)
                         if let error = result.error {
                             failedCount += 1

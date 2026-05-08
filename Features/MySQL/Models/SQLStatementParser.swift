@@ -175,8 +175,8 @@ enum SQLStatementParser {
                 continue
             }
 
-            // 遇到分号，结束当前语句
-            if char == ";" {
+            // 遇到分号，结束当前语句（兼容中文全角分号 ／;）
+            if char == ";" || char == "\u{FF1B}" {
                 let trimmed = currentStatement.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmed.isEmpty {
                     statements.append(trimmed)

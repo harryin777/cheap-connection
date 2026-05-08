@@ -126,6 +126,7 @@ struct ResultDataRowView: View {
                     value: row[columnIndex],
                     rowIndex: rowIndex,
                     columnIndex: columnIndex,
+                    columnWidth: renderWidths[columnIndex],
                     isSelected: selectedCell == CellPosition(row: rowIndex, column: columnIndex),
                     isEditing: editingCell == CellPosition(row: rowIndex, column: columnIndex),
                     editingText: editingText,
